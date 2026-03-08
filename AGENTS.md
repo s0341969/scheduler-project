@@ -17,3 +17,9 @@
 - 修改的檔案清單
 - 是否通過 `dotnet build`
 - 文件是否已同步更新（README/CHANGELOG/TODO）
+
+5. 每次修改完成後，需自動執行 Git 提交流程（目標 `origin main`）：
+- `git add -A`
+- `git commit -m "<YYYY-MM-DD HH:mm + 變更摘要>"`
+- `git push origin main`
+- 若無變更可提交，則略過 `commit/push` 並在回報中說明原因。
