@@ -1,0 +1,11 @@
+C:\codex_pg\SchedulerConfigProvider\bin\Debug\net8.0\SchedulerConfigProvider.deps.json
+C:\codex_pg\SchedulerConfigProvider\bin\Debug\net8.0\SchedulerConfigProvider.dll
+C:\codex_pg\SchedulerConfigProvider\bin\Debug\net8.0\SchedulerConfigProvider.pdb
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.GeneratedMSBuildEditorConfig.editorconfig
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.AssemblyInfoInputs.cache
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.AssemblyInfo.cs
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.csproj.CoreCompileInputs.cache
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.dll
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\refint\SchedulerConfigProvider.dll
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.pdb
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\ref\SchedulerConfigProvider.dll
