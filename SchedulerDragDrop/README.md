@@ -1,4 +1,4 @@
-﻿# SchedulerDragDrop（C# WPF）
+# SchedulerDragDrop（C# WPF）
 
 ## 目前行為
 
@@ -9,7 +9,7 @@
 
 ## 資料來源（單表）
 
-- 只使用：`MIS.dbo.指派時間_TEMP`
+- 只使用：`TEST.dbo.指派時間_TEMP`
 - 不再使用：機台資料表、定品訂機表、工作表、可用狀態清單
 
 ## 欄位映射
@@ -40,7 +40,7 @@
 - `ShiftToDateTimeDialog`：推移到指定日期時段視窗。
 
 - 資料存取層
-- `DatabaseScheduleLoader.cs`：從 MSSQL `MIS.dbo.指派時間_TEMP` 載入與轉換資料。
+- `DatabaseScheduleLoader.cs`：從 MSSQL `TEST.dbo.指派時間_TEMP` 載入與轉換資料。
 - `SchedulerConfigProvider.dll`：連線字串與欄位設定提供者。
 
 - 排程引擎層
@@ -75,6 +75,12 @@
 
 - 啟動時先顯示主畫面，再載入群組資料。
 - 啟動診斷日誌：`%LOCALAPPDATA%\SchedulerDragDrop\startup_diagnostic.log`
+
+## 連線設定
+
+- 預設連線字串位於 `SchedulerConfigProvider/SchedulerConfig.cs`。
+- 預設 SQL Server：`10.1.1.76`。
+- 可透過環境變數 `PROD_SCHEDULER_CONN` 覆寫預設連線。
 
 ## 啟動
 

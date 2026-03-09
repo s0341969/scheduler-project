@@ -9,3 +9,15 @@ C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.dll
 C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\refint\SchedulerConfigProvider.dll
 C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.pdb
 C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\ref\SchedulerConfigProvider.dll
+G:\codex_pg\SchedulerConfigProvider\bin\Debug\net8.0\SchedulerConfigProvider.deps.json
+G:\codex_pg\SchedulerConfigProvider\bin\Debug\net8.0\SchedulerConfigProvider.dll
+G:\codex_pg\SchedulerConfigProvider\bin\Debug\net8.0\SchedulerConfigProvider.pdb
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.GeneratedMSBuildEditorConfig.editorconfig
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.AssemblyInfoInputs.cache
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.AssemblyInfo.cs
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.csproj.CoreCompileInputs.cache
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.sourcelink.json
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.dll
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\refint\SchedulerConfigProvider.dll
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.pdb
+G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\ref\SchedulerConfigProvider.dll

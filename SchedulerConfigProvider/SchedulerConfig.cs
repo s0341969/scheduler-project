@@ -1,9 +1,9 @@
-﻿namespace SchedulerConfigProvider;
+namespace SchedulerConfigProvider;
 
 public static class SchedulerConfig
 {
     public static string DefaultConnectionString =>
-        "Server=127.0.0.1;Database=MIS;User ID=sa;Password=GONGIN;TrustServerCertificate=True;Encrypt=False";
+        "Server=10.1.1.76;Database=TEST;User ID=sa;Password=GONGIN;TrustServerCertificate=True;Encrypt=False";
 
     public static string DefaultWorkTable => "指派時間_TEMP";
 
