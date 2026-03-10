@@ -626,7 +626,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     Time = tick,
                     Label = tick.ToString("MM-dd HH:mm"),
-                    IsWorking = tick.Hour >= 8 && tick.Hour < 17
+                    IsWorking = SchedulerEngine.IsWorkingTime(tick)
                 });
                 tick = tick.AddHours(1);
             }
@@ -767,9 +767,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (lane is null)
             return false;
 
-        var duration = card.EndAt - card.StartAt;
-        var desiredStart = card.StartAt.AddHours(deltaHours);
-        var desiredEnd = desiredStart + duration;
+        var desiredStart = SchedulerEngine.AlignToWorkingTime(card.StartAt.AddHours(deltaHours));
+        var desiredEnd = SchedulerEngine.AddWorkingHours(desiredStart, card.Order.ProcessHours);
 
         var predecessorEnd = _lanes.SelectMany(x => x.Tasks)
             .Where(x => x.Order.JobId == card.Order.JobId && x.Order.Sequence < card.Order.Sequence)
@@ -799,6 +798,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         ApplySelectionAndHighlights(true);
         return true;
     }
+
     private TaskCard? GetCardFromContextMenuSender(object sender)
     {
         if (sender is not MenuItem menuItem)
@@ -1026,7 +1026,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return;
 
         var dropPoint = e.GetPosition(target);
-        var desiredStart = _timelineStart.AddHours(Math.Max(0, dropPoint.Y / PixelsPerHour));
+        var desiredStart = SchedulerEngine.AlignToWorkingTime(_timelineStart.AddHours(Math.Max(0, dropPoint.Y / PixelsPerHour)));
         var originalIndex = sourceLane.Tasks.IndexOf(card);
         var originalMachineId = card.MachineId;
         var originalStart = card.StartAt;
@@ -1035,7 +1035,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         sourceLane.Tasks.Remove(card);
         card.MachineId = targetLane.Machine.Id;
         card.StartAt = desiredStart;
-        card.EndAt = desiredStart.Add(originalEnd - originalStart);
+        card.EndAt = SchedulerEngine.AddWorkingHours(desiredStart, card.Order.ProcessHours);
         ReinsertCardByStart(targetLane, card);
 
         try
@@ -1071,9 +1071,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         if (predecessorEnd is not null && desiredStart < predecessorEnd.Value)
             return false;
 
-        var duration = card.EndAt - card.StartAt;
-        card.StartAt = desiredStart;
-        card.EndAt = desiredStart.Add(duration);
+        var normalizedStart = SchedulerEngine.AlignToWorkingTime(desiredStart);
+        card.StartAt = normalizedStart;
+        card.EndAt = SchedulerEngine.AddWorkingHours(normalizedStart, card.Order.ProcessHours);
 
         ShiftOverlappingTasksOnLane(targetLane, card, card.StartAt);
         return true;
@@ -1110,9 +1110,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             if (lane is null)
                 continue;
 
-            var successorDuration = successor.EndAt - successor.StartAt;
-            successor.StartAt = requiredStart;
-            successor.EndAt = requiredStart.Add(successorDuration);
+            var normalizedStart = SchedulerEngine.AlignToWorkingTime(requiredStart);
+            successor.StartAt = normalizedStart;
+            successor.EndAt = SchedulerEngine.AddWorkingHours(normalizedStart, successor.Order.ProcessHours);
             ReinsertCardByStart(lane, successor);
             ShiftOverlappingTasksOnLane(lane, successor, successor.StartAt);
             requiredStart = successor.EndAt;
@@ -1136,9 +1136,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 continue;
             }
 
-            var duration = task.EndAt - task.StartAt;
-            task.StartAt = nextAvailable;
-            task.EndAt = nextAvailable.Add(duration);
+            var normalizedStart = SchedulerEngine.AlignToWorkingTime(nextAvailable);
+            task.StartAt = normalizedStart;
+            task.EndAt = SchedulerEngine.AddWorkingHours(normalizedStart, task.Order.ProcessHours);
             nextAvailable = task.EndAt;
         }
     }
@@ -1323,6 +1323,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public required bool IsWorking { get; init; }
     }
 }
+
 
 
 

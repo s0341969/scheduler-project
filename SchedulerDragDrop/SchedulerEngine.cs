@@ -1,9 +1,14 @@
-﻿using SchedulerConfigProvider;
+using SchedulerConfigProvider;
 
 namespace SchedulerDragDrop;
 
 public static class SchedulerEngine
 {
+    // 每台機台每日自 08:00 起可工作 20 小時（至隔日 04:00），週日停工。
+    public const int WorkStartHour = 8;
+    public const int WorkingHoursPerDay = 20;
+    public const int WorkEndHour = (WorkStartHour + WorkingHoursPerDay) % 24;
+
     public static List<ScheduleItem> BuildAutoSchedule(
         IEnumerable<WorkOrder> orders,
         IEnumerable<Machine> machines,
@@ -75,7 +80,7 @@ public static class SchedulerEngine
                 var predEnd = predecessorOrderId.TryGetValue(card.Order.Id, out predId)
                     ? endByOrderId[predId]
                     : DateTime.MinValue;
-                var start = Max(machineAvailable[lane.Machine.Id], release, predEnd);
+                var start = AlignToWorkingTime(Max(machineAvailable[lane.Machine.Id], release, predEnd));
                 candidates.Add((card, start));
             }
 
@@ -90,7 +95,7 @@ public static class SchedulerEngine
                 .First();
 
             var laneForCard = laneByMachineId[selected.Card.MachineId];
-            var endAt = selected.StartAt.AddHours(selected.Card.Order.ProcessHours);
+            var endAt = AddWorkingHours(selected.StartAt, selected.Card.Order.ProcessHours);
 
             selected.Card.StartAt = selected.StartAt;
             selected.Card.EndAt = endAt;
@@ -100,6 +105,72 @@ public static class SchedulerEngine
             endByOrderId[selected.Card.Order.Id] = endAt;
             done++;
         }
+    }
+    public static bool IsWorkingTime(DateTime time)
+    {
+        if (time == DateTime.MinValue || time == DateTime.MaxValue)
+            return true;
+
+        if (time.DayOfWeek == DayOfWeek.Sunday)
+            return false;
+
+        var hour = time.TimeOfDay.TotalHours;
+        return hour >= WorkStartHour || hour < WorkEndHour;
+    }
+    public static DateTime AlignToWorkingTime(DateTime time)
+    {
+        if (time == DateTime.MinValue || time == DateTime.MaxValue)
+            return time;
+
+        var current = time;
+        while (true)
+        {
+            if (current.DayOfWeek == DayOfWeek.Sunday)
+            {
+                current = current.Date.AddDays(1).AddHours(WorkStartHour);
+                continue;
+            }
+
+            var hour = current.TimeOfDay.TotalHours;
+            if (hour >= WorkStartHour || hour < WorkEndHour)
+                return current;
+
+            current = current.Date.AddHours(WorkStartHour);
+        }
+    }
+
+    public static DateTime AddWorkingHours(DateTime startAt, double hours)
+    {
+        var current = AlignToWorkingTime(startAt);
+        if (hours <= 0)
+            return current;
+
+        var remain = hours;
+        while (remain > 1e-9)
+        {
+            current = AlignToWorkingTime(current);
+            var hour = current.TimeOfDay.TotalHours;
+
+            var segmentEnd = hour >= WorkStartHour
+                ? current.Date.AddDays(1)
+                : current.Date.AddHours(WorkEndHour);
+
+            var available = (segmentEnd - current).TotalHours;
+            if (available <= 1e-9)
+            {
+                current = AlignToWorkingTime(current.AddMinutes(1));
+                continue;
+            }
+
+            var alloc = Math.Min(remain, available);
+            current = current.AddHours(alloc);
+            remain -= alloc;
+
+            if (remain > 1e-9)
+                current = AlignToWorkingTime(current);
+        }
+
+        return current;
     }
 
     private static List<List<string>> BuildCandidateJobOrders(IReadOnlyCollection<WorkOrder> orders, int iterationCount)
@@ -200,7 +271,7 @@ public static class SchedulerEngine
 
                 var chosen = ChooseMachine(machineCandidates, r.Order.PreferredMachineIds);
                 var releaseAt = r.Order.ReleaseAt ?? DateTime.MinValue;
-                var startAt = Max(chosen.AvailableAt, releaseAt);
+                var startAt = AlignToWorkingTime(Max(chosen.AvailableAt, releaseAt));
                 candidates.Add((r.JobKey, r.Order, chosen, startAt));
             }
 
@@ -215,7 +286,7 @@ public static class SchedulerEngine
 
             ready.RemoveAll(x => string.Equals(x.Order.Id, selected.Order.Id, StringComparison.OrdinalIgnoreCase));
 
-            var endAt = selected.StartAt.AddHours(selected.Order.ProcessHours);
+            var endAt = AddWorkingHours(selected.StartAt, selected.Order.ProcessHours);
             schedule.Add(new ScheduleItem
             {
                 OrderId = selected.Order.Id,
@@ -395,3 +466,4 @@ public sealed record ScheduleProgress
     public string ProcessCode { get; init; } = string.Empty;
     public string MachineId { get; init; } = string.Empty;
 }
+
