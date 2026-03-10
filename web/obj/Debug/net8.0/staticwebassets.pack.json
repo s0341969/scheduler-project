@@ -1,0 +1,25 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\codex_pg\\web\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.LandingPage.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.LandingPage.props",
+      "PackagePath": "build\\LandingPage.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.LandingPage.props",
+      "PackagePath": "buildMultiTargeting\\LandingPage.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.LandingPage.props",
+      "PackagePath": "buildTransitive\\LandingPage.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

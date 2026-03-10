@@ -1,0 +1,548 @@
+﻿<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[公司名稱]｜[公司核心價值主張]｜高雄市新興區專業服務</title>
+  <meta name="description" content="[公司名稱] 提供 [服務一]、[服務二]、[服務三]，位於高雄市新興區中山一路278號，專業、親切、可靠，歡迎來電 [電話] 洽詢。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:title" content="[公司名稱]｜[公司核心價值主張]">
+  <meta property="og:description" content="[一句話介紹服務與地點優勢]">
+  <meta property="og:url" content="https://example.com/">
+  <meta property="og:image" content="https://picsum.photos/1200/630?grayscale">
+  <meta name="theme-color" content="#133a55">
+  <style>
+    :root {
+      --brand-900: #133a55;
+      --brand-700: #1f5f88;
+      --brand-500: #3187bf;
+      --ink-900: #14202b;
+      --ink-700: #334353;
+      --ink-500: #5e7083;
+      --bg-100: #f4f8fb;
+      --bg-000: #ffffff;
+      --line: #d7e2eb;
+      --ok: #1f7a4f;
+      --radius-sm: 12px;
+      --radius-md: 20px;
+      --radius-lg: 28px;
+      --shadow: 0 24px 54px rgba(15, 55, 84, 0.11);
+      --container: min(1120px, 92vw);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--ink-900);
+      background:
+        radial-gradient(circle at 8% 5%, rgba(49, 135, 191, 0.11), transparent 42%),
+        radial-gradient(circle at 92% 2%, rgba(22, 90, 126, 0.08), transparent 35%),
+        linear-gradient(180deg, #f8fbfd 0%, #f3f8fb 45%, #ffffff 100%);
+      line-height: 1.65;
+      scroll-behavior: smooth;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container { width: var(--container); margin: 0 auto; }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      backdrop-filter: blur(9px);
+      background: rgba(247, 251, 253, 0.85);
+      border-bottom: 1px solid rgba(17, 56, 86, 0.08);
+    }
+
+    .header-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      letter-spacing: .01em;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(145deg, var(--brand-700), var(--brand-500));
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 800;
+    }
+
+    .mini-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .mini-btn {
+      padding: 9px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: #fff;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .hero {
+      padding: 42px 0 28px;
+    }
+
+    .hero-card {
+      background: rgba(255, 255, 255, 0.86);
+      border: 1px solid rgba(20, 58, 85, 0.12);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow);
+      padding: 26px 20px 22px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      right: -70px;
+      top: -130px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(49, 135, 191, 0.3), rgba(49, 135, 191, 0));
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--brand-700);
+      font-weight: 700;
+      background: #edf5fb;
+      border-radius: 999px;
+      padding: 7px 12px;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.85rem, 6.3vw, 3rem);
+      line-height: 1.2;
+      letter-spacing: .01em;
+    }
+
+    .hero p {
+      margin: 14px 0 0;
+      color: var(--ink-700);
+      font-size: clamp(1rem, 3.5vw, 1.15rem);
+    }
+
+    .trust-line {
+      margin-top: 14px;
+      color: var(--ink-500);
+      font-size: .95rem;
+    }
+
+    .cta-group {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      border-radius: 14px;
+      padding: 13px 16px;
+      font-weight: 700;
+      border: 0;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(145deg, var(--brand-700), var(--brand-500));
+      box-shadow: 0 10px 28px rgba(31, 95, 136, 0.35);
+    }
+
+    .btn-ghost {
+      color: var(--brand-900);
+      background: #ffffff;
+      border: 1px solid rgba(31, 95, 136, 0.25);
+    }
+
+    .btn-soft {
+      color: #114062;
+      background: #eaf4fc;
+      border: 1px solid rgba(31, 95, 136, 0.18);
+    }
+
+    .btn:hover { transform: translateY(-1px); }
+
+    section {
+      padding: 54px 0 8px;
+    }
+
+    .section-title {
+      margin: 0;
+      font-size: clamp(1.4rem, 4.6vw, 2rem);
+      letter-spacing: .01em;
+    }
+
+    .section-sub {
+      margin: 10px 0 0;
+      color: var(--ink-700);
+    }
+
+    .intro-box,
+    .map-panel,
+    .trust-panel,
+    .final-cta {
+      margin-top: 18px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(20, 58, 85, 0.12);
+      border-radius: var(--radius-md);
+      padding: 20px;
+    }
+
+    .service-grid,
+    .why-grid,
+    .faq-grid {
+      display: grid;
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .service-card,
+    .why-item,
+    .faq-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 16px;
+    }
+
+    .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: #e9f4fd;
+      color: var(--brand-700);
+      display: grid;
+      place-items: center;
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
+
+    .service-card h3,
+    .why-item h3,
+    .faq-item h3 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .service-card p,
+    .why-item p,
+    .faq-item p { margin: 8px 0 0; color: var(--ink-700); }
+
+    .map-meta {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 0;
+      color: var(--ink-700);
+    }
+
+    .map-placeholder {
+      margin-top: 14px;
+      border-radius: 15px;
+      border: 1px dashed #9ec1da;
+      background: linear-gradient(145deg, #f2f8fd, #e7f2fb);
+      min-height: 160px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: var(--ink-500);
+      padding: 14px;
+    }
+
+    .badge-row {
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 7px 11px;
+      background: #eef6fc;
+      border: 1px solid #d6e8f6;
+      color: #25597c;
+      font-size: .87rem;
+      font-weight: 600;
+    }
+
+    .final-cta {
+      text-align: center;
+      padding: 26px 20px;
+    }
+
+    .final-cta h2 { margin: 0; }
+
+    .final-cta p { color: var(--ink-700); margin: 10px auto 0; max-width: 640px; }
+
+    .final-cta .cta-group { margin-top: 16px; }
+
+    footer {
+      margin-top: 58px;
+      border-top: 1px solid rgba(20, 58, 85, 0.14);
+      background: #f8fbfd;
+    }
+
+    .footer-inner {
+      padding: 28px 0 34px;
+      color: var(--ink-700);
+      font-size: .96rem;
+      display: grid;
+      gap: 10px;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity .55s ease, transform .55s ease;
+    }
+
+    .reveal.in {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (min-width: 760px) {
+      .hero { padding-top: 60px; }
+      .hero-card { padding: 42px; }
+      .cta-group { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .service-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .why-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .faq-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+      }
+      .reveal { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <div class="brand-mark">LOGO</div>
+        <div>[公司名稱]</div>
+      </div>
+      <nav class="mini-actions" aria-label="快速聯絡">
+        <a class="mini-btn" href="tel:+886000000000">立即致電</a>
+        <a class="mini-btn" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F">路線導航</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="container">
+        <article class="hero-card reveal">
+          <div class="eyebrow">高雄市新興區在地服務</div>
+          <h1>[公司核心價值主張]</h1>
+          <p>[一句話介紹服務與地點優勢]</p>
+          <p class="trust-line">位於高雄市新興區，交通便利，步行與開車都好抵達。</p>
+          <div class="badge-row" aria-label="基本資訊">
+            <span class="badge">公司名稱：[公司名稱]</span>
+            <span class="badge">電話：[電話]</span>
+            <span class="badge">營業時間：[營業時間]</span>
+          </div>
+          <div class="cta-group">
+            <a class="btn btn-primary" href="tel:+886000000000">立即致電</a>
+            <a class="btn btn-ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F">路線導航</a>
+            <a class="btn btn-soft" target="_blank" rel="noopener" href="https://line.me/R/ti/p/~your-line-id">加入 LINE 洽詢</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="intro-title">
+      <div class="container reveal">
+        <h2 id="intro-title" class="section-title">品牌簡介</h2>
+        <div class="intro-box">
+          <p>[公司名稱] 專注於 [公司類型] 的核心需求，提供清楚、實在且可執行的服務建議。</p>
+          <p>我們重視溝通效率與服務品質，從第一次詢問到後續安排，都讓您清楚知道下一步。</p>
+          <p>適合重視專業度、在意時間安排，並希望在高雄市區快速獲得協助的客戶。</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="service-title">
+      <div class="container reveal">
+        <h2 id="service-title" class="section-title">核心服務</h2>
+        <p class="section-sub">服務項目：[服務一] [服務二] [服務三]</p>
+        <div class="service-grid">
+          <article class="service-card reveal">
+            <div class="icon" aria-hidden="true">✓</div>
+            <h3>[服務一]</h3>
+            <p>以清楚流程與重點說明，協助您快速完成需求評估與安排。</p>
+          </article>
+          <article class="service-card reveal">
+            <div class="icon" aria-hidden="true">◎</div>
+            <h3>[服務二]</h3>
+            <p>依您的情況提供合適方案，重點透明，不讓資訊落差影響決策。</p>
+          </article>
+          <article class="service-card reveal">
+            <div class="icon" aria-hidden="true">↗</div>
+            <h3>[服務三]</h3>
+            <p>重視回覆速度與執行品質，讓您在關鍵時刻有可靠窗口可聯繫。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="why-title">
+      <div class="container reveal">
+        <h2 id="why-title" class="section-title">為什麼選擇我們</h2>
+        <div class="why-grid">
+          <article class="why-item reveal">
+            <h3>專業服務</h3>
+            <p>以實務經驗處理問題，說明具體、建議可執行，不只提供表面答案。</p>
+          </article>
+          <article class="why-item reveal">
+            <h3>地點便利</h3>
+            <p>位於新興區主幹道，鄰近捷運與主要道路，外縣市來訪也容易規劃路線。</p>
+          </article>
+          <article class="why-item reveal">
+            <h3>流程透明</h3>
+            <p>每一步都有明確說明與時間點，避免反覆確認，降低溝通成本。</p>
+          </article>
+          <article class="why-item reveal">
+            <h3>回覆快速</h3>
+            <p>提供電話與線上聯絡管道，重要需求可即時接手，不讓問題拖延。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="location-title">
+      <div class="container reveal">
+        <h2 id="location-title" class="section-title">地點與交通資訊</h2>
+        <article class="map-panel">
+          <div class="map-meta">
+            <div><strong>地址：</strong>800 高雄市新興區中山一路278號</div>
+            <div><strong>交通：</strong>鄰近捷運站與主要幹道，機車、汽車與大眾運輸皆方便抵達。</div>
+            <div><strong>電話：</strong>[電話]</div>
+            <div><strong>營業時間：</strong>[營業時間]</div>
+          </div>
+          <div class="cta-group">
+            <a class="btn btn-ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F">開啟 Google 地圖導航</a>
+            <a class="btn btn-primary" href="tel:+886000000000">立即來電洽詢</a>
+            <a class="btn btn-soft" target="_blank" rel="noopener" href="https://line.me/R/ti/p/~your-line-id">LINE 線上聯絡</a>
+          </div>
+          <div class="map-placeholder" role="img" aria-label="地圖嵌入預留區塊">
+            地圖嵌入預留區塊<br>
+            可替換為 Google Maps iframe
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="trust-title">
+      <div class="container reveal">
+        <h2 id="trust-title" class="section-title">服務承諾與常見問題</h2>
+        <article class="trust-panel">
+          <div class="faq-grid">
+            <article class="faq-item reveal">
+              <h3>會先說明流程與費用嗎？</h3>
+              <p>會。我們會在服務開始前清楚說明內容、時間與費用範圍，讓您放心再決定。</p>
+            </article>
+            <article class="faq-item reveal">
+              <h3>首次聯絡要準備什麼？</h3>
+              <p>先提供基本需求與可聯絡時段即可，我們會引導您完成後續資料準備。</p>
+            </article>
+            <article class="faq-item reveal">
+              <h3>可用哪些方式聯絡？</h3>
+              <p>可透過電話、LINE 或預約頁面聯絡，依您的方便方式安排。</p>
+            </article>
+            <article class="faq-item reveal">
+              <h3>我們的服務承諾</h3>
+              <p>回覆清楚、資訊透明、時程可追蹤；若有變動，會主動提前告知。</p>
+            </article>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <div class="container reveal">
+        <article class="final-cta">
+          <h2>現在就開始，讓專業團隊協助您快速處理需求</h2>
+          <p>若您重視效率、清楚溝通與在地便利性，歡迎立即聯絡 [公司名稱]。</p>
+          <div class="cta-group">
+            <a class="btn btn-primary" href="tel:+886000000000">立即來電洽詢</a>
+            <a class="btn btn-soft" target="_blank" rel="noopener" href="https://line.me/R/ti/p/~your-line-id">立即預約 / 加入 LINE</a>
+            <a class="btn btn-ghost" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F">立即導航前往</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div><strong>[公司名稱]</strong></div>
+      <div>地址：800 高雄市新興區中山一路278號</div>
+      <div>電話：[電話]</div>
+      <div>營業時間：[營業時間]</div>
+      <div>社群連結：<a target="_blank" rel="noopener" href="https://line.me/R/ti/p/~your-line-id">LINE 官方帳號</a></div>
+      <div>© <span id="year"></span> [公司名稱] All Rights Reserved.</div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    const nodes = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const delay = Number(entry.target.dataset.delay || 0);
+        window.setTimeout(() => entry.target.classList.add('in'), delay);
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.14, rootMargin: '0px 0px -7% 0px' });
+
+    nodes.forEach((el, idx) => {
+      el.dataset.delay = (idx % 5) * 70;
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
