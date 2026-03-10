@@ -1,9 +1,12 @@
-﻿using System.Collections.ObjectModel;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Effects;
+using System.Runtime.InteropServices;
 using System.Windows.Threading;
 
 namespace SchedulerDragDrop;
@@ -40,6 +43,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private DateTime _lastTickEnd = DateTime.MinValue;
     private CancellationTokenSource? _queryCts;
     private readonly DispatcherTimer _uiAdjustTimer = new() { Interval = TimeSpan.FromMilliseconds(40) };
+    private readonly DispatcherTimer _dragPreviewTimer = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private DragPreviewWindow? _dragPreview;
     private double? _pendingLaneWidth;
     private double? _pendingPixelsPerHour;
 
@@ -169,6 +174,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         InitializeEmptyState();
         Loaded += MainWindow_Loaded;
         _uiAdjustTimer.Tick += UiAdjustTimer_Tick;
+        _dragPreviewTimer.Tick += DragPreviewTimer_Tick;
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -943,8 +949,57 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             Math.Abs(position.Y - _dragStart.Y) < SystemParameters.MinimumVerticalDragDistance)
             return;
 
-        var data = new DataObject(typeof(TaskCard), _dragItem);
-        DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Move);
+        var dragCard = _dragItem;
+        var data = new DataObject(typeof(TaskCard), dragCard);
+
+        try
+        {
+            dragCard.IsDragging = true;
+            StartDragPreview(dragCard);
+            DragDrop.DoDragDrop((DependencyObject)sender, data, DragDropEffects.Move);
+        }
+        finally
+        {
+            StopDragPreview();
+            dragCard.IsDragging = false;
+            _dragItem = null;
+        }
+    }
+
+    private void DragPreviewTimer_Tick(object? sender, EventArgs e)
+    {
+        UpdateDragPreviewPosition();
+    }
+
+    private void StartDragPreview(TaskCard card)
+    {
+        StopDragPreview();
+        _dragPreview = new DragPreviewWindow(card);
+        UpdateDragPreviewPosition();
+        _dragPreview.Show();
+        _dragPreviewTimer.Start();
+    }
+
+    private void StopDragPreview()
+    {
+        _dragPreviewTimer.Stop();
+        if (_dragPreview is null)
+            return;
+
+        _dragPreview.Close();
+        _dragPreview = null;
+    }
+
+    private void UpdateDragPreviewPosition()
+    {
+        if (_dragPreview is null)
+            return;
+
+        if (!NativeMethods.GetCursorPos(out var p))
+            return;
+
+        _dragPreview.Left = p.X + 16;
+        _dragPreview.Top = p.Y + 16;
     }
 
     private void LaneCanvas_DragOver(object sender, DragEventArgs e)
@@ -1208,6 +1263,59 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         return false;
     }
 
+    private sealed class DragPreviewWindow : Window
+    {
+        public DragPreviewWindow(TaskCard card)
+        {
+            WindowStyle = WindowStyle.None;
+            ResizeMode = ResizeMode.NoResize;
+            AllowsTransparency = true;
+            Background = Brushes.Transparent;
+            ShowInTaskbar = false;
+            Topmost = true;
+            IsHitTestVisible = false;
+            SizeToContent = SizeToContent.WidthAndHeight;
+
+            Content = new Border
+            {
+                CornerRadius = new CornerRadius(8),
+                Padding = new Thickness(10, 8, 10, 8),
+                Background = new SolidColorBrush(Color.FromArgb(235, 219, 234, 254)),
+                BorderBrush = new SolidColorBrush(Color.FromRgb(37, 99, 235)),
+                BorderThickness = new Thickness(2),
+                Effect = new DropShadowEffect
+                {
+                    BlurRadius = 14,
+                    ShadowDepth = 2,
+                    Opacity = 0.3,
+                    Color = Colors.Black
+                },
+                Child = new StackPanel
+                {
+                    Children =
+                    {
+                        new TextBlock { Text = card.Title, FontWeight = FontWeights.SemiBold },
+                        new TextBlock { Text = card.Meta, FontSize = 11, Foreground = new SolidColorBrush(Color.FromRgb(68, 68, 68)) },
+                        new TextBlock { Text = card.Meta2, FontSize = 11, Foreground = new SolidColorBrush(Color.FromRgb(68, 68, 68)) }
+                    }
+                }
+            };
+        }
+    }
+
+    private static class NativeMethods
+    {
+        [DllImport("user32.dll")]
+        public static extern bool GetCursorPos(out POINT lpPoint);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+        }
+    }
+
     public sealed class TimeTick
     {
         public required DateTime Time { get; init; }
@@ -1215,6 +1323,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public required bool IsWorking { get; init; }
     }
 }
+
+
+
+
 
 
 

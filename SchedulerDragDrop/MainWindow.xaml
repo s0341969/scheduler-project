@@ -1,4 +1,4 @@
-﻿<Window x:Class="SchedulerDragDrop.MainWindow"
+<Window x:Class="SchedulerDragDrop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -12,36 +12,36 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="0" Margin="0,0,0,12">
-    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-        <WrapPanel ItemHeight="40" Orientation="Horizontal">
-            <TextBlock VerticalAlignment="Center" Text="PRDOPGP 群組" Margin="0,0,8,0" />
-            <Button Width="170" Height="36" Margin="0,0,8,0" Click="OpenProcessGroupDialog_Click">選擇群組...</Button>
-            <TextBlock Width="220" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#555" Text="{Binding ProcessGroupSummary}" TextTrimming="CharacterEllipsis" />
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <WrapPanel ItemHeight="40" Orientation="Horizontal">
+                    <TextBlock VerticalAlignment="Center" Text="PRDOPGP 群組" Margin="0,0,8,0" />
+                    <Button Width="170" Height="36" Margin="0,0,8,0" Click="OpenProcessGroupDialog_Click">選擇群組...</Button>
+                    <TextBlock Width="220" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#555" Text="{Binding ProcessGroupSummary}" TextTrimming="CharacterEllipsis" />
 
-            <Button Width="140" Height="36" Margin="0,0,8,0" Click="QuerySchedule_Click">查詢排程</Button>
-            <ProgressBar Width="180" Height="16" Margin="0,10,8,0" VerticalAlignment="Top" Maximum="{Binding ProgressMaximum, Mode=OneWay}" Value="{Binding ProgressValue, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}" />
-            <TextBlock Width="56" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#1F2937" FontWeight="SemiBold" Text="{Binding ProgressPercentText}" />
-            <TextBlock Width="300" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#374151" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
-            <Button Width="120" Height="36" Margin="0,0,8,0" Click="CancelQuery_Click" IsEnabled="{Binding IsBusy}">中止查詢</Button>
+                    <Button Width="140" Height="36" Margin="0,0,8,0" Click="QuerySchedule_Click">查詢排程</Button>
+                    <ProgressBar Width="180" Height="16" Margin="0,10,8,0" VerticalAlignment="Top" Maximum="{Binding ProgressMaximum, Mode=OneWay}" Value="{Binding ProgressValue, Mode=OneWay}" IsIndeterminate="{Binding IsProgressIndeterminate, Mode=OneWay}" />
+                    <TextBlock Width="56" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#1F2937" FontWeight="SemiBold" Text="{Binding ProgressPercentText}" />
+                    <TextBlock Width="300" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="#374151" Text="{Binding StatusText}" TextTrimming="CharacterEllipsis" />
+                    <Button Width="120" Height="36" Margin="0,0,8,0" Click="CancelQuery_Click" IsEnabled="{Binding IsBusy}">中止查詢</Button>
 
-            <Button Width="160" Height="36" Margin="0,0,8,0" Click="AutoSchedule_Click">自動排程</Button>
-            <Button Width="160" Height="36" Margin="0,0,8,0" Click="Recalculate_Click">重新計算</Button>
-            <Button Width="160" Height="36" Margin="0,0,8,0" Click="ShiftSelectedEarlier_Click">選取項目 -1 小時</Button>
-            <Button Width="160" Height="36" Margin="0,0,8,0" Click="ShiftSelectedLater_Click">選取項目 +1 小時</Button>
-        </WrapPanel>
-    </ScrollViewer>
+                    <Button Width="160" Height="36" Margin="0,0,8,0" Click="AutoSchedule_Click">自動排程</Button>
+                    <Button Width="160" Height="36" Margin="0,0,8,0" Click="Recalculate_Click">重新計算</Button>
+                    <Button Width="160" Height="36" Margin="0,0,8,0" Click="ShiftSelectedEarlier_Click">選取項目 -1 小時</Button>
+                    <Button Width="160" Height="36" Margin="0,0,8,0" Click="ShiftSelectedLater_Click">選取項目 +1 小時</Button>
+                </WrapPanel>
+            </ScrollViewer>
 
-    <WrapPanel Margin="0,6,0,0" ItemHeight="36" Orientation="Horizontal">
-        <TextBlock VerticalAlignment="Center" Text="機台寬度" Margin="0,0,8,0" />
-        <Slider Width="180" Minimum="120" Maximum="360" Value="{Binding LaneWidth, Mode=OneWay}" TickFrequency="10" IsSnapToTickEnabled="False" ValueChanged="LaneWidthSlider_ValueChanged" />
-        <TextBlock VerticalAlignment="Center" Margin="8,0,20,0" Text="{Binding LaneWidth, StringFormat={}{0:0}px}" />
+            <WrapPanel Margin="0,6,0,0" ItemHeight="36" Orientation="Horizontal">
+                <TextBlock VerticalAlignment="Center" Text="機台寬度" Margin="0,0,8,0" />
+                <Slider Width="180" Minimum="120" Maximum="360" Value="{Binding LaneWidth, Mode=OneWay}" TickFrequency="10" IsSnapToTickEnabled="False" ValueChanged="LaneWidthSlider_ValueChanged" />
+                <TextBlock VerticalAlignment="Center" Margin="8,0,20,0" Text="{Binding LaneWidth, StringFormat={}{0:0}px}" />
 
-        <TextBlock VerticalAlignment="Center" Text="時間軸高度" Margin="0,0,8,0" />
-        <Slider x:Name="ZoomSlider" Width="180" Minimum="20" Maximum="96" Value="24" TickFrequency="4" IsSnapToTickEnabled="False" ValueChanged="ZoomSlider_ValueChanged" />
-        <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Text="{Binding TimeAxisHeightLabel}" />
-    </WrapPanel>
-</StackPanel>
+                <TextBlock VerticalAlignment="Center" Text="時間軸高度" Margin="0,0,8,0" />
+                <Slider x:Name="ZoomSlider" Width="180" Minimum="20" Maximum="96" Value="24" TickFrequency="4" IsSnapToTickEnabled="False" ValueChanged="ZoomSlider_ValueChanged" />
+                <TextBlock VerticalAlignment="Center" Margin="8,0,0,0" Text="{Binding TimeAxisHeightLabel}" />
+            </WrapPanel>
+        </StackPanel>
 
         <Grid Grid.Row="1">
             <Grid.RowDefinitions>
@@ -196,9 +196,13 @@
                                                     <Border.Style>
                                                         <Style TargetType="Border">
                                                             <Setter Property="BorderBrush" Value="Transparent" />
+                                                            <Setter Property="Opacity" Value="1" />
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsPrimarySelected}" Value="True">
                                                                     <Setter Property="BorderBrush" Value="#DC2626" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsDragging}" Value="True">
+                                                                    <Setter Property="Opacity" Value="0.45" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -248,15 +252,3 @@
         <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#555" Text="提示：Ctrl+點擊可多選；單擊為單選；點空白處可清除選取；右鍵可推移到指定日期時段。" />
     </Grid>
 </Window>
-
-
-
-
-
-
-
-
-
-
-
-

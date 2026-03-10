@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 
 namespace SchedulerDragDrop;
 
@@ -45,6 +45,7 @@ public sealed class TaskCard : INotifyPropertyChanged
     private bool _isRelatedSelected;
     private bool _isOperationSelected;
     private bool _isPrimarySelected;
+    private bool _isDragging;
     private double _topPx;
     private double _heightPx;
 
@@ -118,6 +119,17 @@ public sealed class TaskCard : INotifyPropertyChanged
         }
     }
 
+    public bool IsDragging
+    {
+        get => _isDragging;
+        set
+        {
+            if (_isDragging == value) return;
+            _isDragging = value;
+            OnPropertyChanged(nameof(IsDragging));
+        }
+    }
+
     public double TopPx
     {
         get => _topPx;
@@ -179,4 +191,3 @@ public sealed class ProcessGroupOption : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
-
