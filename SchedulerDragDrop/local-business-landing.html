@@ -1,0 +1,626 @@
+﻿<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>[公司名稱]｜[公司核心價值主張]｜高雄市新興區在地服務</title>
+  <meta name="description" content="[公司名稱] 提供 [服務一]、[服務二]、[服務三]，位於高雄市新興區中山一路278號，專業、清楚、好聯絡，立即來電或導航前往。">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="zh_TW">
+  <meta property="og:title" content="[公司名稱]｜[公司核心價值主張]">
+  <meta property="og:description" content="[一句話介紹服務與地點優勢]">
+  <meta property="og:url" content="https://example.com">
+  <meta property="og:image" content="https://example.com/og-image.jpg">
+  <meta name="theme-color" content="#1f3f5b">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand-900: #1f3f5b;
+      --brand-700: #2f597f;
+      --brand-500: #4d7a9f;
+      --accent: #d0a869;
+      --ink-900: #20262d;
+      --ink-700: #4e5a66;
+      --ink-500: #6b7680;
+      --bg-100: #f4f7fa;
+      --bg-200: #e9eff5;
+      --card: #ffffff;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --shadow: 0 10px 30px rgba(20, 42, 62, 0.1);
+      --container: min(1120px, 92vw);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      color: var(--ink-900);
+      background:
+        radial-gradient(circle at 90% -10%, rgba(77,122,159,0.12), transparent 45%),
+        radial-gradient(circle at -20% 15%, rgba(208,168,105,0.12), transparent 48%),
+        linear-gradient(180deg, #f8fbff 0%, #f4f7fa 55%, #f7f9fc 100%);
+      line-height: 1.65;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; display: block; }
+
+    .container { width: var(--container); margin-inline: auto; }
+    .section { padding: 68px 0; }
+    .section-title {
+      margin: 0 0 10px;
+      font-family: "Manrope", "Noto Sans TC", sans-serif;
+      font-size: clamp(1.45rem, 3.8vw, 2.2rem);
+      line-height: 1.25;
+      letter-spacing: 0.01em;
+    }
+    .section-subtitle {
+      margin: 0;
+      color: var(--ink-700);
+      font-size: 1rem;
+      max-width: 60ch;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      backdrop-filter: blur(10px);
+      background: rgba(248, 251, 255, 0.88);
+      border-bottom: 1px solid rgba(31, 63, 91, 0.1);
+    }
+    .topbar-inner {
+      min-height: 62px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: var(--brand-900);
+    }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--brand-900), var(--brand-500));
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 0.82rem;
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      border: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 999px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      transition: transform .25s ease, box-shadow .25s ease, background .25s ease;
+      cursor: pointer;
+    }
+    .btn:focus-visible {
+      outline: 2px solid var(--brand-500);
+      outline-offset: 2px;
+    }
+    .btn-primary {
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand-900), var(--brand-700));
+      box-shadow: 0 12px 20px rgba(31,63,91,0.18);
+    }
+    .btn-secondary {
+      color: var(--brand-900);
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(31, 63, 91, 0.18);
+    }
+    .btn-line {
+      color: #fff;
+      background: #06c755;
+      box-shadow: 0 12px 20px rgba(6,199,85,0.2);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .hero {
+      padding: 58px 0 46px;
+    }
+    .hero-shell {
+      background: linear-gradient(140deg, rgba(31,63,91,0.96), rgba(47,89,127,0.94));
+      color: #fff;
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 26px 18px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-shell::after {
+      content: "";
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      right: -90px;
+      top: -120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.19), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+    .eyebrow {
+      margin: 0 0 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #f5dfbf;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 99px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(208,168,105,0.18);
+    }
+    .hero-title {
+      margin: 0;
+      font-family: "Manrope", "Noto Sans TC", sans-serif;
+      font-size: clamp(1.8rem, 6.5vw, 3rem);
+      line-height: 1.18;
+      letter-spacing: 0.01em;
+    }
+    .hero-subtitle {
+      margin: 14px 0 0;
+      color: rgba(255,255,255,0.92);
+      max-width: 62ch;
+      font-size: 1rem;
+    }
+    .hero-trust {
+      margin: 15px 0 0;
+      color: #dce8f4;
+      font-size: 0.95rem;
+    }
+    .hero-cta {
+      margin-top: 22px;
+      display: grid;
+      gap: 10px;
+    }
+    .hero-quick {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .quick-item {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 0.93rem;
+    }
+
+    .intro {
+      display: grid;
+      gap: 16px;
+    }
+    .intro-card {
+      background: var(--card);
+      border: 1px solid rgba(31,63,91,0.1);
+      border-radius: var(--radius-lg);
+      padding: 22px 18px;
+      box-shadow: var(--shadow);
+    }
+    .placeholder-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      font-size: 0.95rem;
+      color: var(--ink-700);
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+    .service-card, .reason-card, .trust-card {
+      background: var(--card);
+      border: 1px solid rgba(31,63,91,0.1);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+      padding: 18px 16px;
+    }
+    .service-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      color: var(--brand-900);
+      background: linear-gradient(145deg, rgba(77,122,159,0.22), rgba(208,168,105,0.18));
+      margin-bottom: 10px;
+    }
+    .card-title {
+      margin: 0;
+      font-size: 1.08rem;
+      color: var(--ink-900);
+    }
+    .card-desc {
+      margin: 8px 0 0;
+      color: var(--ink-700);
+      font-size: 0.95rem;
+    }
+
+    .location-layout {
+      display: grid;
+      gap: 16px;
+    }
+    .location-card, .map-placeholder {
+      background: var(--card);
+      border: 1px solid rgba(31,63,91,0.1);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+      padding: 18px 16px;
+    }
+    .location-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 8px;
+      color: var(--ink-700);
+      font-size: 0.97rem;
+    }
+    .map-frame {
+      width: 100%;
+      min-height: 220px;
+      border: 0;
+      border-radius: 12px;
+      filter: saturate(0.93) contrast(0.98);
+    }
+
+    .trust-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .faq-item {
+      border-top: 1px solid rgba(31,63,91,0.1);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+    .faq-item:first-child {
+      border-top: 0;
+      margin-top: 0;
+      padding-top: 0;
+    }
+    .faq-q {
+      margin: 0;
+      font-weight: 700;
+      color: var(--ink-900);
+    }
+    .faq-a {
+      margin: 4px 0 0;
+      color: var(--ink-700);
+      font-size: 0.95rem;
+    }
+
+    .final-cta {
+      background: linear-gradient(180deg, rgba(31,63,91,0.92), rgba(28,52,74,0.96));
+      color: #fff;
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 24px 18px;
+      text-align: center;
+    }
+    .final-cta p {
+      margin: 10px auto 0;
+      color: rgba(255,255,255,0.9);
+      max-width: 52ch;
+    }
+    .final-actions {
+      margin-top: 18px;
+      display: grid;
+      gap: 10px;
+    }
+
+    footer {
+      margin-top: 70px;
+      padding: 26px 0 36px;
+      border-top: 1px solid rgba(31,63,91,0.11);
+      background: rgba(255,255,255,0.5);
+    }
+    .footer-grid {
+      display: grid;
+      gap: 6px;
+      color: var(--ink-700);
+      font-size: 0.95rem;
+    }
+    .copyright {
+      margin-top: 14px;
+      color: var(--ink-500);
+      font-size: 0.86rem;
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity .7s ease, transform .7s ease;
+      transition-delay: var(--d, 0s);
+    }
+    .reveal.is-visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (min-width: 760px) {
+      .top-actions { gap: 10px; }
+      .hero-shell { padding: 36px 32px 30px; }
+      .hero-cta,
+      .final-actions { grid-template-columns: repeat(3, max-content); justify-content: flex-start; }
+      .hero-quick { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .intro { grid-template-columns: 1.3fr .9fr; align-items: stretch; }
+      .grid.services { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid.reasons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .location-layout { grid-template-columns: 1fr 1.15fr; }
+      .trust-grid { grid-template-columns: 1fr 1fr; }
+      .section { padding: 86px 0; }
+    }
+
+    @media (min-width: 1060px) {
+      .grid.reasons { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .section-title { font-size: clamp(1.8rem, 2.5vw, 2.3rem); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal, .btn { transition: none !important; transform: none !important; }
+      html:focus-within { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="container topbar-inner">
+      <a class="brand" href="#top" aria-label="回到首頁">
+        <span class="brand-mark">Logo</span>
+        <span>[公司名稱]</span>
+      </a>
+      <nav class="top-actions" aria-label="快速聯絡">
+        <a class="btn btn-secondary" href="tel:[電話]">立即致電</a>
+        <a class="btn btn-primary" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F" target="_blank" rel="noopener">路線導航</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero section">
+      <div class="container">
+        <div class="hero-shell reveal">
+          <p class="eyebrow">[公司類型]・在地服務</p>
+          <h1 class="hero-title">[公司核心價值主張]</h1>
+          <p class="hero-subtitle">[一句話介紹服務與地點優勢]</p>
+          <p class="hero-trust">位於高雄市新興區，交通便利，讓您更快找到值得信任的在地服務窗口。</p>
+          <div class="hero-cta">
+            <a class="btn btn-primary" href="tel:[電話]">立即致電</a>
+            <a class="btn btn-secondary" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F" target="_blank" rel="noopener">路線導航</a>
+            <a class="btn btn-line" href="[LINE或預約連結]" target="_blank" rel="noopener">加入 LINE／立即預約</a>
+          </div>
+          <div class="hero-quick">
+            <div class="quick-item">電話：[電話]</div>
+            <div class="quick-item">營業時間：[營業時間]</div>
+            <div class="quick-item">地址：800 高雄市新興區中山一路278號</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container intro">
+        <article class="intro-card reveal">
+          <h2 class="section-title">品牌簡介</h2>
+          <p class="section-subtitle">
+            [公司名稱] 專注提供清楚、可靠、好溝通的 [公司類型] 服務。<br>
+            我們重視每一次諮詢的回應速度與服務透明度，讓您在第一時間就能掌握流程與重點。<br>
+            無論是首次接觸或已有需求，皆可依您的時間安排提供合適建議。
+          </p>
+        </article>
+        <aside class="intro-card reveal" style="--d:.08s;">
+          <h2 class="section-title" style="font-size:1.35rem;">預設替換欄位</h2>
+          <ul class="placeholder-list">
+            <li>公司名稱：[公司名稱]</li>
+            <li>主標題：[公司核心價值主張]</li>
+            <li>副標題：[一句話介紹服務與地點優勢]</li>
+            <li>服務項目：[服務一] [服務二] [服務三]</li>
+            <li>電話：[電話]</li>
+            <li>營業時間：[營業時間]</li>
+          </ul>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title reveal">核心服務</h2>
+        <p class="section-subtitle reveal" style="--d:.03s;">以重點清楚、可快速理解的方式，提供您最需要的服務內容。</p>
+        <div class="grid services" style="margin-top:18px;">
+          <article class="service-card reveal" style="--d:.06s;">
+            <div class="service-icon" aria-hidden="true">◎</div>
+            <h3 class="card-title">[服務一]</h3>
+            <p class="card-desc">提供明確流程說明與對應建議，讓每一步都可預期。</p>
+          </article>
+          <article class="service-card reveal" style="--d:.12s;">
+            <div class="service-icon" aria-hidden="true">◇</div>
+            <h3 class="card-title">[服務二]</h3>
+            <p class="card-desc">依需求規模與時間安排，提供彈性且實用的處理方式。</p>
+          </article>
+          <article class="service-card reveal" style="--d:.18s;">
+            <div class="service-icon" aria-hidden="true">▣</div>
+            <h3 class="card-title">[服務三]</h3>
+            <p class="card-desc">重視效率與品質平衡，協助您快速完成關鍵事項。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title reveal">為什麼選擇我們</h2>
+        <div class="grid reasons" style="margin-top:18px;">
+          <article class="reason-card reveal" style="--d:.03s;">
+            <h3 class="card-title">專業服務</h3>
+            <p class="card-desc">每次服務都以清楚的流程與標準執行，減少不必要的等待與誤差。</p>
+          </article>
+          <article class="reason-card reveal" style="--d:.06s;">
+            <h3 class="card-title">地點方便</h3>
+            <p class="card-desc">位於高雄市新興區核心位置，交通與停車條件都較便利。</p>
+          </article>
+          <article class="reason-card reveal" style="--d:.09s;">
+            <h3 class="card-title">流程透明</h3>
+            <p class="card-desc">每個階段先說明再執行，費用與處理方式都能提前確認。</p>
+          </article>
+          <article class="reason-card reveal" style="--d:.12s;">
+            <h3 class="card-title">回覆快速</h3>
+            <p class="card-desc">提供電話與線上聯絡管道，需求可在短時間內得到回應。</p>
+          </article>
+          <article class="reason-card reveal" style="--d:.15s;">
+            <h3 class="card-title">在地經營</h3>
+            <p class="card-desc">熟悉在地生活節奏與客戶需求，提供貼近情境的實用建議。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title reveal">地點與交通資訊</h2>
+        <p class="section-subtitle reveal" style="--d:.03s;">地址清楚、導航即到，方便您快速安排到店或面談。</p>
+        <div class="location-layout" style="margin-top:18px;">
+          <article class="location-card reveal" style="--d:.06s;">
+            <ul class="location-list">
+              <li><strong>地址：</strong>800 高雄市新興區中山一路278號</li>
+              <li><strong>電話：</strong>[電話]</li>
+              <li><strong>營業時間：</strong>[營業時間]</li>
+              <li><strong>交通說明：</strong>鄰近主要幹道與大眾運輸節點，步行與開車前往都方便。</li>
+            </ul>
+            <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+              <a class="btn btn-primary" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F" target="_blank" rel="noopener">開啟 Google 地圖導航</a>
+              <a class="btn btn-secondary" href="tel:[電話]">立即致電</a>
+            </div>
+          </article>
+          <div class="map-placeholder reveal" style="--d:.12s;">
+            <iframe
+              class="map-frame"
+              loading="lazy"
+              referrerpolicy="no-referrer-when-downgrade"
+              src="https://www.google.com/maps?q=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F&output=embed"
+              title="Google 地圖位置（可替換）"></iframe>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h2 class="section-title reveal">服務承諾與常見問題</h2>
+        <div class="trust-grid" style="margin-top:18px;">
+          <article class="trust-card reveal" style="--d:.03s;">
+            <h3 class="card-title">服務承諾</h3>
+            <p class="card-desc">我們不使用誇大內容，重點放在可執行的方案與可理解的說明。</p>
+            <p class="card-desc">若您需要比較方案，我們會先釐清需求再提出建議，避免不必要花費。</p>
+          </article>
+          <article class="trust-card reveal" style="--d:.08s;">
+            <h3 class="card-title">常見問題</h3>
+            <div class="faq-item">
+              <p class="faq-q">Q：可以先電話或 LINE 詢問嗎？</p>
+              <p class="faq-a">A：可以，先提供需求重點，我們會先回覆可行方向與下一步安排。</p>
+            </div>
+            <div class="faq-item">
+              <p class="faq-q">Q：第一次聯絡需要準備什麼？</p>
+              <p class="faq-a">A：準備基本需求與預計時間即可，細節可在第一次溝通時再確認。</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:18px;">
+      <div class="container">
+        <div class="final-cta reveal">
+          <h2 class="section-title" style="margin:0; color:#fff;">現在就與 [公司名稱] 聯絡</h2>
+          <p>如果您正在找值得信任、回覆清楚且地點便利的 [公司類型]，歡迎立即來電或線上聯絡。</p>
+          <div class="final-actions">
+            <a class="btn btn-primary" href="tel:[電話]">立即來電洽詢</a>
+            <a class="btn btn-line" href="[LINE或預約連結]" target="_blank" rel="noopener">立即預約</a>
+            <a class="btn btn-secondary" href="https://www.google.com/maps/dir/?api=1&destination=800%20%E9%AB%98%E9%9B%84%E5%B8%82%E6%96%B0%E8%88%88%E5%8D%80%E4%B8%AD%E5%B1%B1%E4%B8%80%E8%B7%AF278%E8%99%9F" target="_blank" rel="noopener">立即導航前往</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container">
+      <div class="footer-grid">
+        <strong>[公司名稱]</strong>
+        <span>地址：800 高雄市新興區中山一路278號</span>
+        <span>電話：[電話]</span>
+        <span>營業時間：[營業時間]</span>
+        <span>社群連結：<a href="[社群連結]" target="_blank" rel="noopener">[請填入社群連結]</a></span>
+      </div>
+      <p class="copyright">© <span id="year"></span> [公司名稱]。All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "[公司名稱]",
+    "description": "[一句話介紹服務與地點優勢]",
+    "telephone": "[電話]",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "中山一路278號",
+      "addressLocality": "新興區",
+      "addressRegion": "高雄市",
+      "postalCode": "800",
+      "addressCountry": "TW"
+    },
+    "openingHours": "[營業時間]",
+    "url": "https://example.com"
+  }
+  </script>
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("is-visible");
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    document.querySelectorAll(".reveal").forEach((item) => observer.observe(item));
+  </script>
+</body>
+</html>
