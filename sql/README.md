@@ -8,7 +8,8 @@
 
 ## 主要產出
 
-- SQL 修補檔：`產生ORDE3剩餘製程_5輪修正.sql`
+- SQL 修補檔（方案說明版）：`產生ORDE3剩餘製程_5輪修正.sql`
+- SQL 修補檔（可直接改 DB SP 本體）：`產生ORDE3剩餘製程_實際修補SP.sql`
 - 說明文件同步：`CHANGELOG.md`、`TODO.md`
 
 ## 重要決策
