@@ -16,3 +16,14 @@
   - 第 4 輪：降低全表更新範圍（增加 `@INPART` 條件與必要防呆）。
   - 第 5 輪：邏輯一致性修正（在站製程序回填條件、負值工時歸零一致化）。
 - 因工作目錄無 `.sln/.csproj`，`dotnet build` 無法執行成功（MSB1003）。
+
+## 2026-03-12 23:30 直接修改 產生ORDE3剩餘製程.sql（語意邏輯）
+
+- 直接修改 [產生ORDE3剩餘製程.sql] 本體檔（非外掛修補檔）。
+- 修正項目：
+  - 加入 SET XACT_ABORT ON。
+  - @INPART 參數正規化（NULLIF/LTRIM/RTRIM）。
+  - ORDDTP 更新改 ANSI JOIN 並加入 @INPART 範圍收斂。
+  - 啟用 #SOPNAME 與 #指派時間 暫存索引建立語句。
+  - #TEMP3 的 WKNO/DEPTNO 更新改為 OUTER APPLY TOP (1)，避免非決定性更新。
+  - 補上 DLYTIME_O < 0 歸零。
