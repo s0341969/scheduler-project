@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 2026-03-12 23:54 產生ORDE3剩餘製程.sql 再校正
+
+- 直接寫改本體檔 產生ORDE3剩餘製程.sql，新增 2026/03/12 MODIFY 註記。
+- 修正邏輯順序：@INPART 正規化提前到首次使用前，避免 ORDDTP 更新範圍失準。
+- ORDDTP 更新改為 ANSI JOIN 並加入 @INPART 範圍收斂條件（透過 ORDE3 鍵值 EXISTS）。
+- 降低重複存取：啟用 #SOPNAME、#指派時間、#TEMP2、#QA1、#RST 索引。
+- 修正非決定性更新：#TEMP3 的 WKNO/DEPTNO 改為 OUTER APPLY TOP (1)。
+- 補強一致性：新增 DLYTIME_O 負值歸零；在站製程序回填條件新增 A.剩餘工時 > 0。
 ## 2026-03-12 23:10 直接修改 StoredProcedure 本體
 
 - 新增 `產生ORDE3剩餘製程_實際修補SP.sql`。
@@ -32,3 +40,4 @@
 
 - 直接修改 [產生ORDE3剩餘製程.sql]。
 - 實際套用：XACT_ABORT、@INPART 正規化、ORDDTP 範圍收斂、#SOPNAME/#指派時間 索引、WKNO/DEPTNO 決定性更新、DLYTIME_O 歸零。
+
