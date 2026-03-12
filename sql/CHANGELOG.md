@@ -27,3 +27,8 @@
   - 啟用 #SOPNAME 與 #指派時間 暫存索引建立語句。
   - #TEMP3 的 WKNO/DEPTNO 更新改為 OUTER APPLY TOP (1)，避免非決定性更新。
   - 補上 DLYTIME_O < 0 歸零。
+
+## 2026-03-12 23:45 直接寫改本體檔
+
+- 直接修改 [產生ORDE3剩餘製程.sql]。
+- 實際套用：XACT_ABORT、@INPART 正規化、ORDDTP 範圍收斂、#SOPNAME/#指派時間 索引、WKNO/DEPTNO 決定性更新、DLYTIME_O 歸零。
