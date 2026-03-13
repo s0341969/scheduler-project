@@ -1,0 +1,77 @@
+{
+  "Version": 1,
+  "Hash": "SKNkrnfhZk3YyasGXgxPcTT0CjS/Kg3bw7reY9yKaT0=",
+  "Source": "OrgChartSystem",
+  "BasePath": "_content/OrgChartSystem",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "OrgChartSystem\\wwwroot",
+      "Source": "OrgChartSystem",
+      "ContentRoot": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\",
+      "BasePath": "_content/OrgChartSystem",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\app.js",
+      "SourceId": "OrgChartSystem",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\",
+      "BasePath": "_content/OrgChartSystem",
+      "RelativePath": "app.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\app.js"
+    },
+    {
+      "Identity": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\index.html",
+      "SourceId": "OrgChartSystem",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\",
+      "BasePath": "_content/OrgChartSystem",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    },
+    {
+      "Identity": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\styles.css",
+      "SourceId": "OrgChartSystem",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\",
+      "BasePath": "_content/OrgChartSystem",
+      "RelativePath": "styles.css",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\styles.css"
+    }
+  ]
+}

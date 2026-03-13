@@ -1,0 +1,39 @@
+{
+  "Version": 1,
+  "Hash": "DlgtBh2w8M7cjwrTw1to/XNYOixv5Vk+QXWmgDdE74w=",
+  "Source": "LocalBusinessLandingPage",
+  "BasePath": "_content/LocalBusinessLandingPage",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "LocalBusinessLandingPage\\wwwroot",
+      "Source": "LocalBusinessLandingPage",
+      "ContentRoot": "C:\\codex_pg\\LocalBusinessLandingPage\\wwwroot\\",
+      "BasePath": "_content/LocalBusinessLandingPage",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\codex_pg\\LocalBusinessLandingPage\\wwwroot\\index.html",
+      "SourceId": "LocalBusinessLandingPage",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\codex_pg\\LocalBusinessLandingPage\\wwwroot\\",
+      "BasePath": "_content/LocalBusinessLandingPage",
+      "RelativePath": "index.html",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "PreferTarget",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\index.html"
+    }
+  ]
+}
