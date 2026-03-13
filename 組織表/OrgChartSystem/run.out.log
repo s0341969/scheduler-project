@@ -1,0 +1,170 @@
+正在建置...
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (11ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      PRAGMA journal_mode = 'wal';
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "OrgChartSettings" (
+          "Id" INTEGER NOT NULL CONSTRAINT "PK_OrgChartSettings" PRIMARY KEY AUTOINCREMENT,
+          "DisplayMode" TEXT NOT NULL,
+          "UpdatedAtUtc" TEXT NOT NULL
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE TABLE "OrgNodes" (
+          "Id" INTEGER NOT NULL CONSTRAINT "PK_OrgNodes" PRIMARY KEY AUTOINCREMENT,
+          "ParentId" INTEGER NULL,
+          "Code" TEXT NOT NULL,
+          "DepartmentName" TEXT NOT NULL,
+          "PersonName" TEXT NOT NULL,
+          "Title" TEXT NOT NULL,
+          "Email" TEXT NOT NULL,
+          "Phone" TEXT NOT NULL,
+          "SortOrder" INTEGER NOT NULL,
+          "UpdatedAtUtc" TEXT NOT NULL,
+          CONSTRAINT "FK_OrgNodes_OrgNodes_ParentId" FOREIGN KEY ("ParentId") REFERENCES "OrgNodes" ("Id") ON DELETE RESTRICT
+      );
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      CREATE INDEX "IX_OrgNodes_ParentId_SortOrder" ON "OrgNodes" ("ParentId", "SortOrder");
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (1ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "OrgChartSettings" AS "o")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT EXISTS (
+          SELECT 1
+          FROM "OrgNodes" AS "o")
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@p0='?' (DbType = Int32), @p1='?' (Size = 6), @p2='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgChartSettings" ("Id", "DisplayMode", "UpdatedAtUtc")
+      VALUES (@p0, @p1, @p2);
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 3), @p1='?' (Size = 4), @p2='?' (Size = 15), @p3='?' (DbType = Int32), @p4='?' (Size = 3), @p5='?' (Size = 12), @p6='?' (DbType = Int32), @p7='?' (Size = 3), @p8='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p9='?' (Size = 2), @p10='?' (Size = 5), @p11='?' (Size = 14), @p12='?' (DbType = Int32), @p13='?' (Size = 3), @p14='?' (Size = 12), @p15='?' (DbType = Int32), @p16='?' (Size = 2), @p17='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 2), @p1='?' (Size = 3), @p2='?' (Size = 14), @p3='?' (DbType = Int32), @p4='?' (Size = 3), @p5='?' (Size = 12), @p6='?' (DbType = Int32), @p7='?' (Size = 2), @p8='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 3), @p1='?' (Size = 3), @p2='?' (Size = 15), @p3='?' (DbType = Int32), @p4='?' (Size = 3), @p5='?' (Size = 12), @p6='?' (DbType = Int32), @p7='?' (Size = 2), @p8='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p9='?' (Size = 3), @p10='?' (Size = 5), @p11='?' (Size = 15), @p12='?' (DbType = Int32), @p13='?' (Size = 3), @p14='?' (Size = 12), @p15='?' (DbType = Int32), @p16='?' (Size = 2), @p17='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 3), @p1='?' (Size = 3), @p2='?' (Size = 15), @p3='?' (DbType = Int32), @p4='?' (Size = 3), @p5='?' (Size = 12), @p6='?' (DbType = Int32), @p7='?' (Size = 2), @p8='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8)
+      RETURNING "Id";
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://127.0.0.1:5188
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Development
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\codex_pg\組織表\OrgChartSystem
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."DisplayMode", "o"."UpdatedAtUtc"
+      FROM "OrgChartSettings" AS "o"
+      WHERE "o"."Id" = 1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."DisplayMode", "o"."UpdatedAtUtc"
+      FROM "OrgChartSettings" AS "o"
+      WHERE "o"."Id" = 1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT MAX("o"."SortOrder")
+      FROM "OrgNodes" AS "o"
+      WHERE "o"."ParentId" IS NULL
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (Size = 4), @p1='?' (Size = 4), @p2='?' (Size = 16), @p3='?' (DbType = Int32), @p4='?' (Size = 4), @p5='?' (Size = 12), @p6='?' (DbType = Int32), @p7='?' (Size = 4), @p8='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      INSERT INTO "OrgNodes" ("Code", "DepartmentName", "Email", "ParentId", "PersonName", "Phone", "SortOrder", "Title", "UpdatedAtUtc")
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8)
+      RETURNING "Id";
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__nodeId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+      WHERE "o"."Id" = @__nodeId_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p2='?' (DbType = Int32), @p0='?' (Size = 8), @p1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      UPDATE "OrgNodes" SET "DepartmentName" = @p0, "UpdatedAtUtc" = @p1
+      WHERE "Id" = @p2
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@__nodeId_0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+      WHERE "o"."Id" = @__nodeId_0
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+      WHERE "o"."ParentId" IS NULL
+      ORDER BY "o"."SortOrder", "o"."Id"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."DisplayMode", "o"."UpdatedAtUtc"
+      FROM "OrgChartSettings" AS "o"
+      WHERE "o"."Id" = 1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p2='?' (DbType = Int32), @p0='?' (Size = 4), @p1='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      UPDATE "OrgChartSettings" SET "DisplayMode" = @p0, "UpdatedAtUtc" = @p1
+      WHERE "Id" = @p2
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."DisplayMode", "o"."UpdatedAtUtc"
+      FROM "OrgChartSettings" AS "o"
+      WHERE "o"."Id" = 1
+      LIMIT 1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[], CommandType='Text', CommandTimeout='30']
+      SELECT "o"."Id", "o"."Code", "o"."DepartmentName", "o"."Email", "o"."ParentId", "o"."PersonName", "o"."Phone", "o"."SortOrder", "o"."Title", "o"."UpdatedAtUtc"
+      FROM "OrgNodes" AS "o"
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p0='?' (DbType = Int32)], CommandType='Text', CommandTimeout='30']
+      DELETE FROM "OrgNodes"
+      WHERE "Id" = @p0
+      RETURNING 1;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (0ms) [Parameters=[@p1='?' (DbType = Int32), @p0='?' (DbType = DateTime)], CommandType='Text', CommandTimeout='30']
+      UPDATE "OrgNodes" SET "UpdatedAtUtc" = @p0
+      WHERE "Id" = @p1
+      RETURNING 1;
+

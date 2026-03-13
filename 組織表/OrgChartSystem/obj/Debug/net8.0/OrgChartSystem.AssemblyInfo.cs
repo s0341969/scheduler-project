@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OrgChartSystem")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+60d08081f5ee3318fcff7463d0fc7a7dfdd3f9c3")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6adb4696f758213f003b9df43887d3cf74bbc3ea")]
 [assembly: System.Reflection.AssemblyProductAttribute("OrgChartSystem")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OrgChartSystem")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
