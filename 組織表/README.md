@@ -48,3 +48,13 @@
 - `OrgChartSystem/Services/OrgChartService.cs`：組織圖業務邏輯
 - `OrgChartSystem/Contracts/`：API Request/Response DTO
 - `OrgChartSystem/wwwroot/`：前端頁面與互動腳本
+
+## 連線排錯（Failed to fetch）
+- 前端已加入 API 位址自動偵測，預設會依序嘗試：
+  - 同源位址（目前網頁所在主機）
+  - `http://localhost:5081`
+  - `https://localhost:7126`
+  - `http://localhost:5000`
+- 可手動指定 API 位址：在網址後加上 `?apiBase=http://localhost:5081`。
+- 後端已啟用 CORS（AllowAnyOrigin/AllowAnyHeader/AllowAnyMethod），支援前後端不同來源測試。
+- 若仍失敗，先確認已啟動：`dotnet run --project OrgChartSystem/OrgChartSystem.csproj`。

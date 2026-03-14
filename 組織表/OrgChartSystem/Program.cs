@@ -5,6 +5,17 @@ using OrgChartSystem.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -19,6 +30,7 @@ var app = builder.Build();
 
 await DbInitializer.InitializeAsync(app.Services);
 
+app.UseCors();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 

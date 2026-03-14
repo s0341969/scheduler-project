@@ -3,12 +3,15 @@
         displayMode: "person",
         nodes: []
     },
-    selectedId: null
+    selectedId: null,
+    apiBase: null,
+    apiBaseCandidates: []
 };
 
 const refs = {
     chartContainer: document.getElementById("chartContainer"),
     statusText: document.getElementById("statusText"),
+    apiInfo: document.getElementById("apiInfo"),
     displayModeSelect: document.getElementById("displayModeSelect"),
     nodeForm: document.getElementById("nodeForm"),
     departmentNameInput: document.getElementById("departmentNameInput"),
@@ -24,7 +27,10 @@ const refs = {
 init();
 
 async function init() {
+    state.apiBaseCandidates = buildApiBaseCandidates();
     bindEvents();
+
+    await ensureApiBase();
     await loadChart();
 }
 
@@ -427,23 +433,113 @@ function setStatus(message, isError = false) {
     refs.statusText.style.color = isError ? "#b63f3f" : "#5d6d84";
 }
 
-async function apiRequest(url, options = {}) {
+function buildApiBaseCandidates() {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get("apiBase");
+    const fromStorage = window.localStorage.getItem("orgChartApiBase");
+
+    const candidates = [];
+
+    addCandidate(candidates, fromQuery);
+    addCandidate(candidates, fromStorage);
+
+    if (window.location.protocol !== "file:") {
+        addCandidate(candidates, window.location.origin);
+    }
+
+    addCandidate(candidates, "http://localhost:5081");
+    addCandidate(candidates, "https://localhost:7126");
+    addCandidate(candidates, "http://localhost:5000");
+
+    return candidates;
+}
+
+function addCandidate(target, value) {
+    if (!value || typeof value !== "string") {
+        return;
+    }
+
+    const normalized = value.endsWith("/")
+        ? value.slice(0, -1)
+        : value;
+
+    if (!target.includes(normalized)) {
+        target.push(normalized);
+    }
+}
+
+async function ensureApiBase() {
+    if (state.apiBase) {
+        return state.apiBase;
+    }
+
+    for (const base of state.apiBaseCandidates) {
+        try {
+            const response = await fetch(`${base}/api/orgchart`, {
+                method: "GET",
+                cache: "no-store"
+            });
+
+            if (response.ok) {
+                state.apiBase = base;
+                window.localStorage.setItem("orgChartApiBase", base);
+                setApiInfo(`API 位址：${base}`);
+                return base;
+            }
+        } catch {
+        }
+    }
+
+    const fallback = state.apiBaseCandidates[0] || "http://localhost:5081";
+    state.apiBase = fallback;
+    setApiInfo(`API 連線失敗，嘗試位址：${fallback}`);
+    return fallback;
+}
+
+function setApiInfo(message) {
+    if (refs.apiInfo) {
+        refs.apiInfo.textContent = message;
+    }
+}
+
+async function apiRequest(path, options = {}) {
+    const base = await ensureApiBase();
+    const url = path.startsWith("http://") || path.startsWith("https://")
+        ? path
+        : `${base}${path}`;
+
     const headers = {
-        "Content-Type": "application/json",
         ...(options.headers || {})
     };
 
-    const response = await fetch(url, {
-        ...options,
-        headers
-    });
+    if (options.body !== undefined && options.body !== null && !headers["Content-Type"]) {
+        headers["Content-Type"] = "application/json";
+    }
+
+    let response;
+
+    try {
+        response = await fetch(url, {
+            ...options,
+            headers
+        });
+    } catch {
+        throw new Error(`無法連線 API。請先執行 dotnet run，或用 ?apiBase=http://localhost:5081 指定位址（目前：${url}）`);
+    }
 
     const hasBody = response.status !== 204;
     let payload = null;
 
     if (hasBody) {
         const text = await response.text();
-        payload = text ? JSON.parse(text) : null;
+        if (text) {
+            const contentType = response.headers.get("content-type") || "";
+            if (contentType.toLowerCase().includes("application/json")) {
+                payload = JSON.parse(text);
+            } else {
+                payload = { message: text };
+            }
+        }
     }
 
     if (!response.ok) {
