@@ -1,4 +1,16 @@
-﻿# Changelog
+# Changelog
+## 2026-03-14 拖放調整組織功能
+- 新增節點重排 API：POST /api/orgchart/nodes/{id}/reposition，可一次調整上層與排序索引。
+- 後端 OrgChartService 新增重排邏輯：
+  - 支援同層任意位置重排。
+  - 支援跨層移動與插入指定索引。
+  - 維持各層 SortOrder 連續重編，並更新 UpdatedAtUtc。
+- 前端樹狀圖新增拖拉操作：
+  - 拖到節點上方：插入同層前方。
+  - 拖到節點中央：成為子節點。
+  - 拖到節點下方：插入同層後方。
+  - 拖曳時顯示放置提示樣式，並保留原有編輯與上下移按鈕功能。
+- 編輯面板操作提示文字更新，加入拖拉規則說明。
 
 ## 2026-03-14 主要更新
 - 新增 `OrgChartSystem` ASP.NET Core 8 專案。
@@ -22,3 +34,4 @@
   - 增強非 JSON 錯誤回應處理。
 - 後端新增 CORS 設定，允許跨來源呼叫 API。
 - 完成驗證：`dotnet build`、API 冒煙測試、CORS 預檢（`Access-Control-Allow-Origin: *`）。
+

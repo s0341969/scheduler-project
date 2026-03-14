@@ -145,6 +145,72 @@ public class OrgChartService(AppDbContext db)
         return true;
     }
 
+    public async Task<bool> RepositionNodeAsync(int nodeId, int? newParentId, int? newIndex)
+    {
+        var node = await db.OrgNodes.FirstOrDefaultAsync(x => x.Id == nodeId);
+        if (node is null)
+        {
+            return false;
+        }
+
+        await ValidateParentAsync(newParentId, nodeId);
+
+        var oldParentId = node.ParentId;
+        var sameParent = oldParentId == newParentId;
+
+        if (sameParent)
+        {
+            var siblings = await db.OrgNodes
+                .Where(x => x.ParentId == oldParentId)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+
+            var currentIndex = siblings.FindIndex(x => x.Id == nodeId);
+            if (currentIndex < 0)
+            {
+                return false;
+            }
+
+            var others = siblings.Where(x => x.Id != nodeId).ToList();
+            var requestedIndex = Math.Max(0, newIndex ?? others.Count);
+            var insertIndex = Math.Min(requestedIndex, others.Count);
+
+            if (requestedIndex > currentIndex)
+            {
+                insertIndex = Math.Max(0, insertIndex - 1);
+            }
+
+            others.Insert(insertIndex, node);
+            ResequenceSiblings(others);
+        }
+        else
+        {
+            var oldSiblings = await db.OrgNodes
+                .Where(x => x.ParentId == oldParentId && x.Id != nodeId)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+
+            var newSiblings = await db.OrgNodes
+                .Where(x => x.ParentId == newParentId)
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.Id)
+                .ToListAsync();
+
+            var insertIndex = Math.Min(Math.Max(0, newIndex ?? newSiblings.Count), newSiblings.Count);
+            node.ParentId = newParentId;
+            node.UpdatedAtUtc = DateTime.UtcNow;
+            newSiblings.Insert(insertIndex, node);
+
+            ResequenceSiblings(oldSiblings);
+            ResequenceSiblings(newSiblings);
+        }
+
+        await db.SaveChangesAsync();
+        return true;
+    }
+
     public async Task<string> UpdateDisplayModeAsync(string displayMode)
     {
         var normalized = NormalizeDisplayMode(displayMode);
@@ -235,7 +301,7 @@ public class OrgChartService(AppDbContext db)
         var descendants = CollectDescendantIds(selfId.Value, nodes.Select(x => new OrgNode { Id = x.Id, ParentId = x.ParentId }).ToList());
         if (descendants.Contains(parentId.Value))
         {
-            throw new InvalidOperationException("不可把節點移動到自己的下層。\n");
+            throw new InvalidOperationException("不可把節點移動到自己的下層。");
         }
     }
 
@@ -267,6 +333,15 @@ public class OrgChartService(AppDbContext db)
             .MaxAsync();
 
         return (maxSort ?? -1) + 1;
+    }
+
+    private static void ResequenceSiblings(List<OrgNode> siblings)
+    {
+        for (var i = 0; i < siblings.Count; i++)
+        {
+            siblings[i].SortOrder = i;
+            siblings[i].UpdatedAtUtc = DateTime.UtcNow;
+        }
     }
 
     private static OrgNode BuildImportNode(ImportOrgNodeRequest request, OrgNode? parent, int sortOrder)

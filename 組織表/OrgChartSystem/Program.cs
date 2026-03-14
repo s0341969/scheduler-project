@@ -99,6 +99,21 @@ api.MapPost("/nodes/{id:int}/move", async (int id, MoveNodeRequest request, OrgC
     }
 });
 
+api.MapPost("/nodes/{id:int}/reposition", async (int id, RepositionNodeRequest request, OrgChartService service) =>
+{
+    try
+    {
+        var moved = await service.RepositionNodeAsync(id, request.ParentId, request.Index);
+        return moved
+            ? Results.Ok(new { message = "節點已更新位置。" })
+            : Results.NotFound(new { message = "節點不存在。" });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { message = ex.Message });
+    }
+});
+
 api.MapPut("/settings", async (UpdateSettingRequest request, OrgChartService service) =>
 {
     try

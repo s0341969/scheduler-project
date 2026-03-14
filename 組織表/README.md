@@ -23,12 +23,17 @@
 - `PUT /api/orgchart/nodes/{id}`：更新節點內容與上層
 - `DELETE /api/orgchart/nodes/{id}`：刪除節點（含所有子孫節點）
 - `POST /api/orgchart/nodes/{id}/move`：同層上移/下移
+- `POST /api/orgchart/nodes/{id}/reposition`：拖放調整節點上層與排序（指定 `parentId` + `index`）
 - `PUT /api/orgchart/settings`：更新顯示模式（`person` / `code`）
 - `GET /api/orgchart/export`：匯出 JSON
 - `POST /api/orgchart/import`：匯入 JSON（覆蓋現有資料）
 
 ## 前端操作
 - 可點選節點進入右側表單編輯
+- 支援拖拉節點調整位置：
+  - 拖到節點上方：移到同層前方
+  - 拖到節點中央：成為該節點子節點
+  - 拖到節點下方：移到同層後方
 - 支援新增根節點、新增子節點、刪除、上下移
 - 支援 JSON 檔匯入與下載匯出
 - 介面文字預設繁體中文（zh-TW）

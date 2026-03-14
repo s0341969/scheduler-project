@@ -4,6 +4,8 @@
         nodes: []
     },
     selectedId: null,
+    draggingId: null,
+    dragOver: null,
     apiBase: null,
     apiBaseCandidates: []
 };
@@ -85,6 +87,12 @@ function bindEvents() {
         renderAll();
         setStatus(`已選取節點 #${id}`);
     });
+
+    refs.chartContainer.addEventListener("dragstart", handleDragStart);
+    refs.chartContainer.addEventListener("dragover", handleDragOver);
+    refs.chartContainer.addEventListener("dragleave", handleDragLeave);
+    refs.chartContainer.addEventListener("drop", handleDrop);
+    refs.chartContainer.addEventListener("dragend", clearDragState);
 }
 
 async function loadChart() {
@@ -143,6 +151,7 @@ function buildNodeTree(node) {
     const card = document.createElement("button");
     card.type = "button";
     card.className = "node-card";
+    card.draggable = true;
     if (node.id === state.selectedId) {
         card.classList.add("selected");
     }
@@ -302,6 +311,233 @@ async function moveSelected(direction) {
     } catch (error) {
         setStatus(`排序失敗：${error.message}`, true);
     }
+}
+
+function handleDragStart(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    const card = target.closest(".node-card");
+    if (!(card instanceof HTMLElement)) {
+        return;
+    }
+
+    const id = Number(card.dataset.nodeId);
+    if (!Number.isFinite(id)) {
+        return;
+    }
+
+    state.draggingId = id;
+    card.classList.add("dragging");
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(id));
+    }
+}
+
+function handleDragOver(event) {
+    if (!Number.isFinite(state.draggingId)) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    const card = target.closest(".node-card");
+    if (!(card instanceof HTMLElement)) {
+        setDragHint(null, null);
+        refs.chartContainer.classList.add("drag-over-root");
+        return;
+    }
+
+    refs.chartContainer.classList.remove("drag-over-root");
+
+    const targetId = Number(card.dataset.nodeId);
+    if (!Number.isFinite(targetId)) {
+        setDragHint(null, null);
+        return;
+    }
+
+    const position = getDropPosition(card, event.clientY);
+    if (!isValidDrop(state.draggingId, targetId, position)) {
+        setDragHint(null, null);
+        return;
+    }
+
+    setDragHint(targetId, position);
+}
+
+function handleDragLeave(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        return;
+    }
+
+    if (target === refs.chartContainer) {
+        refs.chartContainer.classList.remove("drag-over-root");
+    }
+}
+
+async function handleDrop(event) {
+    if (!Number.isFinite(state.draggingId)) {
+        return;
+    }
+
+    event.preventDefault();
+
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+        clearDragState();
+        return;
+    }
+
+    const draggingId = state.draggingId;
+    const card = target.closest(".node-card");
+
+    try {
+        if (!(card instanceof HTMLElement)) {
+            await repositionNode(draggingId, null, state.chart.nodes.length);
+            state.selectedId = draggingId;
+            await loadChart();
+            setStatus(`節點 #${draggingId} 已移到根節點層。`);
+            return;
+        }
+
+        const targetId = Number(card.dataset.nodeId);
+        if (!Number.isFinite(targetId)) {
+            return;
+        }
+
+        const position = state.dragOver?.targetId === targetId
+            ? state.dragOver.position
+            : getDropPosition(card, event.clientY);
+
+        if (!isValidDrop(draggingId, targetId, position)) {
+            setStatus("拖放位置無效，請換一個位置。", true);
+            return;
+        }
+
+        const targetNode = flattenNodes(state.chart.nodes).find((x) => x.id === targetId);
+        if (!targetNode) {
+            return;
+        }
+
+        let parentId = null;
+        let index = 0;
+
+        if (position === "inside") {
+            parentId = targetNode.id;
+            index = targetNode.children?.length || 0;
+        } else if (position === "before") {
+            parentId = targetNode.parentId;
+            index = targetNode.sortOrder;
+        } else {
+            parentId = targetNode.parentId;
+            index = targetNode.sortOrder + 1;
+        }
+
+        await repositionNode(draggingId, parentId, index);
+        state.selectedId = draggingId;
+        await loadChart();
+        setStatus(`節點 #${draggingId} 已完成拖放。`);
+    } catch (error) {
+        setStatus(`拖放失敗：${error.message}`, true);
+    } finally {
+        clearDragState();
+    }
+}
+
+function getDropPosition(card, clientY) {
+    const rect = card.getBoundingClientRect();
+    const topZone = rect.top + rect.height * 0.25;
+    const bottomZone = rect.bottom - rect.height * 0.25;
+
+    if (clientY <= topZone) {
+        return "before";
+    }
+
+    if (clientY >= bottomZone) {
+        return "after";
+    }
+
+    return "inside";
+}
+
+function isValidDrop(draggingId, targetId, position) {
+    if (!Number.isFinite(draggingId) || !Number.isFinite(targetId)) {
+        return false;
+    }
+
+    if (draggingId === targetId) {
+        return false;
+    }
+
+    const flatNodes = flattenNodes(state.chart.nodes);
+    const draggingNode = flatNodes.find((x) => x.id === draggingId);
+    if (!draggingNode) {
+        return false;
+    }
+
+    const descendants = getDescendantIdSet(draggingNode);
+    if (position === "inside" && descendants.has(targetId)) {
+        return false;
+    }
+
+    const targetNode = flatNodes.find((x) => x.id === targetId);
+    if (!targetNode) {
+        return false;
+    }
+
+    if ((position === "before" || position === "after") && targetNode.parentId !== null && descendants.has(targetNode.parentId)) {
+        return false;
+    }
+
+    return true;
+}
+
+function setDragHint(targetId, position) {
+    state.dragOver = targetId === null ? null : { targetId, position };
+
+    refs.chartContainer
+        .querySelectorAll(".node-card.drag-over-before, .node-card.drag-over-inside, .node-card.drag-over-after")
+        .forEach((card) => card.classList.remove("drag-over-before", "drag-over-inside", "drag-over-after"));
+
+    if (targetId === null) {
+        return;
+    }
+
+    const targetCard = refs.chartContainer.querySelector(`.node-card[data-node-id="${targetId}"]`);
+    if (!(targetCard instanceof HTMLElement)) {
+        return;
+    }
+
+    targetCard.classList.add(`drag-over-${position}`);
+}
+
+function clearDragState() {
+    state.draggingId = null;
+    state.dragOver = null;
+    refs.chartContainer.classList.remove("drag-over-root");
+    refs.chartContainer
+        .querySelectorAll(".node-card.dragging, .node-card.drag-over-before, .node-card.drag-over-inside, .node-card.drag-over-after")
+        .forEach((card) => card.classList.remove("dragging", "drag-over-before", "drag-over-inside", "drag-over-after"));
+}
+
+async function repositionNode(nodeId, parentId, index) {
+    await apiRequest(`/api/orgchart/nodes/${nodeId}/reposition`, {
+        method: "POST",
+        body: JSON.stringify({
+            parentId,
+            index
+        })
+    });
 }
 
 async function deleteSelected() {
