@@ -626,7 +626,8 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 {
                     Time = tick,
                     Label = tick.ToString("MM-dd HH:mm"),
-                    IsWorking = SchedulerEngine.IsWorkingTime(tick)
+                    IsWorking = SchedulerEngine.IsWorkingTime(tick),
+                    IsHoliday = tick.DayOfWeek == DayOfWeek.Sunday
                 });
                 tick = tick.AddHours(1);
             }
@@ -1321,8 +1322,11 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         public required DateTime Time { get; init; }
         public required string Label { get; init; }
         public required bool IsWorking { get; init; }
+        public required bool IsHoliday { get; init; }
     }
 }
+
+
 
 
 

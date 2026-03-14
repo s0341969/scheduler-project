@@ -92,10 +92,13 @@
                                                 <DataTrigger Binding="{Binding IsWorking}" Value="False">
                                                     <Setter Property="Background" Value="#F3F4F6" />
                                                 </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsHoliday}" Value="True">
+                                                    <Setter Property="Background" Value="#FECACA" />
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
-                                    <TextBlock Text="{Binding Label}" FontSize="12" Foreground="#374151" />
+                                    <TextBlock Text="{Binding Label}" FontSize="25" Foreground="#374151" />
                                 </Border>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -143,8 +146,11 @@
                                                             <Setter Property="Background" Value="#FFFFFF" />
                                                             <Style.Triggers>
                                                                 <DataTrigger Binding="{Binding IsWorking}" Value="False">
-                                                                    <Setter Property="Background" Value="#F3F4F6" />
-                                                                </DataTrigger>
+                                                    <Setter Property="Background" Value="#F3F4F6" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsHoliday}" Value="True">
+                                                    <Setter Property="Background" Value="#FECACA" />
+                                                </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
                                                     </Border.Style>
@@ -252,3 +258,5 @@
         <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#555" Text="提示：Ctrl+點擊可多選；單擊為單選；點空白處可清除選取；右鍵可推移到指定日期時段。" />
     </Grid>
 </Window>
+
+
