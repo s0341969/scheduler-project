@@ -1,0 +1,33 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\app.js",
+      "PackagePath": "staticwebassets\\app.js"
+    },
+    {
+      "Id": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "C:\\codex_pg\\組織表\\OrgChartSystem\\wwwroot\\styles.css",
+      "PackagePath": "staticwebassets\\styles.css"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.OrgChartSystem.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.OrgChartSystem.props",
+      "PackagePath": "build\\OrgChartSystem.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.OrgChartSystem.props",
+      "PackagePath": "buildMultiTargeting\\OrgChartSystem.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.OrgChartSystem.props",
+      "PackagePath": "buildTransitive\\OrgChartSystem.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

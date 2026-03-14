@@ -21,3 +21,4 @@ G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.dll
 G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\refint\SchedulerConfigProvider.dll
 G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.pdb
 G:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\ref\SchedulerConfigProvider.dll
+C:\codex_pg\SchedulerConfigProvider\obj\Debug\net8.0\SchedulerConfigProvider.sourcelink.json

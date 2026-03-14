@@ -1,0 +1,97 @@
+﻿<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>組織圖管理系統</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="hero">
+        <div>
+            <h1>組織圖管理系統</h1>
+            <p>參考互動式組織圖設計，提供節點編輯、排序與 JSON 匯入匯出。</p>
+            <p id="apiInfo" class="api-info">API 連線檢查中...</p>
+        </div>
+        <div class="hero-tag">SQLite 本地端資料庫</div>
+    </header>
+
+    <section class="toolbar">
+        <button id="refreshBtn" type="button">重新整理</button>
+        <button id="addRootBtn" type="button">新增根節點</button>
+        <button id="addChildBtn" type="button">新增子節點</button>
+        <button id="moveUpBtn" type="button">上移</button>
+        <button id="moveDownBtn" type="button">下移</button>
+        <button id="deleteBtn" type="button" class="danger">刪除節點</button>
+        <button id="exportBtn" type="button">匯出 JSON</button>
+        <button id="importBtn" type="button">匯入 JSON</button>
+        <input id="importFile" type="file" accept="application/json" hidden>
+
+        <label class="mode-switch" for="displayModeSelect">
+            顯示模式
+            <select id="displayModeSelect">
+                <option value="person">以人員為主</option>
+                <option value="code">以代碼為主</option>
+            </select>
+        </label>
+    </section>
+
+    <main class="layout">
+        <section class="panel tree-panel">
+            <div class="panel-head">
+                <h2>組織架構</h2>
+                <span id="statusText">載入中...</span>
+            </div>
+            <div id="chartContainer" class="tree-zone"></div>
+        </section>
+
+        <aside class="panel editor-panel">
+            <h2>節點明細</h2>
+            <form id="nodeForm" autocomplete="off">
+                <label>
+                    部門名稱
+                    <input id="departmentNameInput" maxlength="128" placeholder="例如：資訊部">
+                </label>
+
+                <label>
+                    人員姓名
+                    <input id="personNameInput" maxlength="64" placeholder="例如：王小明">
+                </label>
+
+                <label>
+                    職稱
+                    <input id="titleInput" maxlength="64" placeholder="例如：經理">
+                </label>
+
+                <label>
+                    單位代碼
+                    <input id="codeInput" maxlength="64" placeholder="例如：IT">
+                </label>
+
+                <label>
+                    電子郵件
+                    <input id="emailInput" maxlength="128" placeholder="example@company.com">
+                </label>
+
+                <label>
+                    聯絡電話
+                    <input id="phoneInput" maxlength="32" placeholder="02-1234-5678">
+                </label>
+
+                <label>
+                    上層節點
+                    <select id="parentIdSelect"></select>
+                </label>
+
+                <div class="form-actions">
+                    <button id="saveBtn" type="submit">儲存變更</button>
+                    <button id="clearSelectionBtn" type="button" class="secondary">取消選取</button>
+                </div>
+            </form>
+            <p class="tips">操作提示：先在左側點選節點，再於此區編輯資料與更改上層。</p>
+        </aside>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

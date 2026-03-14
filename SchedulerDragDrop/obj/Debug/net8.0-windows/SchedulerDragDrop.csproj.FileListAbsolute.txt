@@ -139,3 +139,4 @@ G:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\refint\SchedulerDragDrop.
 G:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\SchedulerDragDrop.pdb
 G:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\SchedulerDragDrop.genruntimeconfig.cache
 G:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\ref\SchedulerDragDrop.dll
+C:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\SchedulerDragDrop.sourcelink.json

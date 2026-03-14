@@ -1,0 +1,7 @@
+﻿OrgChartSystem/bin/
+OrgChartSystem/obj/
+OrgChartSystem/*.db
+OrgChartSystem/*.db-shm
+OrgChartSystem/*.db-wal
+OrgChartSystem/run.out.log
+OrgChartSystem/run.err.log
