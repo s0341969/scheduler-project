@@ -9,6 +9,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<OrgChartSetting> OrgChartSettings => Set<OrgChartSetting>();
 
+    public DbSet<OrgChartSnapshot> OrgChartSnapshots => Set<OrgChartSnapshot>();
+
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<OrgNode>(entity =>
@@ -33,6 +37,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         {
             entity.HasKey(x => x.Id);
             entity.Property(x => x.DisplayMode).HasMaxLength(16);
+        });
+
+        modelBuilder.Entity<OrgChartSnapshot>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Reason).HasMaxLength(128);
+            entity.Property(x => x.Actor).HasMaxLength(64);
+            entity.Property(x => x.DataJson).HasColumnType("TEXT");
+            entity.HasIndex(x => x.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Action).HasMaxLength(64);
+            entity.Property(x => x.Actor).HasMaxLength(64);
+            entity.Property(x => x.Role).HasMaxLength(32);
+            entity.Property(x => x.Detail).HasMaxLength(2048);
+            entity.HasIndex(x => x.CreatedAtUtc);
+            entity.HasIndex(x => x.NodeId);
         });
     }
 }

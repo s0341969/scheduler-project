@@ -1,4 +1,4 @@
-﻿const state = {
+const state = {
     chart: {
         displayMode: "person",
         nodes: []
@@ -6,8 +6,14 @@
     selectedId: null,
     draggingId: null,
     dragOver: null,
+    searchMatchedIds: new Set(),
     apiBase: null,
-    apiBaseCandidates: []
+    apiBaseCandidates: [],
+    auth: {
+        role: "viewer",
+        key: "",
+        actor: "anonymous"
+    }
 };
 
 const refs = {
@@ -23,21 +29,31 @@ const refs = {
     emailInput: document.getElementById("emailInput"),
     phoneInput: document.getElementById("phoneInput"),
     parentIdSelect: document.getElementById("parentIdSelect"),
-    importFile: document.getElementById("importFile")
+    importFile: document.getElementById("importFile"),
+    searchInput: document.getElementById("searchInput"),
+    snapshotSelect: document.getElementById("snapshotSelect"),
+    backupSelect: document.getElementById("backupSelect"),
+    roleSelect: document.getElementById("roleSelect"),
+    accessKeyInput: document.getElementById("accessKeyInput"),
+    actorInput: document.getElementById("actorInput")
 };
 
 init();
 
 async function init() {
     state.apiBaseCandidates = buildApiBaseCandidates();
+    loadAuthSettings();
     bindEvents();
 
     await ensureApiBase();
-    await loadChart();
+    await Promise.all([loadChart(), loadSnapshots(), loadBackups()]);
 }
 
 function bindEvents() {
-    document.getElementById("refreshBtn").addEventListener("click", () => loadChart());
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+        await Promise.all([loadChart(), loadSnapshots(), loadBackups()]);
+    });
+
     document.getElementById("addRootBtn").addEventListener("click", () => createNode(null));
     document.getElementById("addChildBtn").addEventListener("click", addChildNode);
     document.getElementById("moveUpBtn").addEventListener("click", () => moveSelected("up"));
@@ -45,6 +61,14 @@ function bindEvents() {
     document.getElementById("deleteBtn").addEventListener("click", deleteSelected);
     document.getElementById("exportBtn").addEventListener("click", exportChart);
     document.getElementById("importBtn").addEventListener("click", () => refs.importFile.click());
+    document.getElementById("searchBtn").addEventListener("click", runSearch);
+    document.getElementById("clearSearchBtn").addEventListener("click", clearSearch);
+    document.getElementById("createSnapshotBtn").addEventListener("click", createSnapshot);
+    document.getElementById("restoreSnapshotBtn").addEventListener("click", restoreSnapshot);
+    document.getElementById("createBackupBtn").addEventListener("click", createBackup);
+    document.getElementById("restoreBackupBtn").addEventListener("click", restoreBackup);
+    document.getElementById("saveAuthBtn").addEventListener("click", saveAuthSettings);
+
     document.getElementById("clearSelectionBtn").addEventListener("click", () => {
         state.selectedId = null;
         renderAll();
@@ -64,6 +88,13 @@ function bindEvents() {
             await importChart(file);
         } finally {
             refs.importFile.value = "";
+        }
+    });
+
+    refs.searchInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+            event.preventDefault();
+            runSearch();
         }
     });
 
@@ -93,6 +124,32 @@ function bindEvents() {
     refs.chartContainer.addEventListener("dragleave", handleDragLeave);
     refs.chartContainer.addEventListener("drop", handleDrop);
     refs.chartContainer.addEventListener("dragend", clearDragState);
+}
+
+function loadAuthSettings() {
+    const stored = window.localStorage.getItem("orgChartAuth");
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            state.auth.role = parsed.role || "viewer";
+            state.auth.key = parsed.key || "";
+            state.auth.actor = parsed.actor || "anonymous";
+        } catch {
+        }
+    }
+
+    refs.roleSelect.value = state.auth.role;
+    refs.accessKeyInput.value = state.auth.key;
+    refs.actorInput.value = state.auth.actor;
+}
+
+function saveAuthSettings() {
+    state.auth.role = refs.roleSelect.value || "viewer";
+    state.auth.key = refs.accessKeyInput.value || "";
+    state.auth.actor = refs.actorInput.value?.trim() || "anonymous";
+
+    window.localStorage.setItem("orgChartAuth", JSON.stringify(state.auth));
+    setStatus(`已套用權限：${state.auth.role} / ${state.auth.actor}`);
 }
 
 async function loadChart() {
@@ -155,6 +212,11 @@ function buildNodeTree(node) {
     if (node.id === state.selectedId) {
         card.classList.add("selected");
     }
+
+    if (state.searchMatchedIds.has(node.id)) {
+        card.classList.add("search-hit");
+    }
+
     card.dataset.nodeId = String(node.id);
 
     const mode = state.chart.displayMode || "person";
@@ -609,16 +671,180 @@ async function importChart(file) {
             throw new Error("JSON 格式不正確，必須包含 nodes 陣列。");
         }
 
+        const preview = await apiRequest("/api/orgchart/import/preview", {
+            method: "POST",
+            body: JSON.stringify(data)
+        });
+
+        const warningText = preview.warnings?.length > 0
+            ? `\n\n警示：\n- ${preview.warnings.join("\n- ")}`
+            : "";
+
+        const confirmText = `預覽結果：\n目前節點：${preview.currentNodeCount}\n匯入節點：${preview.incomingNodeCount}\n差異：${preview.delta >= 0 ? "+" : ""}${preview.delta}\n根節點：${preview.rootCount}\n最大深度：${preview.maxDepth}${warningText}\n\n確定要套用匯入？`;
+
+        if (!window.confirm(confirmText)) {
+            setStatus("已取消匯入。", false);
+            return;
+        }
+
         await apiRequest("/api/orgchart/import", {
             method: "POST",
             body: JSON.stringify(data)
         });
 
         state.selectedId = null;
-        await loadChart();
+        await Promise.all([loadChart(), loadSnapshots()]);
         setStatus("匯入完成。", false);
     } catch (error) {
         setStatus(`匯入失敗：${error.message}`, true);
+    }
+}
+
+async function runSearch() {
+    const keyword = refs.searchInput.value?.trim() || "";
+    if (!keyword) {
+        setStatus("請先輸入搜尋關鍵字。", true);
+        return;
+    }
+
+    try {
+        const results = await apiRequest(`/api/orgchart/search?q=${encodeURIComponent(keyword)}&limit=100`);
+        state.searchMatchedIds = new Set(results.map((x) => x.id));
+
+        if (results.length > 0) {
+            state.selectedId = results[0].id;
+            renderAll();
+            setStatus(`搜尋到 ${results.length} 筆，已定位到第一筆。`);
+        } else {
+            renderAll();
+            setStatus("查無符合節點。", false);
+        }
+    } catch (error) {
+        setStatus(`搜尋失敗：${error.message}`, true);
+    }
+}
+
+function clearSearch() {
+    state.searchMatchedIds = new Set();
+    refs.searchInput.value = "";
+    renderAll();
+    setStatus("已清除搜尋結果。");
+}
+
+async function loadSnapshots() {
+    try {
+        const snapshots = await apiRequest("/api/orgchart/snapshots?take=50");
+        refs.snapshotSelect.innerHTML = "";
+
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = snapshots.length === 0 ? "(無快照)" : "請選擇快照";
+        refs.snapshotSelect.appendChild(empty);
+
+        snapshots.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = String(item.id);
+            const date = formatUtc(item.createdAtUtc);
+            option.textContent = `#${item.id} ${date} ${item.reason}`;
+            refs.snapshotSelect.appendChild(option);
+        });
+    } catch {
+    }
+}
+
+async function createSnapshot() {
+    const reason = window.prompt("請輸入快照原因", "手動快照") || "手動快照";
+
+    try {
+        await apiRequest("/api/orgchart/snapshots", {
+            method: "POST",
+            body: JSON.stringify({ reason })
+        });
+
+        await loadSnapshots();
+        setStatus("已建立快照。", false);
+    } catch (error) {
+        setStatus(`建立快照失敗：${error.message}`, true);
+    }
+}
+
+async function restoreSnapshot() {
+    const id = Number(refs.snapshotSelect.value);
+    if (!Number.isFinite(id)) {
+        setStatus("請先選擇要回復的快照。", true);
+        return;
+    }
+
+    if (!window.confirm(`確定要回復快照 #${id} 嗎？系統會先自動建立一份回復前快照。`)) {
+        return;
+    }
+
+    try {
+        await apiRequest(`/api/orgchart/snapshots/${id}/restore`, {
+            method: "POST"
+        });
+
+        await Promise.all([loadChart(), loadSnapshots()]);
+        setStatus(`快照 #${id} 已回復。`, false);
+    } catch (error) {
+        setStatus(`快照回復失敗：${error.message}`, true);
+    }
+}
+
+async function loadBackups() {
+    try {
+        const backups = await apiRequest("/api/orgchart/backups");
+        refs.backupSelect.innerHTML = "";
+
+        const empty = document.createElement("option");
+        empty.value = "";
+        empty.textContent = backups.length === 0 ? "(無備份)" : "請選擇備份檔";
+        refs.backupSelect.appendChild(empty);
+
+        backups.forEach((item) => {
+            const option = document.createElement("option");
+            option.value = item.fileName;
+            option.textContent = `${formatUtc(item.lastWriteTimeUtc)} ${item.fileName}`;
+            refs.backupSelect.appendChild(option);
+        });
+    } catch {
+    }
+}
+
+async function createBackup() {
+    try {
+        const backup = await apiRequest("/api/orgchart/backups", {
+            method: "POST"
+        });
+
+        await loadBackups();
+        setStatus(`已建立備份：${backup.fileName}`, false);
+    } catch (error) {
+        setStatus(`建立備份失敗：${error.message}`, true);
+    }
+}
+
+async function restoreBackup() {
+    const fileName = refs.backupSelect.value;
+    if (!fileName) {
+        setStatus("請先選擇要還原的備份檔。", true);
+        return;
+    }
+
+    if (!window.confirm(`確定要還原備份 ${fileName} 嗎？系統會先做還原前備份。`)) {
+        return;
+    }
+
+    try {
+        await apiRequest("/api/orgchart/backups/restore", {
+            method: "POST",
+            body: JSON.stringify({ fileName })
+        });
+
+        await Promise.all([loadChart(), loadBackups(), loadSnapshots()]);
+        setStatus("備份還原完成。", false);
+    } catch (error) {
+        setStatus(`備份還原失敗：${error.message}`, true);
     }
 }
 
@@ -669,6 +895,19 @@ function setStatus(message, isError = false) {
     refs.statusText.style.color = isError ? "#b63f3f" : "#5d6d84";
 }
 
+function formatUtc(value) {
+    if (!value) {
+        return "";
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return String(value);
+    }
+
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")} ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 function buildApiBaseCandidates() {
     const params = new URLSearchParams(window.location.search);
     const fromQuery = params.get("apiBase");
@@ -716,7 +955,7 @@ async function ensureApiBase() {
                 cache: "no-store"
             });
 
-            if (response.ok) {
+            if (response.ok || response.status === 401) {
                 state.apiBase = base;
                 window.localStorage.setItem("orgChartApiBase", base);
                 setApiInfo(`API 位址：${base}`);
@@ -745,7 +984,10 @@ async function apiRequest(path, options = {}) {
         : `${base}${path}`;
 
     const headers = {
-        ...(options.headers || {})
+        ...(options.headers || {}),
+        "X-OrgChart-Role": state.auth.role,
+        "X-OrgChart-Key": state.auth.key,
+        "X-OrgChart-Actor": state.auth.actor
     };
 
     if (options.body !== undefined && options.body !== null && !headers["Content-Type"]) {
@@ -779,6 +1021,10 @@ async function apiRequest(path, options = {}) {
     }
 
     if (!response.ok) {
+        if (response.status === 401) {
+            throw new Error("權限不足或金鑰錯誤，請先在上方設定角色與金鑰。");
+        }
+
         const message = payload?.message || `請求失敗（${response.status}）`;
         throw new Error(message);
     }

@@ -67,6 +67,31 @@ body {
     align-items: center;
 }
 
+.auth-bar {
+    margin: 0 24px 16px;
+    padding: 10px 12px;
+    border: 1px solid #c8d9ea;
+    border-radius: 12px;
+    background: #f8fcff;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+
+.auth-bar label {
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+}
+
+.auth-bar input,
+.auth-bar select {
+    border: 1px solid #b9cee4;
+    border-radius: 8px;
+    padding: 6px 8px;
+    background: #fff;
+}
+
 button,
 select,
 input {
@@ -282,6 +307,11 @@ button.secondary {
 
 .node-card.drag-over-after {
     box-shadow: inset 0 -4px 0 0 #1f8b4c;
+}
+
+.node-card.search-hit {
+    border-color: #e58d22;
+    box-shadow: 0 0 0 2px rgba(229, 141, 34, 0.25);
 }
 
 .node-card.selected {

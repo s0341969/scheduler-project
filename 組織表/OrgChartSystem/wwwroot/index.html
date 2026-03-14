@@ -26,6 +26,15 @@
         <button id="exportBtn" type="button">匯出 JSON</button>
         <button id="importBtn" type="button">匯入 JSON</button>
         <input id="importFile" type="file" accept="application/json" hidden>
+        <input id="searchInput" type="search" placeholder="搜尋部門 / 人員 / 代碼">
+        <button id="searchBtn" type="button">搜尋</button>
+        <button id="clearSearchBtn" type="button">清除搜尋</button>
+        <button id="createSnapshotBtn" type="button">建立快照</button>
+        <select id="snapshotSelect"></select>
+        <button id="restoreSnapshotBtn" type="button">回復快照</button>
+        <button id="createBackupBtn" type="button">建立備份</button>
+        <select id="backupSelect"></select>
+        <button id="restoreBackupBtn" type="button">還原備份</button>
 
         <label class="mode-switch" for="displayModeSelect">
             顯示模式
@@ -34,6 +43,19 @@
                 <option value="code">以代碼為主</option>
             </select>
         </label>
+    </section>
+
+    <section class="auth-bar">
+        <label for="roleSelect">角色</label>
+        <select id="roleSelect">
+            <option value="viewer">唯讀</option>
+            <option value="editor">編輯</option>
+        </select>
+        <label for="accessKeyInput">存取金鑰</label>
+        <input id="accessKeyInput" type="password" placeholder="請輸入 API 金鑰">
+        <label for="actorInput">操作人員</label>
+        <input id="actorInput" type="text" placeholder="例如：mis-admin">
+        <button id="saveAuthBtn" type="button">套用權限</button>
     </section>
 
     <main class="layout">

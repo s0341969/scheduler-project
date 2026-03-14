@@ -1,4 +1,32 @@
 # Changelog
+
+## 2026-03-14 全面功能升級（測試/權限/快照/備份/搜尋）
+- 新增權限模型（Header 驗證）：
+  - `viewer`（唯讀）
+  - `editor`（可寫入）
+  - 支援 `X-OrgChart-Actor` 審計操作者記錄
+- 新增審計紀錄（AuditLogs）：記錄新增、更新、刪除、拖放、匯入、快照、備份等行為。
+- 新增搜尋 API：`GET /api/orgchart/search`。
+- 新增匯入預覽 API：`POST /api/orgchart/import/preview`。
+- 匯入流程強化：匯入前自動建立快照，並加入格式與節點數量驗證。
+- 新增快照 API：
+  - `GET /api/orgchart/snapshots`
+  - `POST /api/orgchart/snapshots`
+  - `POST /api/orgchart/snapshots/{id}/restore`
+- 新增備份 API：
+  - `GET /api/orgchart/backups`
+  - `POST /api/orgchart/backups`
+  - `POST /api/orgchart/backups/restore`
+- 新增排程自動備份背景服務（可由 `Backup:*` 設定）。
+- 前端新增：
+  - 角色/金鑰/操作者設定
+  - 搜尋與結果高亮
+  - 匯入前預覽確認
+  - 快照建立/回復
+  - 備份建立/還原
+- 新增 `OrgChartSystem.Tests` xUnit 測試專案，覆蓋重排、循環防護、搜尋、匯入預覽。
+- `dotnet build`、`dotnet test` 驗證通過。
+
 ## 2026-03-14 拖放調整組織功能
 - 新增節點重排 API：POST /api/orgchart/nodes/{id}/reposition，可一次調整上層與排序索引。
 - 後端 OrgChartService 新增重排邏輯：
@@ -34,4 +62,3 @@
   - 增強非 JSON 錯誤回應處理。
 - 後端新增 CORS 設定，允許跨來源呼叫 API。
 - 完成驗證：`dotnet build`、API 冒煙測試、CORS 預檢（`Access-Control-Allow-Origin: *`）。
-

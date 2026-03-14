@@ -11,6 +11,7 @@ public static class DbInitializer
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         await db.Database.EnsureCreatedAsync();
+        await EnsureSchemaUpdatesAsync(db);
 
         if (!await db.OrgChartSettings.AnyAsync())
         {
@@ -28,6 +29,31 @@ public static class DbInitializer
         }
 
         await db.SaveChangesAsync();
+    }
+
+    private static async Task EnsureSchemaUpdatesAsync(AppDbContext db)
+    {
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS OrgChartSnapshots (
+                Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                Reason TEXT NOT NULL,
+                DataJson TEXT NOT NULL,
+                Actor TEXT NOT NULL,
+                CreatedAtUtc TEXT NOT NULL
+            );
+            """);
+
+        await db.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS AuditLogs (
+                Id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+                Action TEXT NOT NULL,
+                NodeId INTEGER NULL,
+                Detail TEXT NOT NULL,
+                Actor TEXT NOT NULL,
+                Role TEXT NOT NULL,
+                CreatedAtUtc TEXT NOT NULL
+            );
+            """);
     }
 
     private static void SeedDefaultNodes(AppDbContext db)
