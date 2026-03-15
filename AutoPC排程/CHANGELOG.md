@@ -1,5 +1,13 @@
 ﻿# Changelog
 
+## 2026-03-15 (UI)
+
+- `AutoPcScheduler` 新增 WinForms 介面，預設啟動為表單模式。
+- 表單新增「開始排程」按鈕，使用者按下後才執行排程。
+- 新增 GridView 顯示新排程清單，並增加未排入工作清單。
+- `Program.cs` 保留命令列模式，加入 `--cli` 參數切換。
+- `AutoPcScheduler.csproj` 調整為 `net8.0-windows` 並啟用 `UseWindowsForms`。
+
 ## 2026-03-15
 
 - 新增 `AutoPcScheduler` C# 專案，建立第一版排程引擎（貪婪分派、可跨天切段）。

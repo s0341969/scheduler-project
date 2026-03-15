@@ -1,60 +1,88 @@
 ﻿using AutoPcScheduler.Services;
+using AutoPcScheduler.UI;
 
-var options = CliOptions.Parse(args);
-var connectionString = Environment.GetEnvironmentVariable("AUTO_PC_CONN");
+namespace AutoPcScheduler;
 
-if (string.IsNullOrWhiteSpace(connectionString))
+internal static class Program
 {
-    Console.Error.WriteLine("缺少連線字串，請先設定環境變數 AUTO_PC_CONN。");
-    return 2;
-}
-
-var repository = new SqlSchedulingRepository(connectionString);
-var scheduler = new AutoPcSchedulerEngine();
-
-Console.WriteLine($"開始排程，排程起日: {options.PlanDate:yyyy-MM-dd}，視窗天數: {options.HorizonDays}");
-
-var context = await repository.LoadSchedulingContextAsync(options.PlanDate, options.HorizonDays, CancellationToken.None);
-
-Console.WriteLine($"讀取完成：機台 {context.Machines.Count} 台、定品定機 {context.Routes.Count} 筆、可排程工作 {context.Works.Count} 筆、既有指派 {context.ExistingAssignments.Count} 筆");
-
-var result = scheduler.Schedule(context, options.PlanDate, options.HorizonDays, options.Assigner);
-
-Console.WriteLine($"排程完成：新排程 {result.Assignments.Count} 筆，未排入 {result.Unscheduled.Count} 筆");
-
-if (options.DryRun)
-{
-    Console.WriteLine("Dry run 模式，不寫入資料庫。以下顯示前 20 筆排程結果：");
-    foreach (var assignment in result.Assignments.Take(20))
+    [STAThread]
+    private static async Task<int> Main(string[] args)
     {
-        Console.WriteLine($"{assignment.MachineId} | {assignment.StartTime:yyyy-MM-dd HH:mm} -> {assignment.EndTime:yyyy-MM-dd HH:mm} | {assignment.OrdTp}-{assignment.OrdNo}-{assignment.OrdSq}-{assignment.OrdSq1}");
-    }
-
-    if (result.Unscheduled.Count > 0)
-    {
-        Console.WriteLine("未排入工作：");
-        foreach (var item in result.Unscheduled.Take(20))
+        var runCli = args.Any(arg => arg.Equals("--cli", StringComparison.OrdinalIgnoreCase));
+        if (!runCli)
         {
-            Console.WriteLine($"{item.Work.OrdTp}-{item.Work.OrdNo}-{item.Work.OrdSq}-{item.Work.OrdSq1} | 原因: {item.Reason}");
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new SchedulerMainForm());
+            return 0;
         }
+
+        var cliArgs = args
+            .Where(arg => !arg.Equals("--cli", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        return await RunCliAsync(cliArgs);
     }
 
-    return 0;
-}
-
-var insertedRows = await repository.SaveAssignmentsAsync(result.Assignments, CancellationToken.None);
-Console.WriteLine($"已寫入指派時間 {insertedRows} 筆。\n");
-
-if (result.Unscheduled.Count > 0)
-{
-    Console.WriteLine("仍有未排入工作（最多顯示 20 筆）：");
-    foreach (var item in result.Unscheduled.Take(20))
+    private static async Task<int> RunCliAsync(string[] args)
     {
-        Console.WriteLine($"{item.Work.OrdTp}-{item.Work.OrdNo}-{item.Work.OrdSq}-{item.Work.OrdSq1} | 原因: {item.Reason}");
+        var options = CliOptions.Parse(args);
+        var connectionString = Environment.GetEnvironmentVariable("AUTO_PC_CONN");
+
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            Console.Error.WriteLine("缺少連線字串，請先設定環境變數 AUTO_PC_CONN。");
+            return 2;
+        }
+
+        var repository = new SqlSchedulingRepository(connectionString);
+        var scheduler = new AutoPcSchedulerEngine();
+
+        Console.WriteLine($"開始排程，排程起日: {options.PlanDate:yyyy-MM-dd}，視窗天數: {options.HorizonDays}");
+
+        var context = await repository.LoadSchedulingContextAsync(options.PlanDate, options.HorizonDays, CancellationToken.None);
+
+        Console.WriteLine($"讀取完成：機台 {context.Machines.Count} 台、定品定機 {context.Routes.Count} 筆、可排程工作 {context.Works.Count} 筆、既有指派 {context.ExistingAssignments.Count} 筆");
+
+        var result = scheduler.Schedule(context, options.PlanDate, options.HorizonDays, options.Assigner);
+
+        Console.WriteLine($"排程完成：新排程 {result.Assignments.Count} 筆，未排入 {result.Unscheduled.Count} 筆");
+
+        if (options.DryRun)
+        {
+            Console.WriteLine("Dry run 模式，不寫入資料庫。以下顯示前 20 筆排程結果：");
+            foreach (var assignment in result.Assignments.Take(20))
+            {
+                Console.WriteLine($"{assignment.MachineId} | {assignment.StartTime:yyyy-MM-dd HH:mm} -> {assignment.EndTime:yyyy-MM-dd HH:mm} | {assignment.OrdTp}-{assignment.OrdNo}-{assignment.OrdSq}-{assignment.OrdSq1}");
+            }
+
+            if (result.Unscheduled.Count > 0)
+            {
+                Console.WriteLine("未排入工作：");
+                foreach (var item in result.Unscheduled.Take(20))
+                {
+                    Console.WriteLine($"{item.Work.OrdTp}-{item.Work.OrdNo}-{item.Work.OrdSq}-{item.Work.OrdSq1} | 原因: {item.Reason}");
+                }
+            }
+
+            return 0;
+        }
+
+        var insertedRows = await repository.SaveAssignmentsAsync(result.Assignments, CancellationToken.None);
+        Console.WriteLine($"已寫入指派時間 {insertedRows} 筆。\n");
+
+        if (result.Unscheduled.Count > 0)
+        {
+            Console.WriteLine("仍有未排入工作（最多顯示 20 筆）：");
+            foreach (var item in result.Unscheduled.Take(20))
+            {
+                Console.WriteLine($"{item.Work.OrdTp}-{item.Work.OrdNo}-{item.Work.OrdSq}-{item.Work.OrdSq1} | 原因: {item.Reason}");
+            }
+        }
+
+        return 0;
     }
 }
-
-return 0;
 
 internal sealed record CliOptions(DateOnly PlanDate, int HorizonDays, bool DryRun, string Assigner)
 {

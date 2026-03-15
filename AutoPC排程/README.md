@@ -41,16 +41,23 @@
 ## 執行方式
 
 1. 設定連線字串環境變數：`AUTO_PC_CONN`
-2. Dry run（不寫入 DB）：
+2. 啟動表單（預設模式）：
 
 ```powershell
-dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --dry-run
+dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj
 ```
 
-3. 正式排程寫入：
+3. 在表單中按「開始排程」才會執行，結果會顯示在 GridView：
+   - 上方：新排程清單
+   - 下方：未排入原因清單
+4. 若要使用命令列模式，請加 `--cli`：
 
 ```powershell
-dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --plan-date=2026-03-15 --horizon-days=7 --assigner=AutoPc
+dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --cli --dry-run
+```
+
+```powershell
+dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --cli --plan-date=2026-03-15 --horizon-days=7 --assigner=AutoPc
 ```
 
 ## 重要假設與限制
@@ -63,8 +70,9 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --plan-date=202
 ## 專案結構
 
 - `AutoPcScheduler/`：C# 排程主程式
+  - `Program.cs`：預設啟動 WinForms；加 `--cli` 走命令列
+  - `UI/SchedulerMainForm.cs`：排程表單與 GridView
 - `sql/`：MSSQL Type / Stored Procedure
 - `README.md`：重要決策與目前行為
 - `CHANGELOG.md`：修改紀錄
 - `TODO.md`：待辦事項
-
