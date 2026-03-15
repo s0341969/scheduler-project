@@ -47,10 +47,14 @@
 dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj
 ```
 
-3. 在表單中按「開始排程」才會執行，結果會顯示在 GridView：
-   - 上方：新排程清單
-   - 下方：未排入原因清單
-4. 若要使用命令列模式，請加 `--cli`：
+3. 在表單中按「開始排程」才會執行。
+4. 表單可顯示：
+   - 排程進度（進度條 + 已排/未排 + 目前工單）
+   - 待排工作總數
+   - 排程方法說明（貪婪法）
+   - 新排程清單（GridView）與未排入清單
+5. 表單可查詢欄位：機台、圖號、製卡、製程。
+6. 若要使用命令列模式，請加 `--cli`：
 
 ```powershell
 dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --cli --dry-run
@@ -71,7 +75,8 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --cli --plan-da
 
 - `AutoPcScheduler/`：C# 排程主程式
   - `Program.cs`：預設啟動 WinForms；加 `--cli` 走命令列
-  - `UI/SchedulerMainForm.cs`：排程表單與 GridView
+  - `UI/SchedulerMainForm.cs`：排程表單、進度、查詢、GridView
+  - `Services/AutoPcSchedulerEngine.cs`：排程引擎（含進度回報）
 - `sql/`：MSSQL Type / Stored Procedure
 - `README.md`：重要決策與目前行為
 - `CHANGELOG.md`：修改紀錄

@@ -7,7 +7,12 @@ public sealed class AutoPcSchedulerEngine
     private static readonly TimeOnly DayStartTime = new(8, 0);
     private const int ExtraSearchDays = 60;
 
-    public SchedulingResult Schedule(SchedulingContext context, DateOnly planDate, int horizonDays, string assigner)
+    public SchedulingResult Schedule(
+        SchedulingContext context,
+        DateOnly planDate,
+        int horizonDays,
+        string assigner,
+        IProgress<SchedulingProgress>? progress = null)
     {
         var machines = context.Machines
             .GroupBy(x => x.MachineId, StringComparer.OrdinalIgnoreCase)
@@ -47,12 +52,23 @@ public sealed class AutoPcSchedulerEngine
 
         var assignments = new List<PlannedAssignment>();
         var unscheduled = new List<UnscheduledWork>();
+        var totalWorks = works.Count;
+        var processedWorks = 0;
+        var scheduledWorks = 0;
+        var unscheduledWorks = 0;
+
+        progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, null));
 
         foreach (var work in works)
         {
+            var currentOrderNo = $"{work.OrdTp}-{work.OrdNo}-{work.OrdSq}-{work.OrdSq1}";
+
             if (work.RequiredHours <= 0)
             {
                 unscheduled.Add(new UnscheduledWork(work, "工時小於等於 0。"));
+                processedWorks++;
+                unscheduledWorks++;
+                progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
                 continue;
             }
 
@@ -60,6 +76,9 @@ public sealed class AutoPcSchedulerEngine
             if (candidateMachineIds.Count == 0)
             {
                 unscheduled.Add(new UnscheduledWork(work, "找不到可排機台。"));
+                processedWorks++;
+                unscheduledWorks++;
+                progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
                 continue;
             }
 
@@ -87,6 +106,9 @@ public sealed class AutoPcSchedulerEngine
             if (best is null)
             {
                 unscheduled.Add(new UnscheduledWork(work, "在可搜尋區間內無法找到足夠工時。"));
+                processedWorks++;
+                unscheduledWorks++;
+                progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
                 continue;
             }
 
@@ -111,6 +133,10 @@ public sealed class AutoPcSchedulerEngine
                     assigner,
                     BuildContent(work)));
             }
+
+            processedWorks++;
+            scheduledWorks++;
+            progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
         }
 
         return new SchedulingResult(assignments, unscheduled);
@@ -362,5 +388,6 @@ public sealed class AutoPcSchedulerEngine
             new(false, Array.Empty<AllocationSegment>(), DateTime.MaxValue, reason);
     }
 }
+
 
 

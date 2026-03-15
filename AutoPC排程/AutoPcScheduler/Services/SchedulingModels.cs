@@ -58,3 +58,11 @@ public sealed record SchedulingContext(
 public sealed record SchedulingResult(
     IReadOnlyList<PlannedAssignment> Assignments,
     IReadOnlyList<UnscheduledWork> Unscheduled);
+
+public sealed record SchedulingProgress(
+    int TotalWorks,
+    int ProcessedWorks,
+    int ScheduledWorks,
+    int UnscheduledWorks,
+    string? CurrentOrderNo);
+
