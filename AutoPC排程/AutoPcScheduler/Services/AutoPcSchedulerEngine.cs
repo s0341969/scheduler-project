@@ -6,6 +6,7 @@ public sealed class AutoPcSchedulerEngine
 {
     private static readonly TimeOnly DayStartTime = new(8, 0);
     private const int ExtraSearchDays = 60;
+    private const string WorkfixMachineType = "1";
 
     public SchedulingResult Schedule(
         SchedulingContext context,
@@ -42,13 +43,15 @@ public sealed class AutoPcSchedulerEngine
             .ThenBy(x => x.OrdSq1)
             .ToList();
 
-        var machinesByProcess = machines
-            .Where(x => !string.IsNullOrWhiteSpace(x.ProcessCode))
-            .GroupBy(x => x.ProcessCode!, StringComparer.OrdinalIgnoreCase)
+        var machinesByGroup = machines
+            .Where(x => !string.IsNullOrWhiteSpace(x.MachineGroup))
+            .GroupBy(x => x.MachineGroup!, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(
                 x => x.Key,
                 x => x.Select(y => y.MachineId).Distinct(StringComparer.OrdinalIgnoreCase).ToList(),
                 StringComparer.OrdinalIgnoreCase);
+
+        var planStartTime = planDate.ToDateTime(DayStartTime);
 
         var assignments = new List<PlannedAssignment>();
         var unscheduled = new List<UnscheduledWork>();
@@ -57,33 +60,31 @@ public sealed class AutoPcSchedulerEngine
         var scheduledWorks = 0;
         var unscheduledWorks = 0;
 
-        progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, null));
+        progress?.Report(BuildProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, null));
 
         foreach (var work in works)
         {
-            var currentOrderNo = $"{work.OrdTp}-{work.OrdNo}-{work.OrdSq}-{work.OrdSq1}";
-
             if (work.RequiredHours <= 0)
             {
                 unscheduled.Add(new UnscheduledWork(work, "工時小於等於 0。"));
                 processedWorks++;
                 unscheduledWorks++;
-                progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
+                progress?.Report(BuildProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, work));
                 continue;
             }
 
-            var candidateMachineIds = ResolveCandidateMachines(work, context.Routes, machinesByProcess, machineStates.Keys);
-            if (candidateMachineIds.Count == 0)
+            var routeSelection = ResolveCandidateMachines(work, context.Routes, machinesByGroup);
+            if (routeSelection.MachineIds.Count == 0)
             {
-                unscheduled.Add(new UnscheduledWork(work, "找不到可排機台。"));
+                unscheduled.Add(new UnscheduledWork(work, "找不到 WORKFIXM 對應機台（需 MTYPE=1 且符合 INDWG/PRDNAME）。"));
                 processedWorks++;
                 unscheduledWorks++;
-                progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
+                progress?.Report(BuildProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, work));
                 continue;
             }
 
             AllocationCandidate? best = null;
-            foreach (var machineId in candidateMachineIds)
+            foreach (var machineId in routeSelection.MachineIds)
             {
                 if (!machineStates.TryGetValue(machineId, out var state))
                 {
@@ -97,9 +98,10 @@ public sealed class AutoPcSchedulerEngine
                     continue;
                 }
 
-                if (best is null || allocation.FinishTime < best.Allocation.FinishTime)
+                var loadScore = state.GetLoadScore(planStartTime);
+                if (IsBetterCandidate(routeSelection.Mode, best, machineId, loadScore, allocation.FinishTime))
                 {
-                    best = new AllocationCandidate(machineId, allocation);
+                    best = new AllocationCandidate(machineId, allocation, loadScore);
                 }
             }
 
@@ -108,7 +110,7 @@ public sealed class AutoPcSchedulerEngine
                 unscheduled.Add(new UnscheduledWork(work, "在可搜尋區間內無法找到足夠工時。"));
                 processedWorks++;
                 unscheduledWorks++;
-                progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
+                progress?.Report(BuildProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, work));
                 continue;
             }
 
@@ -136,79 +138,160 @@ public sealed class AutoPcSchedulerEngine
 
             processedWorks++;
             scheduledWorks++;
-            progress?.Report(new SchedulingProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, currentOrderNo));
+            progress?.Report(BuildProgress(totalWorks, processedWorks, scheduledWorks, unscheduledWorks, work));
         }
 
         return new SchedulingResult(assignments, unscheduled);
     }
 
-    private static List<string> ResolveCandidateMachines(
-        SchedulableWork work,
-        IReadOnlyList<WorkMachineRoute> routes,
-        IReadOnlyDictionary<string, List<string>> machinesByProcess,
-        IEnumerable<string> allMachineIds)
+    private static SchedulingProgress BuildProgress(
+        int totalWorks,
+        int processedWorks,
+        int scheduledWorks,
+        int unscheduledWorks,
+        SchedulableWork? currentWork)
     {
-        var results = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        return new SchedulingProgress(
+            totalWorks,
+            processedWorks,
+            scheduledWorks,
+            unscheduledWorks,
+            currentWork is null ? null : BuildOrderNo(currentWork),
+            currentWork?.ProcessCode,
+            currentWork?.PartNo);
+    }
 
-        var matchedRoutes = routes.Where(route =>
-            (!string.IsNullOrWhiteSpace(work.PartNo) && string.Equals(route.PartNo, work.PartNo, StringComparison.OrdinalIgnoreCase)) ||
-            (!string.IsNullOrWhiteSpace(work.ProductName) && string.Equals(route.ProductName, work.ProductName, StringComparison.OrdinalIgnoreCase)));
-
-        if (!string.IsNullOrWhiteSpace(work.ProcessCode))
+    private static bool IsBetterCandidate(
+        MachineSelectionMode mode,
+        AllocationCandidate? currentBest,
+        string machineId,
+        decimal loadScore,
+        DateTime finishTime)
+    {
+        if (currentBest is null)
         {
-            matchedRoutes = matchedRoutes.Where(route =>
-                string.IsNullOrWhiteSpace(route.ProcessCode) ||
-                string.Equals(route.ProcessCode, work.ProcessCode, StringComparison.OrdinalIgnoreCase));
+            return true;
         }
 
-        var matchedRouteList = matchedRoutes.ToList();
+        if (mode == MachineSelectionMode.GroupLeastLoad)
+        {
+            if (loadScore != currentBest.LoadScore)
+            {
+                return loadScore < currentBest.LoadScore;
+            }
 
-        foreach (var route in matchedRouteList)
+            if (finishTime != currentBest.Allocation.FinishTime)
+            {
+                return finishTime < currentBest.Allocation.FinishTime;
+            }
+
+            return string.Compare(machineId, currentBest.MachineId, StringComparison.OrdinalIgnoreCase) < 0;
+        }
+
+        if (finishTime != currentBest.Allocation.FinishTime)
+        {
+            return finishTime < currentBest.Allocation.FinishTime;
+        }
+
+        if (loadScore != currentBest.LoadScore)
+        {
+            return loadScore < currentBest.LoadScore;
+        }
+
+        return string.Compare(machineId, currentBest.MachineId, StringComparison.OrdinalIgnoreCase) < 0;
+    }
+
+    private static RouteSelection ResolveCandidateMachines(
+        SchedulableWork work,
+        IReadOnlyList<WorkMachineRoute> routes,
+        IReadOnlyDictionary<string, List<string>> machinesByGroup)
+    {
+        var matchedRoutes = ResolveMatchedRoutes(work, routes);
+
+        var fixedMachines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var route in matchedRoutes)
         {
             if (!string.IsNullOrWhiteSpace(route.MachineId))
             {
-                results.Add(route.MachineId);
+                fixedMachines.Add(route.MachineId.Trim());
             }
         }
 
-        var matchedGroups = matchedRouteList
-            .Where(route => !string.IsNullOrWhiteSpace(route.MachineGroup))
-            .Select(route => route.MachineGroup!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        if (matchedGroups.Count > 0)
+        if (fixedMachines.Count > 0)
         {
-            foreach (var route in routes)
-            {
-                if (!string.IsNullOrWhiteSpace(route.MachineId) &&
-                    !string.IsNullOrWhiteSpace(route.MachineGroup) &&
-                    matchedGroups.Contains(route.MachineGroup))
-                {
-                    results.Add(route.MachineId);
-                }
-            }
+            return new RouteSelection(
+                MachineSelectionMode.FixedMachine,
+                fixedMachines.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList());
         }
 
-        if (results.Count == 0 &&
-            !string.IsNullOrWhiteSpace(work.ProcessCode) &&
-            machinesByProcess.TryGetValue(work.ProcessCode, out var processMachines))
+        var groupMachines = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var route in matchedRoutes)
         {
-            foreach (var machineId in processMachines)
+            if (string.IsNullOrWhiteSpace(route.MachineGroup))
             {
-                results.Add(machineId);
+                continue;
+            }
+
+            var groupName = route.MachineGroup.Trim();
+            if (!machinesByGroup.TryGetValue(groupName, out var machineIds))
+            {
+                continue;
+            }
+
+            foreach (var machineId in machineIds)
+            {
+                groupMachines.Add(machineId);
             }
         }
 
-        if (results.Count == 0)
+        if (groupMachines.Count > 0)
         {
-            foreach (var machineId in allMachineIds)
+            return new RouteSelection(
+                MachineSelectionMode.GroupLeastLoad,
+                groupMachines.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList());
+        }
+
+        return new RouteSelection(MachineSelectionMode.FixedMachine, Array.Empty<string>());
+    }
+
+    private static List<WorkMachineRoute> ResolveMatchedRoutes(SchedulableWork work, IReadOnlyList<WorkMachineRoute> routes)
+    {
+        var workfixRoutes = routes
+            .Where(route => string.Equals(route.ProcessCode?.Trim(), WorkfixMachineType, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (!string.IsNullOrWhiteSpace(work.PartNo))
+        {
+            var byPart = workfixRoutes
+                .Where(route => !string.IsNullOrWhiteSpace(route.PartNo)
+                    && string.Equals(route.PartNo.Trim(), work.PartNo.Trim(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (byPart.Count > 0)
             {
-                results.Add(machineId);
+                return byPart;
             }
         }
 
-        return results.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        if (!string.IsNullOrWhiteSpace(work.ProductName))
+        {
+            var byProduct = workfixRoutes
+                .Where(route => !string.IsNullOrWhiteSpace(route.ProductName)
+                    && string.Equals(route.ProductName.Trim(), work.ProductName.Trim(), StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (byProduct.Count > 0)
+            {
+                return byProduct;
+            }
+        }
+
+        return [];
+    }
+
+    private static string BuildOrderNo(SchedulableWork work)
+    {
+        return FormattableString.Invariant($"{work.OrdTp}-{work.OrdNo}-{work.OrdSq}-{work.OrdSq1}");
     }
 
     private static string BuildContent(SchedulableWork work)
@@ -218,29 +301,41 @@ public sealed class AutoPcSchedulerEngine
         return FormattableString.Invariant($"AutoPc:{work.OrdTp}-{work.OrdNo}-{work.OrdSq}-{work.OrdSq1}|{partNo}|{process}");
     }
 
-    private sealed record AllocationCandidate(string MachineId, AllocationResult Allocation);
+    private enum MachineSelectionMode
+    {
+        FixedMachine,
+        GroupLeastLoad
+    }
+
+    private sealed record RouteSelection(MachineSelectionMode Mode, IReadOnlyList<string> MachineIds);
+
+    private sealed record AllocationCandidate(string MachineId, AllocationResult Allocation, decimal LoadScore);
 
     private sealed class MachineState
     {
         private readonly MachineCapacity _machine;
         private readonly TimeOnly _dayStartTime;
         private readonly Dictionary<DateOnly, MachineDayState> _dayStates;
+        private DateTime _latestEndTime;
 
         public MachineState(MachineCapacity machine, TimeOnly dayStartTime)
         {
             _machine = machine;
             _dayStartTime = dayStartTime;
             _dayStates = new Dictionary<DateOnly, MachineDayState>();
+            _latestEndTime = DateTime.MinValue;
         }
 
         private MachineState(
             MachineCapacity machine,
             TimeOnly dayStartTime,
-            Dictionary<DateOnly, MachineDayState> dayStates)
+            Dictionary<DateOnly, MachineDayState> dayStates,
+            DateTime latestEndTime)
         {
             _machine = machine;
             _dayStartTime = dayStartTime;
             _dayStates = dayStates;
+            _latestEndTime = latestEndTime;
         }
 
         public MachineState Clone()
@@ -249,25 +344,44 @@ public sealed class AutoPcSchedulerEngine
                 x => x.Key,
                 x => new MachineDayState(x.Value.UsedHours, x.Value.LatestEnd));
 
-            return new MachineState(_machine, _dayStartTime, snapshot);
+            return new MachineState(_machine, _dayStartTime, snapshot, _latestEndTime);
         }
 
         public void Seed(ExistingAssignment assignment)
         {
-            if (assignment.EndTime <= assignment.StartTime)
+            if (assignment.EndTime < assignment.StartTime)
             {
                 return;
             }
 
             var day = DateOnly.FromDateTime(assignment.StartTime);
-            var usedHours = Convert.ToDecimal((assignment.EndTime - assignment.StartTime).TotalHours, CultureInfo.InvariantCulture);
             var dayState = GetDayState(day);
 
-            dayState.UsedHours += Math.Max(0m, usedHours);
+            if (assignment.EndTime > assignment.StartTime)
+            {
+                var usedHours = Convert.ToDecimal((assignment.EndTime - assignment.StartTime).TotalHours, CultureInfo.InvariantCulture);
+                dayState.UsedHours += Math.Max(0m, usedHours);
+            }
+
             if (assignment.EndTime > dayState.LatestEnd)
             {
                 dayState.LatestEnd = assignment.EndTime;
             }
+
+            if (assignment.EndTime > _latestEndTime)
+            {
+                _latestEndTime = assignment.EndTime;
+            }
+        }
+
+        public decimal GetLoadScore(DateTime baselineStart)
+        {
+            if (_latestEndTime <= baselineStart)
+            {
+                return 0m;
+            }
+
+            return Convert.ToDecimal((_latestEndTime - baselineStart).TotalHours, CultureInfo.InvariantCulture);
         }
 
         public AllocationResult TryAllocate(decimal requiredHours, DateOnly fromDate, int searchDays)
@@ -282,13 +396,23 @@ public sealed class AutoPcSchedulerEngine
                 return AllocationResult.Fail("工作工時 <= 0。");
             }
 
+            var searchStart = fromDate.ToDateTime(_dayStartTime);
+            if (_latestEndTime > searchStart)
+            {
+                searchStart = _latestEndTime;
+            }
+
+            EnsureAnchor(searchStart);
+
+            var searchStartDate = DateOnly.FromDateTime(searchStart);
+            var firstDay = searchStartDate;
             var segments = new List<AllocationSegment>();
             var remaining = requiredHours;
-            var finishTime = fromDate.ToDateTime(_dayStartTime);
+            var finishTime = searchStart;
 
             for (var offset = 0; offset < searchDays && remaining > 0; offset++)
             {
-                var day = fromDate.AddDays(offset);
+                var day = searchStartDate.AddDays(offset);
                 var dayState = GetDayState(day);
 
                 var dayStart = day.ToDateTime(_dayStartTime);
@@ -296,6 +420,11 @@ public sealed class AutoPcSchedulerEngine
 
                 var startByUsedHours = dayStart.AddHours(Convert.ToDouble(dayState.UsedHours, CultureInfo.InvariantCulture));
                 var start = startByUsedHours > dayState.LatestEnd ? startByUsedHours : dayState.LatestEnd;
+
+                if (day == firstDay && searchStart > start)
+                {
+                    start = searchStart;
+                }
 
                 if (start >= dayEnd)
                 {
@@ -349,6 +478,30 @@ public sealed class AutoPcSchedulerEngine
                 {
                     dayState.LatestEnd = segment.EndTime;
                 }
+
+                if (segment.EndTime > _latestEndTime)
+                {
+                    _latestEndTime = segment.EndTime;
+                }
+            }
+        }
+
+        private void EnsureAnchor(DateTime anchorTime)
+        {
+            var day = DateOnly.FromDateTime(anchorTime);
+            var dayState = GetDayState(day);
+
+            if (anchorTime > dayState.LatestEnd)
+            {
+                dayState.LatestEnd = anchorTime;
+            }
+
+            var dayStart = day.ToDateTime(_dayStartTime);
+            var elapsed = Math.Max(0m, Convert.ToDecimal((anchorTime - dayStart).TotalHours, CultureInfo.InvariantCulture));
+            var anchoredUsedHours = Math.Min(_machine.DailyHours, elapsed);
+            if (anchoredUsedHours > dayState.UsedHours)
+            {
+                dayState.UsedHours = anchoredUsedHours;
             }
         }
 
@@ -388,6 +541,4 @@ public sealed class AutoPcSchedulerEngine
             new(false, Array.Empty<AllocationSegment>(), DateTime.MaxValue, reason);
     }
 }
-
-
 

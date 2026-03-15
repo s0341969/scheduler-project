@@ -64,5 +64,6 @@ public sealed record SchedulingProgress(
     int ProcessedWorks,
     int ScheduledWorks,
     int UnscheduledWorks,
-    string? CurrentOrderNo);
-
+    string? CurrentOrderNo,
+    string? CurrentProcessCode,
+    string? CurrentPartNo);

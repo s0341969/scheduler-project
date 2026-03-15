@@ -16,7 +16,7 @@ BEGIN
         SET @DefaultDailyHours = 8;
     END;
 
-    -- Result set 1: 機台能力
+    -- Result set 1: 機台能力（機台基本資料）
     DECLARE @machineObjectId int = OBJECT_ID(N'dbo.[機台基本資料]');
     DECLARE @machineTableName sysname = NULL;
     DECLARE @useWorkfixFallback bit = 0;
@@ -57,47 +57,84 @@ BEGIN
         FROM sys.columns c
         WHERE c.object_id = @machineObjectId
           AND (
-                c.name LIKE N'%機台%編%'
-                OR c.name LIKE N'%機台%號%'
+                c.name = N'機台編號'
+                OR c.name = N'MAHNO'
                 OR c.name = N'MachineId'
+                OR c.name LIKE N'%機台%編%'
+                OR c.name LIKE N'%機台%號%'
                 OR c.name LIKE N'%機台%'
               )
         ORDER BY
             CASE
-                WHEN c.name LIKE N'%機台%編%' THEN 0
-                WHEN c.name LIKE N'%機台%號%' THEN 1
+                WHEN c.name = N'機台編號' THEN 0
+                WHEN c.name = N'MAHNO' THEN 1
                 WHEN c.name = N'MachineId' THEN 2
-                ELSE 3
+                WHEN c.name LIKE N'%機台%編%' THEN 3
+                WHEN c.name LIKE N'%機台%號%' THEN 4
+                ELSE 5
             END,
             c.column_id;
 
         SELECT TOP (1) @machineGroupColumn = c.name
         FROM sys.columns c
         WHERE c.object_id = @machineObjectId
-          AND (c.name LIKE N'%組別%' OR c.name LIKE N'%群組%' OR c.name = N'MachineGroup')
-        ORDER BY c.column_id;
+          AND (
+                c.name = N'精度組別'
+                OR c.name = N'MachineGroup'
+                OR c.name LIKE N'%精度%組別%'
+                OR c.name LIKE N'%組別%'
+                OR c.name LIKE N'%群組%'
+              )
+        ORDER BY
+            CASE
+                WHEN c.name = N'精度組別' THEN 0
+                WHEN c.name = N'MachineGroup' THEN 1
+                WHEN c.name LIKE N'%精度%組別%' THEN 2
+                ELSE 3
+            END,
+            c.column_id;
 
         SELECT TOP (1) @processCodeColumn = c.name
         FROM sys.columns c
         WHERE c.object_id = @machineObjectId
           AND (
-                c.name LIKE N'%製程%代%'
-                OR c.name = N'ProcessCode'
+                c.name = N'製程代號'
                 OR c.name = N'ORDFO'
+                OR c.name = N'ProcessCode'
+                OR c.name LIKE N'%製程%代%'
               )
-        ORDER BY c.column_id;
+        ORDER BY
+            CASE
+                WHEN c.name = N'製程代號' THEN 0
+                WHEN c.name = N'ORDFO' THEN 1
+                WHEN c.name = N'ProcessCode' THEN 2
+                ELSE 3
+            END,
+            c.column_id;
 
         SELECT TOP (1) @dailyHoursColumn = c.name
         FROM sys.columns c
         JOIN sys.types t ON t.user_type_id = c.user_type_id
         WHERE c.object_id = @machineObjectId
           AND (
-                c.name LIKE N'%工時%'
+                c.name = N'每日標準工時'
                 OR c.name = N'DailyHours'
                 OR c.name = N'WKTIME'
+                OR c.name LIKE N'%每日%標%工時%'
+                OR c.name LIKE N'%每日%工時%'
+                OR c.name LIKE N'%工時%'
               )
           AND t.name IN (N'int', N'bigint', N'smallint', N'tinyint', N'numeric', N'decimal', N'float', N'real')
-        ORDER BY c.column_id;
+        ORDER BY
+            CASE
+                WHEN c.name = N'每日標準工時' THEN 0
+                WHEN c.name = N'DailyHours' THEN 1
+                WHEN c.name = N'WKTIME' THEN 2
+                WHEN c.name LIKE N'%每日%標%工時%' THEN 3
+                WHEN c.name LIKE N'%每日%工時%' THEN 4
+                ELSE 5
+            END,
+            c.column_id;
 
         IF @machineIdColumn IS NULL OR @dailyHoursColumn IS NULL
         BEGIN
@@ -124,36 +161,42 @@ BEGIN
                     END + N' AS ProcessCode,
                 CAST(m.' + QUOTENAME(@dailyHoursColumn) + N' AS decimal(18,4)) AS DailyHours
             FROM dbo.' + QUOTENAME(@machineTableName) + N' m
-            WHERE CAST(m.' + QUOTENAME(@dailyHoursColumn) + N' AS decimal(18,4)) > 0;
+            WHERE NULLIF(LTRIM(RTRIM(CAST(m.' + QUOTENAME(@machineIdColumn) + N' AS varchar(50)))), '''') IS NOT NULL
+              AND CAST(m.' + QUOTENAME(@dailyHoursColumn) + N' AS decimal(18,4)) > 0;
         ';
 
         EXEC sys.sp_executesql @sqlMachines;
     END
     ELSE
     BEGIN
-        -- Fallback: 若沒有機台基本資料，先由 WORKFIXM 推導機台，工時用預設值。
+        -- Fallback: 若機台基本資料不存在，改由 WORKFIXM 直接帶機台，工時使用預設值。
         SELECT
             CAST(w.MAHNO AS varchar(50)) AS MachineId,
             CAST(w.MAHNO_GP AS varchar(50)) AS MachineGroup,
             CAST(w.MTYPE AS varchar(50)) AS ProcessCode,
             @DefaultDailyHours AS DailyHours
         FROM dbo.WORKFIXM w
-        WHERE NULLIF(CAST(w.MAHNO AS varchar(50)), '') IS NOT NULL
+        WHERE LTRIM(RTRIM(CAST(w.MTYPE AS varchar(20)))) = '1'
+          AND NULLIF(LTRIM(RTRIM(CAST(w.MAHNO AS varchar(50)))), '') IS NOT NULL
         GROUP BY
             CAST(w.MAHNO AS varchar(50)),
             CAST(w.MAHNO_GP AS varchar(50)),
             CAST(w.MTYPE AS varchar(50));
     END;
 
-    -- Result set 2: WORKFIXM 定品定機
-    SELECT
+    -- Result set 2: WORKFIXM 路由（僅 MTYPE=1）
+    SELECT DISTINCT
         CAST(w.INDWG AS varchar(50)) AS PartNo,
         CAST(w.PRDNAME AS nvarchar(50)) AS ProductName,
         CAST(w.MTYPE AS varchar(50)) AS ProcessCode,
-        CAST(w.MAHNO AS varchar(50)) AS MachineId,
-        CAST(w.MAHNO_GP AS varchar(50)) AS MachineGroup
+        NULLIF(LTRIM(RTRIM(CAST(w.MAHNO AS varchar(50)))), '') AS MachineId,
+        NULLIF(LTRIM(RTRIM(CAST(w.MAHNO_GP AS varchar(50)))), '') AS MachineGroup
     FROM dbo.WORKFIXM w
-    WHERE NULLIF(CAST(w.MAHNO AS varchar(50)), '') IS NOT NULL;
+    WHERE LTRIM(RTRIM(CAST(w.MTYPE AS varchar(20)))) = '1'
+      AND (
+            NULLIF(LTRIM(RTRIM(CAST(w.MAHNO AS varchar(50)))), '') IS NOT NULL
+            OR NULLIF(LTRIM(RTRIM(CAST(w.MAHNO_GP AS varchar(50)))), '') IS NOT NULL
+          );
 
     -- Result set 3: 可排程工作（含 ORDDE4 優先序）
     DECLARE @ordde4ObjectId int = OBJECT_ID(N'dbo.[ORDDE4_剩餘製程明細]');
@@ -228,15 +271,17 @@ BEGIN
         FROM sys.columns c
         WHERE c.object_id = @assignmentObjectId
           AND (
-                c.name LIKE N'%機台%'
+                c.name = N'人員機台'
                 OR c.name = N'MachineId'
                 OR c.name = N'MAHNO'
+                OR c.name LIKE N'%機台%'
               )
         ORDER BY
             CASE
-                WHEN c.name LIKE N'%機台%' THEN 0
+                WHEN c.name = N'人員機台' THEN 0
                 WHEN c.name = N'MachineId' THEN 1
-                ELSE 2
+                WHEN c.name = N'MAHNO' THEN 2
+                ELSE 3
             END,
             c.column_id
     );
@@ -246,8 +291,19 @@ BEGIN
         SELECT TOP (1) c.name
         FROM sys.columns c
         WHERE c.object_id = @assignmentObjectId
-          AND (c.name = N'StartTime' OR c.name = N'SETTIME' OR c.name LIKE N'%Start%')
-        ORDER BY c.column_id
+          AND (
+                c.name = N'StartTime'
+                OR c.name = N'SETTIME'
+                OR c.name LIKE N'%Start%'
+                OR c.name LIKE N'%開始%'
+              )
+        ORDER BY
+            CASE
+                WHEN c.name = N'StartTime' THEN 0
+                WHEN c.name = N'SETTIME' THEN 1
+                ELSE 2
+            END,
+            c.column_id
     );
 
     DECLARE @endTimeColumn sysname =
@@ -255,8 +311,19 @@ BEGIN
         SELECT TOP (1) c.name
         FROM sys.columns c
         WHERE c.object_id = @assignmentObjectId
-          AND (c.name = N'EndTime' OR c.name = N'OUTTIME' OR c.name LIKE N'%End%')
-        ORDER BY c.column_id
+          AND (
+                c.name = N'EndTime'
+                OR c.name = N'OUTTIME'
+                OR c.name LIKE N'%End%'
+                OR c.name LIKE N'%結束%'
+              )
+        ORDER BY
+            CASE
+                WHEN c.name = N'EndTime' THEN 0
+                WHEN c.name = N'OUTTIME' THEN 1
+                ELSE 2
+            END,
+            c.column_id
     );
 
     IF @assignmentMachineColumn IS NULL OR @startTimeColumn IS NULL OR @endTimeColumn IS NULL
@@ -271,19 +338,23 @@ BEGIN
     END;
 
     DECLARE @sqlExisting nvarchar(max) = N'
+        ;WITH src AS
+        (
+            SELECT
+                CAST(a.' + QUOTENAME(@assignmentMachineColumn) + N' AS varchar(50)) AS MachineId,
+                CAST(a.' + QUOTENAME(@endTimeColumn) + N' AS datetime) AS EndTime
+            FROM dbo.[指派時間] a
+            WHERE NULLIF(LTRIM(RTRIM(CAST(a.' + QUOTENAME(@assignmentMachineColumn) + N' AS varchar(50)))), '''') IS NOT NULL
+              AND CAST(a.' + QUOTENAME(@endTimeColumn) + N' AS datetime) > CAST(a.' + QUOTENAME(@startTimeColumn) + N' AS datetime)
+        )
         SELECT
-            CAST(a.' + QUOTENAME(@assignmentMachineColumn) + N' AS varchar(50)) AS MachineId,
-            CAST(a.' + QUOTENAME(@startTimeColumn) + N' AS datetime) AS StartTime,
-            CAST(a.' + QUOTENAME(@endTimeColumn) + N' AS datetime) AS EndTime
-        FROM dbo.[指派時間] a
-        WHERE CAST(a.' + QUOTENAME(@startTimeColumn) + N' AS datetime) >= @PlanDate
-          AND CAST(a.' + QUOTENAME(@startTimeColumn) + N' AS datetime) < DATEADD(day, @HorizonDays + 60, @PlanDate)
-          AND CAST(a.' + QUOTENAME(@endTimeColumn) + N' AS datetime) > CAST(a.' + QUOTENAME(@startTimeColumn) + N' AS datetime);
+            src.MachineId,
+            MAX(src.EndTime) AS StartTime,
+            MAX(src.EndTime) AS EndTime
+        FROM src
+        GROUP BY src.MachineId;
     ';
 
-    EXEC sys.sp_executesql
-        @sqlExisting,
-        N'@PlanDate date, @HorizonDays int',
-        @PlanDate = @PlanDate,
-        @HorizonDays = @HorizonDays;
+    EXEC sys.sp_executesql @sqlExisting;
 END;
+

@@ -29,7 +29,7 @@ public sealed class SchedulerMainForm : Form
     private readonly Label _methodLabel = new()
     {
         AutoSize = true,
-        Text = "排程方式：貪婪法（優先可用工時→交期→工時，候選機台取最早完工，可跨天切段）"
+        Text = "排程方式：WORKFIXM(MTYPE=1) 路由 + 貪婪法（MAHNO優先，MAHNO_GP取最小負荷機台，可跨天切段）"
     };
     private readonly Label _workCountLabel = new() { AutoSize = true, Text = "待排工作：0 筆" };
     private readonly ProgressBar _progressBar = new() { Width = 280, Height = 18, Minimum = 0, Maximum = 1, Value = 0 };
@@ -46,6 +46,7 @@ public sealed class SchedulerMainForm : Form
     private readonly DataGridView _assignmentGrid;
     private readonly DataGridView _unscheduledGrid;
     private readonly Label _summaryLabel = new() { Dock = DockStyle.Fill, AutoSize = true, Text = "請先按「開始排程」。", Padding = new Padding(0, 8, 0, 0) };
+    private DateTime _lastProgressUiAt = DateTime.MinValue;
 
     private List<AssignmentRow> _allAssignmentRows = [];
     private List<UnscheduledRow> _allUnscheduledRows = [];
@@ -284,6 +285,8 @@ public sealed class SchedulerMainForm : Form
 
         ToggleBusy(true);
         _summaryLabel.Text = "讀取資料中，請稍候...";
+        _lastProgressUiAt = DateTime.MinValue;
+        await Task.Yield();
 
         try
         {
@@ -359,6 +362,7 @@ public sealed class SchedulerMainForm : Form
         _progressBar.Minimum = 0;
         _progressBar.Maximum = total;
         _progressBar.Value = 0;
+        _lastProgressUiAt = DateTime.MinValue;
         _progressLabel.Text = totalWorks <= 0
             ? "進度：0/0"
             : $"進度：0/{totalWorks}";
@@ -366,6 +370,17 @@ public sealed class SchedulerMainForm : Form
 
     private void UpdateProgress(SchedulingProgress progress)
     {
+        var now = DateTime.Now;
+        var shouldSkip = progress.ProcessedWorks < progress.TotalWorks
+            && (now - _lastProgressUiAt).TotalMilliseconds < 120;
+
+        if (shouldSkip)
+        {
+            return;
+        }
+
+        _lastProgressUiAt = now;
+
         var total = Math.Max(1, progress.TotalWorks);
         if (_progressBar.Maximum != total)
         {
@@ -377,9 +392,14 @@ public sealed class SchedulerMainForm : Form
 
         var current = string.IsNullOrWhiteSpace(progress.CurrentOrderNo)
             ? string.Empty
-            : $" | 目前：{progress.CurrentOrderNo}";
+            : $" | 目前：製卡 {progress.CurrentOrderNo} / 製程 {ToDisplayText(progress.CurrentProcessCode)} / 圖號 {ToDisplayText(progress.CurrentPartNo)}";
 
         _progressLabel.Text = $"進度：{progress.ProcessedWorks}/{progress.TotalWorks}（已排 {progress.ScheduledWorks}，未排 {progress.UnscheduledWorks}）{current}";
+    }
+
+    private static string ToDisplayText(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
     }
 
     private void FilterTextBox_KeyDown(object? sender, KeyEventArgs e)
@@ -472,6 +492,12 @@ public sealed class SchedulerMainForm : Form
         public string Reason { get; init; } = string.Empty;
     }
 }
+
+
+
+
+
+
 
 
 

@@ -28,13 +28,15 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
         await connection.OpenAsync(cancellationToken);
         using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-        var machines = await ReadMachinesAsync(reader, cancellationToken);
+        var rawMachines = await ReadMachinesAsync(reader, cancellationToken);
+        var useMinuteUnit = ShouldUseMinuteUnit(rawMachines);
+        var machines = NormalizeMachineCapacities(rawMachines, useMinuteUnit);
 
         await EnsureNextResultAsync(reader, "定品定機結果集", cancellationToken);
         var routes = await ReadRoutesAsync(reader, cancellationToken);
 
         await EnsureNextResultAsync(reader, "可排程工作結果集", cancellationToken);
-        var works = await ReadWorksAsync(reader, cancellationToken);
+        var works = await ReadWorksAsync(reader, cancellationToken, useMinuteUnit);
 
         await EnsureNextResultAsync(reader, "既有指派結果集", cancellationToken);
         var existingAssignments = await ReadExistingAssignmentsAsync(reader, cancellationToken);
@@ -121,7 +123,7 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
         return rows;
     }
 
-    private static async Task<List<SchedulableWork>> ReadWorksAsync(SqlDataReader reader, CancellationToken cancellationToken)
+    private static async Task<List<SchedulableWork>> ReadWorksAsync(SqlDataReader reader, CancellationToken cancellationToken, bool useMinuteUnit)
     {
         var ordTpIndex = GetRequiredOrdinal(reader, "OrdTp");
         var ordNoIndex = GetRequiredOrdinal(reader, "OrdNo");
@@ -138,7 +140,7 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
         var rows = new List<SchedulableWork>();
         while (await reader.ReadAsync(cancellationToken))
         {
-            var requiredHours = ReadDecimal(reader, requiredHoursIndex);
+            var requiredHours = NormalizeWorkHours(ReadDecimal(reader, requiredHoursIndex), useMinuteUnit);
             if (requiredHours <= 0)
             {
                 continue;
@@ -155,7 +157,7 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
                 ReadStringOrNull(reader, processCodeIndex),
                 requiredHours,
                 ReadDateTimeOrNull(reader, dueDateIndex),
-                ReadDecimalOrNull(reader, priorityHoursIndex)));
+                NormalizeWorkHours(ReadDecimalOrNull(reader, priorityHoursIndex), useMinuteUnit)));
         }
 
         return rows;
@@ -174,7 +176,7 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
             var startTime = ReadDateTime(reader, startTimeIndex);
             var endTime = ReadDateTime(reader, endTimeIndex);
 
-            if (string.IsNullOrWhiteSpace(machineId) || endTime <= startTime)
+            if (string.IsNullOrWhiteSpace(machineId) || endTime < startTime)
             {
                 continue;
             }
@@ -183,6 +185,56 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
         }
 
         return rows;
+    }
+
+    private static bool ShouldUseMinuteUnit(IReadOnlyList<MachineCapacity> machines)
+    {
+        if (machines.Count == 0)
+        {
+            return false;
+        }
+
+        var averageDailyHours = machines.Average(x => x.DailyHours);
+        var largeValueCount = machines.Count(x => x.DailyHours > 24m);
+        return averageDailyHours > 24m || largeValueCount > machines.Count / 2;
+    }
+
+    private static List<MachineCapacity> NormalizeMachineCapacities(IReadOnlyList<MachineCapacity> machines, bool useMinuteUnit)
+    {
+        if (!useMinuteUnit)
+        {
+            return machines.ToList();
+        }
+
+        return machines
+            .Select(x => x with { DailyHours = NormalizeMachineDailyHours(x.DailyHours) })
+            .Where(x => x.DailyHours > 0)
+            .ToList();
+    }
+
+    private static decimal NormalizeMachineDailyHours(decimal value)
+    {
+        if (value <= 0)
+        {
+            return 0m;
+        }
+
+        return value > 24m ? value / 60m : value;
+    }
+
+    private static decimal NormalizeWorkHours(decimal value, bool useMinuteUnit)
+    {
+        return useMinuteUnit ? value / 60m : value;
+    }
+
+    private static decimal? NormalizeWorkHours(decimal? value, bool useMinuteUnit)
+    {
+        if (!value.HasValue)
+        {
+            return null;
+        }
+
+        return NormalizeWorkHours(value.Value, useMinuteUnit);
     }
 
     private static DataTable BuildAssignmentsDataTable(IReadOnlyList<PlannedAssignment> assignments)
@@ -393,4 +445,3 @@ public sealed class SqlSchedulingRepository : ISchedulingRepository
         };
     }
 }
-
