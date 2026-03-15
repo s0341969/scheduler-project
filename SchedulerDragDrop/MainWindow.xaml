@@ -251,11 +251,44 @@
             </ScrollViewer>
 
             <Border Grid.Row="1" Grid.Column="2" BorderBrush="#D0D0D0" BorderThickness="1" Background="#FFFFFF" Padding="8">
-                <ListBox ItemsSource="{Binding SelectedJobLines}" BorderThickness="0" Background="#FFFFFF" />
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="8" />
+                        <RowDefinition Height="220" />
+                    </Grid.RowDefinitions>
+
+                    <DataGrid Grid.Row="0"
+                              ItemsSource="{Binding GeneratedScheduleRows}"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              EnableRowVirtualization="True"
+                              EnableColumnVirtualization="True"
+                              AlternatingRowBackground="#F8FAFC"
+                              GridLinesVisibility="Horizontal"
+                              BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Seq}" Width="50" />
+                            <DataGridTextColumn Header="機台" Binding="{Binding MachineId}" Width="80" />
+                            <DataGridTextColumn Header="製卡" Binding="{Binding JobId}" Width="110" />
+                            <DataGridTextColumn Header="製程" Binding="{Binding ProcessCode}" Width="90" />
+                            <DataGridTextColumn Header="圖號" Binding="{Binding PartNo}" Width="120" />
+                            <DataGridTextColumn Header="數量" Binding="{Binding Quantity, StringFormat={}{0:0.##}}" Width="70" />
+                            <DataGridTextColumn Header="工時" Binding="{Binding WorkHours, StringFormat={}{0:0.##}}" Width="70" />
+                            <DataGridTextColumn Header="開始" Binding="{Binding StartAt, StringFormat={}{0:MM-dd HH:mm}}" Width="120" />
+                            <DataGridTextColumn Header="結束" Binding="{Binding EndAt, StringFormat={}{0:MM-dd HH:mm}}" Width="120" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <ListBox Grid.Row="2" ItemsSource="{Binding SelectedJobLines}" BorderThickness="0" Background="#FFFFFF" />
+                </Grid>
             </Border>
         </Grid>
 
-        <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#555" Text="提示：Ctrl+點擊可多選；單擊為單選；點空白處可清除選取；右鍵可推移到指定日期時段。" />
+        <TextBlock Grid.Row="2" Margin="0,8,0,0" Foreground="#555" Text="提示：Ctrl+點選可多選工單，拖曳卡片可調整機台與時間。" />
     </Grid>
 </Window>
 

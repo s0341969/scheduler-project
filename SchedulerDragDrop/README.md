@@ -97,12 +97,8 @@ cd C:\codex_pg\SchedulerDragDrop
 dotnet run
 ```
 
+## 2026-03-15 排程結果 GridView
 
-
-
-
-
-
-
-
-
+- 新增右側「新排程清單」DataGrid，顯示排程結果欄位：機台、製卡、製程、圖號、數量、工時、開始、結束。
+- DataGrid 綁定 GeneratedScheduleRows，來源為目前 lane 內卡片資料。
+- 重新排程、手動拖拉、單筆快調整後，會即時同步更新 GridView。

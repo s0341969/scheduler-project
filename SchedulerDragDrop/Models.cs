@@ -191,3 +191,16 @@ public sealed class ProcessGroupOption : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 }
+
+public sealed class ScheduleGridRow
+{
+    public int Seq { get; init; }
+    public string MachineId { get; init; } = string.Empty;
+    public string JobId { get; init; } = string.Empty;
+    public string ProcessCode { get; init; } = string.Empty;
+    public string PartNo { get; init; } = string.Empty;
+    public double Quantity { get; init; }
+    public double WorkHours { get; init; }
+    public DateTime StartAt { get; init; }
+    public DateTime EndAt { get; init; }
+}

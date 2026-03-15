@@ -16,6 +16,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private readonly ObservableCollection<MachineLane> _lanes = new();
     private readonly ObservableCollection<TimeTick> _timeTicks = new();
     private readonly ObservableCollection<string> _selectedJobLines = new();
+    private readonly ObservableCollection<ScheduleGridRow> _generatedScheduleRows = new();
     private readonly ObservableCollection<ProcessGroupOption> _processGroupOptions = new();
     private readonly Dictionary<string, double> _orderShiftHours = new();
     private readonly HashSet<string> _selectedOrderIds = new(StringComparer.OrdinalIgnoreCase);
@@ -49,6 +50,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     private double? _pendingPixelsPerHour;
 
     public ObservableCollection<string> SelectedJobLines => _selectedJobLines;
+    public ObservableCollection<ScheduleGridRow> GeneratedScheduleRows => _generatedScheduleRows;
     public ObservableCollection<TimeTick> TimeTicks => _timeTicks;
     public ObservableCollection<ProcessGroupOption> ProcessGroupOptions => _processGroupOptions;
     public string ProcessGroupSummary => BuildProcessGroupSummary();
@@ -247,6 +249,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     {
         _lanes.Clear();
         _timeTicks.Clear();
+        _generatedScheduleRows.Clear();
         _selectedOrderIds.Clear();
         _orderShiftHours.Clear();
         _selectedJobId = null;
@@ -400,9 +403,40 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             lane.Tasks.Add(card);
         }
 
+        RefreshGeneratedScheduleRowsFromLanes();
         RefreshTimelineLayout();
         NormalizeSelection();
         ApplySelectionAndHighlights(true);
+    }
+    private void RefreshGeneratedScheduleRowsFromLanes()
+    {
+        _generatedScheduleRows.Clear();
+
+        var cards = _lanes
+            .SelectMany(lane => lane.Tasks)
+            .Where(card => card.EndAt > card.StartAt)
+            .OrderBy(card => card.StartAt)
+            .ThenBy(card => card.MachineId, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(card => card.Order.JobId, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(card => card.Order.Sequence)
+            .ToList();
+
+        var seq = 1;
+        foreach (var card in cards)
+        {
+            _generatedScheduleRows.Add(new ScheduleGridRow
+            {
+                Seq = seq++,
+                MachineId = card.MachineId,
+                JobId = card.Order.JobId,
+                ProcessCode = card.Order.ProcessCode,
+                PartNo = card.Order.PartNo,
+                Quantity = card.Order.Quantity,
+                WorkHours = card.Order.ProcessHours,
+                StartAt = card.StartAt,
+                EndAt = card.EndAt
+            });
+        }
     }
 
     private async void QuerySchedule_Click(object sender, RoutedEventArgs e)
@@ -577,6 +611,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             return release;
         });
 
+        RefreshGeneratedScheduleRowsFromLanes();
         RefreshTimelineLayout();
         NormalizeSelection();
         ApplySelectionAndHighlights(true);
@@ -795,6 +830,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         card.EndAt = desiredEnd;
         ReinsertCardByStart(lane, card);
         PushLaterProcessesForSameJob(card);
+        RefreshGeneratedScheduleRowsFromLanes();
         RefreshTimelineLayout(preserveRange: true);
         ApplySelectionAndHighlights(true);
         return true;
@@ -1045,6 +1081,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 throw new InvalidOperationException("製程序衝突：不可將同一張製卡的後段製程排在前段製程之前。");
 
             PushLaterProcessesForSameJob(card);
+            RefreshGeneratedScheduleRowsFromLanes();
             RefreshTimelineLayout(preserveRange: true);
             _selectedJobId = card.Order.JobId;
             ApplySelectionAndHighlights(true);
