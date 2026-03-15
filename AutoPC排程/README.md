@@ -56,6 +56,7 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --plan-date=202
 ## 重要假設與限制
 
 - 由於 `TABLE資料表.xlsx` 有部分中文欄位編碼破損，SP 針對中文欄位採「欄位名稱規則偵測」方式（例如包含「機台」「工時」「製程」）。
+- 若資料庫沒有 `機台基本資料`（或欄位不足），`usp_AutoPc_LoadSchedulingContext` 會 fallback 使用 `WORKFIXM` 產生機台清單，並以 `@DefaultDailyHours`（預設 8 小時）作為每日工時。
 - 若資料庫實際欄位名稱與偵測規則不一致，請調整 SQL 腳本中的欄位偵測條件。
 - `SOPNAME` 尚未納入第一版排序/路由邏輯，已列入 TODO。
 
@@ -66,3 +67,4 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --plan-date=202
 - `README.md`：重要決策與目前行為
 - `CHANGELOG.md`：修改紀錄
 - `TODO.md`：待辦事項
+
