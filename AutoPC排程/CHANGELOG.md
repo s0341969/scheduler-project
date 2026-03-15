@@ -1,5 +1,9 @@
 ﻿# Changelog
 
+## 2026-03-16 (文件與版控)
+
+- 將 TABLE資料表.xlsx 納入 Git 版本控制並推送至 origin/main。
+
 ## 2026-03-15 (排程規則與效能)
 
 - 排程引擎改為依 `WORKFIXM` 路由規則選機：
@@ -52,3 +56,4 @@
 - 新增 `@DefaultDailyHours` 參數（預設 `8`），供 fallback 機台能力使用。
 - 實測 `MIS` 環境可連線，並確認 `可排程工作` 為 view、`指派時間` 與 `WORKFIXM` 存在。
 - 修正 `usp_AutoPc_LoadSchedulingContext` 移除 `TRY_CONVERT`，改為 SQL Server 2008 相容寫法（`CAST` / `ISNUMERIC` / `ISDATE`）。
+

@@ -88,3 +88,7 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --cli --plan-da
 - `README.md`：重要決策與目前行為
 - `CHANGELOG.md`：修改紀錄
 - `TODO.md`：待辦事項
+- `TABLE資料表.xlsx`：6 張資料表欄位整理來源（已納入版控）
+
+
+
