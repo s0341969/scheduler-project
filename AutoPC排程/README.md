@@ -52,8 +52,8 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj
    - 排程進度（進度條 + 已排/未排 + 目前工單）
    - 待排工作總數
    - 排程方法說明（貪婪法）
-   - 新排程清單（GridView）與未排入清單
-5. 表單可查詢欄位：機台、圖號、製卡、製程。
+   - 新排程清單（GridView，含製程名稱）與未排入清單
+5. 表單可查詢欄位：機台、圖號、製卡、製程（代碼/名稱）。
 6. 若要使用命令列模式，請加 `--cli`：
 
 ```powershell
@@ -81,3 +81,4 @@ dotnet run --project .\AutoPcScheduler\AutoPcScheduler.csproj -- --cli --plan-da
 - `README.md`：重要決策與目前行為
 - `CHANGELOG.md`：修改紀錄
 - `TODO.md`：待辦事項
+

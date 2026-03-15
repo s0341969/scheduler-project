@@ -6,6 +6,8 @@
 - 表單新增待排工作總數顯示。
 - 表單新增排程方法說明（貪婪法）。
 - 表單新增查詢條件：機台、圖號、製卡、製程（可在 GridView 篩選）。
+- 新排程 GridView 新增製程名稱欄位。
+- 製程查詢支援代碼與製程名稱。
 - `AutoPcSchedulerEngine` 新增進度回報模型與回呼介面。
 
 ## 2026-03-15 (UI)
@@ -33,3 +35,5 @@
 - 新增 `@DefaultDailyHours` 參數（預設 `8`），供 fallback 機台能力使用。
 - 實測 `MIS` 環境可連線，並確認 `可排程工作` 為 view、`指派時間` 與 `WORKFIXM` 存在。
 - 修正 `usp_AutoPc_LoadSchedulingContext` 移除 `TRY_CONVERT`，改為 SQL Server 2008 相容寫法（`CAST` / `ISNUMERIC` / `ISDATE`）。
+
+

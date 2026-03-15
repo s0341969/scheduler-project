@@ -233,6 +233,7 @@ public sealed class SchedulerMainForm : Form
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "機台", DataPropertyName = nameof(AssignmentRow.MachineId), Width = 120 });
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製卡", DataPropertyName = nameof(AssignmentRow.OrderNo), Width = 180 });
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製程", DataPropertyName = nameof(AssignmentRow.ProcessCode), Width = 120 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製程名稱", DataPropertyName = nameof(AssignmentRow.ProcessName), Width = 160 });
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "圖號", DataPropertyName = nameof(AssignmentRow.PartNo), Width = 130 });
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "開始", DataPropertyName = nameof(AssignmentRow.StartTime), Width = 140 });
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "結束", DataPropertyName = nameof(AssignmentRow.EndTime), Width = 140 });
@@ -310,6 +311,7 @@ public sealed class SchedulerMainForm : Form
                     MachineId = x.MachineId,
                     OrderNo = $"{x.OrdTp}-{x.OrdNo}-{x.OrdSq}-{x.OrdSq1}",
                     ProcessCode = x.ProcessCode ?? string.Empty,
+                    ProcessName = x.ProductName ?? string.Empty,
                     PartNo = x.InPart ?? string.Empty,
                     StartTime = x.StartTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
                     EndTime = x.EndTime.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture),
@@ -411,7 +413,7 @@ public sealed class SchedulerMainForm : Form
             .Where(x => ContainsFilter(x.MachineId, machine))
             .Where(x => ContainsFilter(x.PartNo, partNo))
             .Where(x => ContainsFilter(x.OrderNo, orderNo))
-            .Where(x => ContainsFilter(x.ProcessCode, process))
+            .Where(x => string.IsNullOrWhiteSpace(process) || ContainsFilter(x.ProcessCode, process) || ContainsFilter(x.ProcessName, process))
             .ToList();
 
         _assignmentGrid.DataSource = filtered;
@@ -446,6 +448,8 @@ public sealed class SchedulerMainForm : Form
 
         public string ProcessCode { get; init; } = string.Empty;
 
+        public string ProcessName { get; init; } = string.Empty;
+
         public string PartNo { get; init; } = string.Empty;
 
         public string StartTime { get; init; } = string.Empty;
@@ -468,3 +472,6 @@ public sealed class SchedulerMainForm : Form
         public string Reason { get; init; } = string.Empty;
     }
 }
+
+
+
