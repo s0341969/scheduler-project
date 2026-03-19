@@ -11,9 +11,11 @@
 - 建立可切換資料來源的服務層：
   - `InMemoryPurchaseOrderService`
   - `OdbcPurchaseOrderService`
-- 已對應 Delphi `PUR2019P.dfm` 的核心查詢：
-  - 單頭：`PURTM` (`PURTP='0'`)
-  - 單身：`PURTD` (`PURNO`)
+- 已對應 Delphi `PUR2019P` 主要流程：
+  - 查詢：`PURTM` (`PURTP='0'`) + `PURTD` (`PURNO`)
+  - 單頭：新增、儲存、刪除、確認、取消確認、作廢
+  - 單身：新增、刪除
+- 儲存流程使用交易（transaction）保護，避免單頭單身狀態不一致。
 
 ## 資料來源設定
 預設為 `InMemory`。可切換為 `Database` 使用 ODBC。
@@ -43,5 +45,5 @@ dotnet build
 - 每次搬移以可編譯、可測試為單位提交。
 
 ## 目前限制
-- `PURTM/PURTD` 目前僅完成查詢流程，尚未完成新增/修改/刪除與交易一致性控制。
+- 目前尚未完整移植 `PUR2019P` 的進階檢核（如 ORDMENO/PURDEL 特殊規則、SP 檢核、預算檢核）。
 - 尚未完整映射 Delphi `.dfm` 上所有控制項與事件邏輯。

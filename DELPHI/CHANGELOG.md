@@ -9,3 +9,7 @@
 - 新增 `appsettings.json` 與 `AppSettings` 載入器，支援設定檔/環境變數切換資料來源。
 - 新增 `OdbcPurchaseOrderService`（對應 Delphi `PURTM/PURTD` 查詢邏輯）。
 - 主選單新增資料來源顯示，啟動時若資料來源初始化失敗會自動 fallback 到 InMemory。
+- 擴充 `IPurchaseOrderService`：新增單頭/單身 CRUD、確認、取消確認、作廢流程。
+- `PurchaseMainForm` 新增 Delphi 對應操作按鈕與編輯區，已串接新增、儲存、刪除、確認、取消確認、作廢、單身增刪。
+- 新增 `PurchaseOrderHeaderEditForm`、`PurchaseOrderLineEditForm` 供輸入資料。
+- `OdbcPurchaseOrderService` 導入交易式更新，確保 `PURTM/PURTD` 狀態同步。

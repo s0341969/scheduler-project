@@ -1,6 +1,6 @@
 namespace PUR2019.WinForms.Models;
 
-public sealed class PurchaseOrderLine
+public sealed record PurchaseOrderLine
 {
     public required string OrderNo { get; init; }
 
@@ -17,4 +17,6 @@ public sealed class PurchaseOrderLine
     public decimal Amount => Quantity * UnitPrice;
 
     public DateTime? DueDate { get; init; }
+
+    public required string StatusCode { get; init; }
 }

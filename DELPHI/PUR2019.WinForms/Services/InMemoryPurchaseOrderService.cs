@@ -4,20 +4,22 @@ namespace PUR2019.WinForms.Services;
 
 public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
 {
-    private static readonly IReadOnlyList<PurchaseOrderHeader> Headers =
+    private readonly object _lockObject = new();
+
+    private readonly List<PurchaseOrderHeader> _headers =
     [
-        new PurchaseOrderHeader { OrderNo = "PO20260301001", OrderDate = new DateTime(2026, 3, 1), Department = "A01", Buyer = "王小明", Status = "確認", TotalAmount = 125000M },
-        new PurchaseOrderHeader { OrderNo = "PO20260305009", OrderDate = new DateTime(2026, 3, 5), Department = "B02", Buyer = "陳雅婷", Status = "草稿", TotalAmount = 74800M },
-        new PurchaseOrderHeader { OrderNo = "PO20260312003", OrderDate = new DateTime(2026, 3, 12), Department = "A01", Buyer = "林冠宇", Status = "審核中", TotalAmount = 219500M }
+        new PurchaseOrderHeader { OrderNo = "PO20260301001", OrderDate = new DateTime(2026, 3, 1), Department = "A01", Buyer = "王小明", StatusCode = "Y", TotalAmount = 0M },
+        new PurchaseOrderHeader { OrderNo = "PO20260305009", OrderDate = new DateTime(2026, 3, 5), Department = "B02", Buyer = "陳雅婷", StatusCode = "N", TotalAmount = 0M },
+        new PurchaseOrderHeader { OrderNo = "PO20260312003", OrderDate = new DateTime(2026, 3, 12), Department = "A01", Buyer = "林冠宇", StatusCode = "N", TotalAmount = 0M }
     ];
 
-    private static readonly IReadOnlyList<PurchaseOrderLine> Lines =
+    private readonly List<PurchaseOrderLine> _lines =
     [
-        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 1, ItemNo = "MAT-1001", ItemName = "鋼板", Quantity = 120M, UnitPrice = 350M, DueDate = new DateTime(2026, 3, 25) },
-        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 2, ItemNo = "MAT-3108", ItemName = "螺絲", Quantity = 10000M, UnitPrice = 2.8M, DueDate = new DateTime(2026, 3, 26) },
-        new PurchaseOrderLine { OrderNo = "PO20260305009", Sequence = 1, ItemNo = "PKG-2210", ItemName = "包材", Quantity = 4500M, UnitPrice = 8.5M, DueDate = new DateTime(2026, 3, 28) },
-        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 1, ItemNo = "EQP-0102", ItemName = "治具", Quantity = 15M, UnitPrice = 8200M, DueDate = new DateTime(2026, 4, 5) },
-        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 2, ItemNo = "MAT-7777", ItemName = "銅管", Quantity = 300M, UnitPrice = 322M, DueDate = new DateTime(2026, 4, 1) }
+        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 1, ItemNo = "MAT-1001", ItemName = "鋼板", Quantity = 120M, UnitPrice = 350M, DueDate = new DateTime(2026, 3, 25), StatusCode = "Y" },
+        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 2, ItemNo = "MAT-3108", ItemName = "螺絲", Quantity = 10000M, UnitPrice = 2.8M, DueDate = new DateTime(2026, 3, 26), StatusCode = "Y" },
+        new PurchaseOrderLine { OrderNo = "PO20260305009", Sequence = 1, ItemNo = "PKG-2210", ItemName = "包材", Quantity = 4500M, UnitPrice = 8.5M, DueDate = new DateTime(2026, 3, 28), StatusCode = "N" },
+        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 1, ItemNo = "EQP-0102", ItemName = "治具", Quantity = 15M, UnitPrice = 8200M, DueDate = new DateTime(2026, 4, 5), StatusCode = "N" },
+        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 2, ItemNo = "MAT-7777", ItemName = "銅管", Quantity = 300M, UnitPrice = 322M, DueDate = new DateTime(2026, 4, 1), StatusCode = "N" }
     ];
 
     public IReadOnlyList<PurchaseOrderHeader> QueryHeaders(DateTime fromDate, DateTime toDate, string? department)
@@ -27,14 +29,21 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
             throw new ArgumentException("開始日期不可大於結束日期。", nameof(fromDate));
         }
 
-        IEnumerable<PurchaseOrderHeader> query = Headers.Where(x => x.OrderDate.Date >= fromDate.Date && x.OrderDate.Date <= toDate.Date);
-
-        if (!string.IsNullOrWhiteSpace(department))
+        lock (_lockObject)
         {
-            query = query.Where(x => string.Equals(x.Department, department.Trim(), StringComparison.OrdinalIgnoreCase));
-        }
+            IEnumerable<PurchaseOrderHeader> query = _headers.Where(x => x.OrderDate.Date >= fromDate.Date && x.OrderDate.Date <= toDate.Date);
 
-        return query.OrderByDescending(x => x.OrderDate).ThenBy(x => x.OrderNo).ToArray();
+            if (!string.IsNullOrWhiteSpace(department))
+            {
+                query = query.Where(x => string.Equals(x.Department, department.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+
+            return query
+                .Select(RefreshTotalAmount)
+                .OrderByDescending(x => x.OrderDate)
+                .ThenBy(x => x.OrderNo)
+                .ToArray();
+        }
     }
 
     public IReadOnlyList<PurchaseOrderLine> QueryLines(string orderNo)
@@ -44,6 +53,298 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
             return Array.Empty<PurchaseOrderLine>();
         }
 
-        return Lines.Where(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Sequence).ToArray();
+        lock (_lockObject)
+        {
+            return _lines
+                .Where(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
+                .OrderBy(x => x.Sequence)
+                .ToArray();
+        }
+    }
+
+    public PurchaseOrderHeader CreateOrder(CreatePurchaseOrderRequest request)
+    {
+        ValidateHeaderFields(request.OrderDate, request.Department, request.Buyer, request.UserId);
+
+        lock (_lockObject)
+        {
+            var orderNo = GenerateNextOrderNo(request.OrderDate);
+            var created = new PurchaseOrderHeader
+            {
+                OrderNo = orderNo,
+                OrderDate = request.OrderDate.Date,
+                Department = request.Department.Trim(),
+                Buyer = request.Buyer.Trim(),
+                StatusCode = "N",
+                TotalAmount = 0M
+            };
+
+            _headers.Add(created);
+            return created;
+        }
+    }
+
+    public void UpdateOrder(UpdatePurchaseOrderRequest request)
+    {
+        ValidateHeaderFields(request.OrderDate, request.Department, request.Buyer, request.UserId);
+
+        lock (_lockObject)
+        {
+            var current = FindOrder(request.OrderNo);
+            EnsureEditableStatus(current.StatusCode);
+
+            var updated = current with
+            {
+                OrderDate = request.OrderDate.Date,
+                Department = request.Department.Trim(),
+                Buyer = request.Buyer.Trim()
+            };
+
+            ReplaceHeader(updated);
+        }
+    }
+
+    public void DeleteOrder(string orderNo)
+    {
+        lock (_lockObject)
+        {
+            var current = FindOrder(orderNo);
+            EnsureEditableStatus(current.StatusCode);
+
+            if (_lines.Any(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException("單頭尚有單身資料，不能刪除。請先刪除單身。");
+            }
+
+            _headers.RemoveAll(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    public void ConfirmOrder(string orderNo, string userId)
+    {
+        ValidateUser(userId);
+
+        lock (_lockObject)
+        {
+            var current = FindOrder(orderNo);
+            if (current.StatusCode == "X")
+            {
+                throw new InvalidOperationException("已作廢單據不可確認。");
+            }
+
+            ReplaceHeader(current with { StatusCode = "Y" });
+
+            for (var i = 0; i < _lines.Count; i++)
+            {
+                if (_lines[i].OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
+                {
+                    _lines[i] = _lines[i] with { StatusCode = "Y" };
+                }
+            }
+        }
+    }
+
+    public void UnconfirmOrder(string orderNo, string userId)
+    {
+        ValidateUser(userId);
+
+        lock (_lockObject)
+        {
+            var current = FindOrder(orderNo);
+            if (current.StatusCode == "X")
+            {
+                throw new InvalidOperationException("已作廢單據不可取消確認。");
+            }
+
+            if (current.StatusCode != "Y")
+            {
+                throw new InvalidOperationException("目前狀態不是已確認，不能取消確認。");
+            }
+
+            ReplaceHeader(current with { StatusCode = "N" });
+
+            for (var i = 0; i < _lines.Count; i++)
+            {
+                if (_lines[i].OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
+                {
+                    _lines[i] = _lines[i] with { StatusCode = "N" };
+                }
+            }
+        }
+    }
+
+    public void VoidOrder(string orderNo, string userId)
+    {
+        ValidateUser(userId);
+
+        lock (_lockObject)
+        {
+            var current = FindOrder(orderNo);
+            if (current.StatusCode == "X")
+            {
+                throw new InvalidOperationException("單據已作廢。");
+            }
+
+            if (current.StatusCode == "Y")
+            {
+                throw new InvalidOperationException("已確認單據不可直接作廢，請先取消確認。");
+            }
+
+            ReplaceHeader(current with { StatusCode = "X" });
+            _lines.RemoveAll(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    public PurchaseOrderLine AddLine(CreatePurchaseOrderLineRequest request)
+    {
+        ValidateLineFields(request);
+
+        lock (_lockObject)
+        {
+            var header = FindOrder(request.OrderNo);
+            EnsureEditableStatus(header.StatusCode);
+
+            var nextSequence = (_lines.Where(x => x.OrderNo.Equals(request.OrderNo, StringComparison.OrdinalIgnoreCase)).Select(x => x.Sequence).DefaultIfEmpty(0).Max()) + 1;
+            var created = new PurchaseOrderLine
+            {
+                OrderNo = request.OrderNo,
+                Sequence = nextSequence,
+                ItemNo = request.ItemNo.Trim(),
+                ItemName = request.ItemName.Trim(),
+                Quantity = request.Quantity,
+                UnitPrice = request.UnitPrice,
+                DueDate = request.DueDate?.Date,
+                StatusCode = "N"
+            };
+
+            _lines.Add(created);
+            return created;
+        }
+    }
+
+    public void DeleteLine(string orderNo, int sequence)
+    {
+        lock (_lockObject)
+        {
+            var header = FindOrder(orderNo);
+            EnsureEditableStatus(header.StatusCode);
+
+            var removed = _lines.RemoveAll(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase) && x.Sequence == sequence);
+            if (removed == 0)
+            {
+                throw new InvalidOperationException("找不到要刪除的單身資料。");
+            }
+        }
+    }
+
+    private PurchaseOrderHeader FindOrder(string orderNo)
+    {
+        if (string.IsNullOrWhiteSpace(orderNo))
+        {
+            throw new ArgumentException("單號不可空白。", nameof(orderNo));
+        }
+
+        return _headers.FirstOrDefault(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
+            ?? throw new InvalidOperationException($"找不到單號：{orderNo}");
+    }
+
+    private PurchaseOrderHeader RefreshTotalAmount(PurchaseOrderHeader header)
+    {
+        var total = _lines.Where(x => x.OrderNo.Equals(header.OrderNo, StringComparison.OrdinalIgnoreCase)).Sum(x => x.Amount);
+        return header with { TotalAmount = total };
+    }
+
+    private string GenerateNextOrderNo(DateTime orderDate)
+    {
+        var prefix = $"PO{orderDate:yyyyMMdd}";
+        var maxSeq = _headers
+            .Where(x => x.OrderNo.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(x => int.TryParse(x.OrderNo[prefix.Length..], out var seq) ? seq : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+
+        return $"{prefix}{maxSeq + 1:000}";
+    }
+
+    private static void ValidateHeaderFields(DateTime orderDate, string department, string buyer, string userId)
+    {
+        _ = orderDate;
+
+        if (string.IsNullOrWhiteSpace(department))
+        {
+            throw new InvalidOperationException("部門不可空白。");
+        }
+
+        if (string.IsNullOrWhiteSpace(buyer))
+        {
+            throw new InvalidOperationException("採購員不可空白。");
+        }
+
+        ValidateUser(userId);
+    }
+
+    private static void ValidateLineFields(CreatePurchaseOrderLineRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.OrderNo))
+        {
+            throw new InvalidOperationException("單號不可空白。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ItemNo))
+        {
+            throw new InvalidOperationException("料號不可空白。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ItemName))
+        {
+            throw new InvalidOperationException("品名不可空白。");
+        }
+
+        if (request.Quantity <= 0)
+        {
+            throw new InvalidOperationException("數量必須大於 0。");
+        }
+
+        if (request.UnitPrice < 0)
+        {
+            throw new InvalidOperationException("單價不可為負數。");
+        }
+
+        ValidateUser(request.UserId);
+    }
+
+    private static void ValidateUser(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new InvalidOperationException("使用者代號不可空白。");
+        }
+    }
+
+    private static void EnsureEditableStatus(string statusCode)
+    {
+        if (statusCode == "Y")
+        {
+            throw new InvalidOperationException("已確認單據不可修改。請先取消確認。");
+        }
+
+        if (statusCode == "X")
+        {
+            throw new InvalidOperationException("已作廢單據不可修改。");
+        }
+    }
+
+    private void ReplaceHeader(PurchaseOrderHeader header)
+    {
+        for (var i = 0; i < _headers.Count; i++)
+        {
+            if (_headers[i].OrderNo.Equals(header.OrderNo, StringComparison.OrdinalIgnoreCase))
+            {
+                _headers[i] = header;
+                return;
+            }
+        }
+
+        throw new InvalidOperationException($"找不到單號：{header.OrderNo}");
     }
 }

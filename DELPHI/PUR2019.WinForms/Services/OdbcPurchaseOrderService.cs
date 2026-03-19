@@ -1,3 +1,4 @@
+using System.Data;
 using System.Data.Odbc;
 using PUR2019.WinForms.Models;
 
@@ -25,20 +26,20 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
 
         using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT PURNO, PURDY, PURDP, PUUSR, SCTRL " +
-            "FROM PURTM " +
-            "WHERE PURTP='0' AND PURDY>=? AND PURDY<=?";
-
+            "SELECT T.PURNO, T.PURDY, T.PURDP, T.PUUSR, T.SCTRL, ISNULL(S.SUM_AMT, 0) AS SUM_AMT " +
+            "FROM PURTM T " +
+            "LEFT JOIN (SELECT PURNO, SUM(ISNULL(PURM1,0)) AS SUM_AMT FROM PURTD GROUP BY PURNO) S ON T.PURNO=S.PURNO " +
+            "WHERE T.PURTP='0' AND T.PURDY>=? AND T.PURDY<=?";
         command.Parameters.Add("@from", OdbcType.DateTime).Value = fromDate.Date;
         command.Parameters.Add("@to", OdbcType.DateTime).Value = toDate.Date;
 
         if (!string.IsNullOrWhiteSpace(department))
         {
-            command.CommandText += " AND PURDP=?";
+            command.CommandText += " AND T.PURDP=?";
             command.Parameters.Add("@dep", OdbcType.VarChar).Value = department.Trim();
         }
 
-        command.CommandText += " ORDER BY PURNO";
+        command.CommandText += " ORDER BY T.PURNO";
 
         using var reader = command.ExecuteReader();
         while (reader.Read())
@@ -49,8 +50,8 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
                 OrderDate = reader["PURDY"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(reader["PURDY"]),
                 Department = reader["PURDP"].ToString()?.Trim() ?? string.Empty,
                 Buyer = reader["PUUSR"].ToString()?.Trim() ?? string.Empty,
-                Status = MapStatus(reader["SCTRL"].ToString()),
-                TotalAmount = 0M
+                StatusCode = NormalizeStatusCode(reader["SCTRL"].ToString()),
+                TotalAmount = reader["SUM_AMT"] is DBNull ? 0M : Convert.ToDecimal(reader["SUM_AMT"])
             });
         }
 
@@ -71,7 +72,7 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
 
         using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT PURNO, PURSQ, INDWG, PURCL, PUQY1, PURP1, PUNDY " +
+            "SELECT PURNO, PURSQ, INDWG, PURCL, PUQY1, PURP1, PUNDY, SCTRL " +
             "FROM PURTD " +
             "WHERE PURNO=? " +
             "ORDER BY PURNO, PURSQ";
@@ -89,20 +90,432 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
                 ItemName = reader["PURCL"].ToString()?.Trim() ?? string.Empty,
                 Quantity = reader["PUQY1"] is DBNull ? 0M : Convert.ToDecimal(reader["PUQY1"]),
                 UnitPrice = reader["PURP1"] is DBNull ? 0M : Convert.ToDecimal(reader["PURP1"]),
-                DueDate = reader["PUNDY"] is DBNull ? null : Convert.ToDateTime(reader["PUNDY"])
+                DueDate = reader["PUNDY"] is DBNull ? null : Convert.ToDateTime(reader["PUNDY"]),
+                StatusCode = NormalizeStatusCode(reader["SCTRL"].ToString())
             });
         }
 
         return lines;
     }
 
-    private static string MapStatus(string? sctrl)
+    public PurchaseOrderHeader CreateOrder(CreatePurchaseOrderRequest request)
     {
-        return sctrl?.Trim().ToUpperInvariant() switch
+        ValidateHeaderRequest(request.OrderDate, request.Department, request.Buyer, request.UserId);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var orderNo = GenerateNextOrderNo(connection, transaction, request.OrderDate);
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "INSERT INTO PURTM (PURNO, PURDY, PURDP, PUUSR, PURTP, SCTRL, CRUSER, CRDATE, AMDUSR, AMDDAY, CFUSER, CFDAY, PRUSER, PNNO, FACT) " +
+            "VALUES (?, ?, ?, ?, '0', 'N', ?, GETDATE(), '', NULL, '', NULL, '', 0, '21')";
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo;
+        command.Parameters.Add("@purdy", OdbcType.DateTime).Value = request.OrderDate.Date;
+        command.Parameters.Add("@purdp", OdbcType.VarChar).Value = request.Department.Trim();
+        command.Parameters.Add("@puusr", OdbcType.VarChar).Value = request.Buyer.Trim();
+        command.Parameters.Add("@cruser", OdbcType.VarChar).Value = request.UserId.Trim();
+        command.ExecuteNonQuery();
+
+        transaction.Commit();
+
+        return new PurchaseOrderHeader
         {
-            "Y" => "已確認",
-            "X" => "已作廢",
-            _ => "未確認"
+            OrderNo = orderNo,
+            OrderDate = request.OrderDate.Date,
+            Department = request.Department.Trim(),
+            Buyer = request.Buyer.Trim(),
+            StatusCode = "N",
+            TotalAmount = 0M
         };
+    }
+
+    public void UpdateOrder(UpdatePurchaseOrderRequest request)
+    {
+        ValidateHeaderRequest(request.OrderDate, request.Department, request.Buyer, request.UserId);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, request.OrderNo);
+        EnsureEditableStatus(status);
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "UPDATE PURTM SET PURDY=?, PURDP=?, PUUSR=?, AMDUSR=?, AMDDAY=GETDATE() " +
+            "WHERE PURNO=?";
+        command.Parameters.Add("@purdy", OdbcType.DateTime).Value = request.OrderDate.Date;
+        command.Parameters.Add("@purdp", OdbcType.VarChar).Value = request.Department.Trim();
+        command.Parameters.Add("@puusr", OdbcType.VarChar).Value = request.Buyer.Trim();
+        command.Parameters.Add("@amdusr", OdbcType.VarChar).Value = request.UserId.Trim();
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = request.OrderNo.Trim();
+
+        if (command.ExecuteNonQuery() != 1)
+        {
+            throw new InvalidOperationException("更新失敗：找不到單頭資料。");
+        }
+
+        transaction.Commit();
+    }
+
+    public void DeleteOrder(string orderNo)
+    {
+        EnsureOrderNo(orderNo);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, orderNo);
+        EnsureEditableStatus(status);
+
+        using var countCommand = connection.CreateCommand();
+        countCommand.Transaction = transaction;
+        countCommand.CommandText = "SELECT COUNT(1) FROM PURTD WHERE PURNO=?";
+        countCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        var lineCount = Convert.ToInt32(countCommand.ExecuteScalar());
+        if (lineCount > 0)
+        {
+            throw new InvalidOperationException("單頭尚有單身資料，不能刪除。請先刪除單身。");
+        }
+
+        using var deleteCommand = connection.CreateCommand();
+        deleteCommand.Transaction = transaction;
+        deleteCommand.CommandText = "DELETE FROM PURTM WHERE PURNO=?";
+        deleteCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        deleteCommand.ExecuteNonQuery();
+
+        transaction.Commit();
+    }
+
+    public void ConfirmOrder(string orderNo, string userId)
+    {
+        EnsureOrderNo(orderNo);
+        EnsureUser(userId);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, orderNo);
+        if (status == "X")
+        {
+            throw new InvalidOperationException("已作廢單據不可確認。");
+        }
+
+        using var lineCommand = connection.CreateCommand();
+        lineCommand.Transaction = transaction;
+        lineCommand.CommandText = "UPDATE PURTD SET SCTRL='Y', CFMUSER=?, CFMDATE=GETDATE() WHERE PURNO=? AND SCTRL='N'";
+        lineCommand.Parameters.Add("@user", OdbcType.VarChar).Value = userId.Trim();
+        lineCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        lineCommand.ExecuteNonQuery();
+
+        using var headerCommand = connection.CreateCommand();
+        headerCommand.Transaction = transaction;
+        headerCommand.CommandText = "UPDATE PURTM SET SCTRL='Y', CFUSER=?, CFDAY=GETDATE() WHERE PURNO=?";
+        headerCommand.Parameters.Add("@user", OdbcType.VarChar).Value = userId.Trim();
+        headerCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        headerCommand.ExecuteNonQuery();
+
+        transaction.Commit();
+    }
+
+    public void UnconfirmOrder(string orderNo, string userId)
+    {
+        EnsureOrderNo(orderNo);
+        EnsureUser(userId);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, orderNo);
+        if (status == "X")
+        {
+            throw new InvalidOperationException("已作廢單據不可取消確認。");
+        }
+
+        if (status != "Y")
+        {
+            throw new InvalidOperationException("目前狀態不是已確認，不能取消確認。");
+        }
+
+        using var lineCommand = connection.CreateCommand();
+        lineCommand.Transaction = transaction;
+        lineCommand.CommandText = "UPDATE PURTD SET SCTRL='N', CFMUSER=?, CFMDATE=GETDATE() WHERE PURNO=? AND SCTRL='Y'";
+        lineCommand.Parameters.Add("@user", OdbcType.VarChar).Value = userId.Trim();
+        lineCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        lineCommand.ExecuteNonQuery();
+
+        using var headerCommand = connection.CreateCommand();
+        headerCommand.Transaction = transaction;
+        headerCommand.CommandText = "UPDATE PURTM SET SCTRL='N', CFUSER=?, CFDAY=GETDATE() WHERE PURNO=?";
+        headerCommand.Parameters.Add("@user", OdbcType.VarChar).Value = userId.Trim();
+        headerCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        headerCommand.ExecuteNonQuery();
+
+        transaction.Commit();
+    }
+
+    public void VoidOrder(string orderNo, string userId)
+    {
+        EnsureOrderNo(orderNo);
+        EnsureUser(userId);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, orderNo);
+        if (status == "X")
+        {
+            throw new InvalidOperationException("單據已作廢。");
+        }
+
+        if (status == "Y")
+        {
+            throw new InvalidOperationException("已確認單據不可直接作廢，請先取消確認。");
+        }
+
+        using var headerCommand = connection.CreateCommand();
+        headerCommand.Transaction = transaction;
+        headerCommand.CommandText = "UPDATE PURTM SET SCTRL='X', AMDUSR=?, AMDDAY=GETDATE() WHERE PURNO=?";
+        headerCommand.Parameters.Add("@user", OdbcType.VarChar).Value = userId.Trim();
+        headerCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        headerCommand.ExecuteNonQuery();
+
+        using var lineCommand = connection.CreateCommand();
+        lineCommand.Transaction = transaction;
+        lineCommand.CommandText = "DELETE FROM PURTD WHERE PURNO=?";
+        lineCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        lineCommand.ExecuteNonQuery();
+
+        transaction.Commit();
+    }
+
+    public PurchaseOrderLine AddLine(CreatePurchaseOrderLineRequest request)
+    {
+        ValidateLineRequest(request);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, request.OrderNo);
+        EnsureEditableStatus(status);
+
+        var sequence = GetNextSequence(connection, transaction, request.OrderNo);
+        var amount = request.Quantity * request.UnitPrice;
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "INSERT INTO PURTD " +
+            "(PURNO, PURSQ, INDWG, PURSZ, PURCL, PUMTP, PUWAY, PUSET1, PUSET2, PUQY1, PUQY2, PUNDY, PUPRP, PUROD, PUPA1, PUPA2, " +
+            " PUUSR, PUCUS, PURDP, PURCA, PURRA, PURP1, PURM1, PURP2, PURM2, PA1NO, PA1SQ, PA1SQ1, PUREM, SCTRL, CRUSER, CRDATE, AMDUSR, AMDDAY, PUUAP, PURTP, PUBUG) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'N', ?, GETDATE(), '', GETDATE(), 'N', '1', '')";
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = request.OrderNo.Trim();
+        command.Parameters.Add("@pursq", OdbcType.VarChar).Value = sequence.ToString("000");
+        command.Parameters.Add("@indwg", OdbcType.VarChar).Value = request.ItemNo.Trim();
+        command.Parameters.Add("@pursz", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@purcl", OdbcType.VarChar).Value = request.ItemName.Trim();
+        command.Parameters.Add("@pumtp", OdbcType.VarChar).Value = "00";
+        command.Parameters.Add("@puway", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@puset1", OdbcType.VarChar).Value = "PCS";
+        command.Parameters.Add("@puset2", OdbcType.VarChar).Value = "PCS";
+        command.Parameters.Add("@puqy1", OdbcType.Decimal).Value = request.Quantity;
+        command.Parameters.Add("@puqy2", OdbcType.Decimal).Value = 0M;
+        command.Parameters.Add("@pundy", OdbcType.DateTime).Value = request.DueDate?.Date ?? DateTime.Today;
+        command.Parameters.Add("@puprp", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@purod", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@pupa1", OdbcType.VarChar).Value = "0";
+        command.Parameters.Add("@pupa2", OdbcType.VarChar).Value = "0";
+        command.Parameters.Add("@puusr", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@pucus", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@purdp", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@purca", OdbcType.VarChar).Value = "NT";
+        command.Parameters.Add("@purra", OdbcType.Decimal).Value = 1M;
+        command.Parameters.Add("@purp1", OdbcType.Decimal).Value = request.UnitPrice;
+        command.Parameters.Add("@purm1", OdbcType.Decimal).Value = amount;
+        command.Parameters.Add("@purp2", OdbcType.Decimal).Value = 0M;
+        command.Parameters.Add("@purm2", OdbcType.Decimal).Value = 0M;
+        command.Parameters.Add("@pa1no", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@pa1sq", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@pa1sq1", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@purem", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@cruser", OdbcType.VarChar).Value = request.UserId.Trim();
+        command.ExecuteNonQuery();
+
+        transaction.Commit();
+
+        return new PurchaseOrderLine
+        {
+            OrderNo = request.OrderNo.Trim(),
+            Sequence = sequence,
+            ItemNo = request.ItemNo.Trim(),
+            ItemName = request.ItemName.Trim(),
+            Quantity = request.Quantity,
+            UnitPrice = request.UnitPrice,
+            DueDate = request.DueDate?.Date ?? DateTime.Today,
+            StatusCode = "N"
+        };
+    }
+
+    public void DeleteLine(string orderNo, int sequence)
+    {
+        EnsureOrderNo(orderNo);
+        if (sequence <= 0)
+        {
+            throw new InvalidOperationException("單身序號必須大於 0。");
+        }
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+        using var transaction = connection.BeginTransaction(IsolationLevel.ReadCommitted);
+
+        var status = GetOrderStatus(connection, transaction, orderNo);
+        EnsureEditableStatus(status);
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "DELETE FROM PURTD WHERE PURNO=? AND PURSQ=?";
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        command.Parameters.Add("@pursq", OdbcType.VarChar).Value = sequence.ToString("000");
+
+        if (command.ExecuteNonQuery() == 0)
+        {
+            throw new InvalidOperationException("找不到要刪除的單身資料。");
+        }
+
+        transaction.Commit();
+    }
+
+    private static string NormalizeStatusCode(string? statusCode)
+    {
+        var code = statusCode?.Trim().ToUpperInvariant();
+        return code is "Y" or "X" ? code : "N";
+    }
+
+    private static void ValidateHeaderRequest(DateTime orderDate, string department, string buyer, string userId)
+    {
+        _ = orderDate;
+
+        if (string.IsNullOrWhiteSpace(department))
+        {
+            throw new InvalidOperationException("部門不可空白。");
+        }
+
+        if (string.IsNullOrWhiteSpace(buyer))
+        {
+            throw new InvalidOperationException("採購員不可空白。");
+        }
+
+        EnsureUser(userId);
+    }
+
+    private static void ValidateLineRequest(CreatePurchaseOrderLineRequest request)
+    {
+        EnsureOrderNo(request.OrderNo);
+
+        if (string.IsNullOrWhiteSpace(request.ItemNo))
+        {
+            throw new InvalidOperationException("料號不可空白。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ItemName))
+        {
+            throw new InvalidOperationException("品名不可空白。");
+        }
+
+        if (request.Quantity <= 0)
+        {
+            throw new InvalidOperationException("數量必須大於 0。");
+        }
+
+        if (request.UnitPrice < 0)
+        {
+            throw new InvalidOperationException("單價不可為負數。");
+        }
+
+        EnsureUser(request.UserId);
+    }
+
+    private static void EnsureOrderNo(string orderNo)
+    {
+        if (string.IsNullOrWhiteSpace(orderNo))
+        {
+            throw new InvalidOperationException("單號不可空白。");
+        }
+    }
+
+    private static void EnsureUser(string userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            throw new InvalidOperationException("使用者代號不可空白。");
+        }
+    }
+
+    private static void EnsureEditableStatus(string status)
+    {
+        if (status == "Y")
+        {
+            throw new InvalidOperationException("已確認單據不可修改。請先取消確認。");
+        }
+
+        if (status == "X")
+        {
+            throw new InvalidOperationException("已作廢單據不可修改。");
+        }
+    }
+
+    private static string GetOrderStatus(OdbcConnection connection, OdbcTransaction transaction, string orderNo)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT SCTRL FROM PURTM WHERE PURNO=?";
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        var result = command.ExecuteScalar();
+        if (result is null || result is DBNull)
+        {
+            throw new InvalidOperationException($"找不到單號：{orderNo}");
+        }
+
+        return NormalizeStatusCode(Convert.ToString(result));
+    }
+
+    private static int GetNextSequence(OdbcConnection connection, OdbcTransaction transaction, string orderNo)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT MAX(PURSQ) FROM PURTD WHERE PURNO=?";
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+        var raw = command.ExecuteScalar();
+        var maxText = raw is null || raw is DBNull ? "0" : Convert.ToString(raw);
+        return int.TryParse(maxText, out var maxValue) ? maxValue + 1 : 1;
+    }
+
+    private static string GenerateNextOrderNo(OdbcConnection connection, OdbcTransaction transaction, DateTime orderDate)
+    {
+        var prefix = orderDate.ToString("yyMMdd");
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT ISNULL(MAX(PURNO), '') FROM PURTM WHERE SUBSTRING(PURNO,1,6)=?";
+        command.Parameters.Add("@prefix", OdbcType.VarChar).Value = prefix;
+
+        var raw = Convert.ToString(command.ExecuteScalar())?.Trim() ?? string.Empty;
+        var next = 1;
+
+        if (raw.Length >= 10 && int.TryParse(raw.Substring(6, 4), out var seq))
+        {
+            next = seq + 1;
+        }
+
+        return $"{prefix}{next:0000}";
     }
 }
