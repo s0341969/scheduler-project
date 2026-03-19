@@ -1,0 +1,23 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v9.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v9.0": {
+      "PUR2019.WinForms/1.0.0": {
+        "runtime": {
+          "PUR2019.WinForms.dll": {}
+        }
+      }
+    }
+  },
+  "libraries": {
+    "PUR2019.WinForms/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}
