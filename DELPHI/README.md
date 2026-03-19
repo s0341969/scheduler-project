@@ -8,18 +8,40 @@
 - 建立 `PUR2019.WinForms` (.NET 9 WinForms)
 - 建立主入口與主選單（對應 Delphi 的 `PUR2019.dpr` / `PUR2019A.dpr`）
 - 建立採購主畫面、明細畫面、異常檢查畫面、管理畫面、Utility 畫面
-- 建立 `IPurchaseOrderService` 與 `InMemoryPurchaseOrderService`，可支援查詢與畫面互動
+- 建立可切換資料來源的服務層：
+  - `InMemoryPurchaseOrderService`
+  - `OdbcPurchaseOrderService`
+- 已對應 Delphi `PUR2019P.dfm` 的核心查詢：
+  - 單頭：`PURTM` (`PURTP='0'`)
+  - 單身：`PURTD` (`PURNO`)
 
-## 轉換策略
-- 採 additive 方式進行，不破壞現有 Delphi 專案。
-- 先完成 UI 與服務層解耦，再逐步將 `PUR2019P.pas`、`PUR2019AP.pas`、`Utility.pas` 商業邏輯搬移。
-- 每次搬移以可編譯、可測試為單位提交。
+## 資料來源設定
+預設為 `InMemory`。可切換為 `Database` 使用 ODBC。
+
+設定檔：`PUR2019.WinForms/appsettings.json`
+```json
+{
+  "DataSource": {
+    "Mode": "InMemory",
+    "OdbcConnectionString": "Driver={SQL Server};Server=127.0.0.1;Database=MISD;Uid=sa;Pwd=CHANGE_ME;TrustServerCertificate=Yes;"
+  }
+}
+```
+
+也可用環境變數覆蓋：
+- `PUR2019_DATA_SOURCE`：`InMemory` 或 `Database`
+- `PUR2019_ODBC_CONNECTION_STRING`：ODBC 連線字串
 
 ## 建置
 ```powershell
 dotnet build
 ```
 
+## 轉換策略
+- 採 additive 方式進行，不破壞現有 Delphi 專案。
+- 先完成 UI 與服務層解耦，再逐步將 `PUR2019P.pas`、`PUR2019AP.pas`、`Utility.pas` 商業邏輯搬移。
+- 每次搬移以可編譯、可測試為單位提交。
+
 ## 目前限制
-- 尚未接入實際資料庫（目前使用記憶體資料服務）。
+- `PURTM/PURTD` 目前僅完成查詢流程，尚未完成新增/修改/刪除與交易一致性控制。
 - 尚未完整映射 Delphi `.dfm` 上所有控制項與事件邏輯。
