@@ -17,7 +17,7 @@
 | `SpeedButton7Click` | 取消確認 | Y | 含 `PURDEL` 防護 |
 | `SpeedButton8Click` | 執行查詢 | Y | 已對應 QueryHeaders |
 | `SpeedButton9Click` / `SpeedButton10Click` | 上一筆/下一筆 | Y | 已加入 UI 導覽 |
-| `SpeedButton11Click` | 印表 | P | 已可輸出報表文字，Delphi 報表 SQL 尚未完整移植 |
+| `SpeedButton11Click` | 印表 | P | 已接入 `#ATEMP / Query12 / Query13` 報表 SQL 骨架，欄位與版型仍未全覆蓋 |
 | `SpeedButton12Click` | 作廢 | Y | 已含單頭狀態與刪除單身 |
 
 ## 單頭資料事件
@@ -51,6 +51,6 @@
 | 模組 | 狀態 | 備註 |
 |---|---|---|
 | `CHECKBUGDA` 預算邏輯 | P | 主流程框架已接，細節公式待補 |
-| 報表輸出（`#ATEMP`, `Query12/13`） | P | 已可輸出文字報表，Delphi SQL 暫存表流程尚未移植 |
+| 報表輸出（`#ATEMP`, `Query12/13`） | P | 已落地 ODBC 暫存表與雙查詢文字輸出，版面/欄位尚未完整對齊 Delphi |
 | `Utility.pas` 共用函式 | P | 部分已內化到服務層 |
 | `PUR2019AP*` 管理端 | N | 尚未完整移植 |

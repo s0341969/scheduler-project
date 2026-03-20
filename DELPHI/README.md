@@ -31,6 +31,9 @@
   - 關閉畫面前加入單頭未存檔提示（離開前可選擇先儲存）
   - 單身視窗新增即時計算金額預覽與 MOQ 提示
   - 單身視窗新增欄位離開連動試算（來源單號/製程/數量/單價）
+- 報表流程補強第四批：
+  - `OdbcPurchaseOrderService.BuildOrderReportText` 已改為 `#ATEMP` 暫存表 + Query12/Query13 風格查詢輸出
+  - 已支援抬頭摘要與明細列分段輸出，接近 Delphi 報表 SQL 執行順序
 - 儲存流程使用交易（transaction）保護，避免單頭單身狀態不一致。
 
 ## 資料來源設定

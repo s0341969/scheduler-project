@@ -580,56 +580,103 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
 
         using var connection = new OdbcConnection(_connectionString);
         connection.Open();
+        CreateOrderReportTempTable(connection, orderNo.Trim());
 
-        PurchaseOrderHeader? header = null;
-        using (var headerCommand = connection.CreateCommand())
+        string headerOrderNo;
+        DateTime headerOrderDate;
+        string headerDepartment;
+        string headerBuyer;
+        string headerStatusCode;
+        decimal totalQty;
+        decimal totalAmt;
+
+        using (var summaryCommand = connection.CreateCommand())
         {
-            headerCommand.CommandText = "SELECT PURNO, PURDY, PURDP, PUUSR, SCTRL FROM PURTM WHERE PURNO=?";
-            headerCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
-            using var reader = headerCommand.ExecuteReader();
-            if (reader.Read())
+            summaryCommand.CommandText =
+                "SELECT TOP 1 PURNO, PURDY, PURDP, PUUSR, SCTRL, " +
+                "SUM(ISNULL(PUQY1,0)) AS TOTQTY, SUM(ISNULL(PURM1,0)) AS TOTAMT " +
+                "FROM #ATEMP GROUP BY PURNO, PURDY, PURDP, PUUSR, SCTRL";
+
+            using var summaryReader = summaryCommand.ExecuteReader();
+            if (!summaryReader.Read())
             {
-                header = new PurchaseOrderHeader
-                {
-                    OrderNo = reader["PURNO"].ToString()?.Trim() ?? string.Empty,
-                    OrderDate = reader["PURDY"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(reader["PURDY"]),
-                    Department = reader["PURDP"].ToString()?.Trim() ?? string.Empty,
-                    Buyer = reader["PUUSR"].ToString()?.Trim() ?? string.Empty,
-                    StatusCode = NormalizeStatusCode(reader["SCTRL"].ToString()),
-                    TotalAmount = 0M
-                };
+                throw new InvalidOperationException($"找不到單號：{orderNo}");
             }
-        }
 
-        if (header is null)
-        {
-            throw new InvalidOperationException($"找不到單號：{orderNo}");
+            headerOrderNo = summaryReader["PURNO"]?.ToString()?.Trim() ?? orderNo.Trim();
+            headerOrderDate = summaryReader["PURDY"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(summaryReader["PURDY"]);
+            headerDepartment = summaryReader["PURDP"]?.ToString()?.Trim() ?? string.Empty;
+            headerBuyer = summaryReader["PUUSR"]?.ToString()?.Trim() ?? string.Empty;
+            headerStatusCode = NormalizeStatusCode(summaryReader["SCTRL"]?.ToString());
+            totalQty = summaryReader["TOTQTY"] is DBNull ? 0M : Convert.ToDecimal(summaryReader["TOTQTY"]);
+            totalAmt = summaryReader["TOTAMT"] is DBNull ? 0M : Convert.ToDecimal(summaryReader["TOTAMT"]);
         }
-
-        var lines = QueryLines(orderNo);
-        var totalQty = lines.Sum(x => x.Quantity);
-        var totalAmt = lines.Sum(x => x.Amount);
 
         var output = new List<string>
         {
-            "PUR2019 採購單報表",
-            $"單號: {header.OrderNo}",
-            $"日期: {header.OrderDate:yyyy/MM/dd}",
-            $"部門: {header.Department}",
-            $"採購員: {header.Buyer}",
-            $"狀態: {header.Status} ({header.StatusCode})",
+            "PUR2019 採購單報表（Query12/Query13）",
+            $"單號: {headerOrderNo}",
+            $"日期: {headerOrderDate:yyyy/MM/dd}",
+            $"部門: {headerDepartment}",
+            $"採購員: {headerBuyer}",
+            $"狀態: {StatusCodeToText(headerStatusCode)} ({headerStatusCode})",
             $"總數量: {totalQty:N2}",
             $"總金額: {totalAmt:N2}",
             "",
             "明細:"
         };
 
-        foreach (var line in lines)
+        using (var detailCommand = connection.CreateCommand())
         {
-            output.Add($"- {line.Sequence:000} {line.ItemNo} {line.ItemName} Qty={line.Quantity:N2} Price={line.UnitPrice:N2} Amt={line.Amount:N2}");
+            detailCommand.CommandText =
+                "SELECT ISNULL(PURSQ,''), ISNULL(PUPRP,''), ISNULL(INDWG,''), ISNULL(PURCL,''), " +
+                "ISNULL(PUPA1,'0'), ISNULL(PUPA2,'0'), ISNULL(PUQY1,0), ISNULL(PURP1,0), " +
+                "ISNULL(PURM1,0), ISNULL(PURM2,0), ISNULL(PURP2,0), PUNDY " +
+                "FROM #ATEMP WHERE ISNULL(PURSQ,'')<>'' ORDER BY PURSQ";
+
+            using var detailReader = detailCommand.ExecuteReader();
+            while (detailReader.Read())
+            {
+                var sqText = detailReader[0]?.ToString()?.Trim() ?? string.Empty;
+                var sourceNo = detailReader[1]?.ToString()?.Trim() ?? string.Empty;
+                var itemNo = detailReader[2]?.ToString()?.Trim() ?? string.Empty;
+                var itemName = detailReader[3]?.ToString()?.Trim() ?? string.Empty;
+                var p1 = detailReader[4]?.ToString()?.Trim() ?? "0";
+                var p2 = detailReader[5]?.ToString()?.Trim() ?? "0";
+                var qty = detailReader[6] is DBNull ? 0M : Convert.ToDecimal(detailReader[6]);
+                var price = detailReader[7] is DBNull ? 0M : Convert.ToDecimal(detailReader[7]);
+                var amount = detailReader[8] is DBNull ? 0M : Convert.ToDecimal(detailReader[8]);
+                var refAmt = detailReader[9] is DBNull ? 0M : Convert.ToDecimal(detailReader[9]);
+                var costRatio = detailReader[10] is DBNull ? 0M : Convert.ToDecimal(detailReader[10]);
+                DateTime? dueDate = detailReader[11] is DBNull ? null : Convert.ToDateTime(detailReader[11]);
+
+                output.Add(
+                    $"- {sqText.PadLeft(3, '0')} 料號={itemNo} 品名={itemName} 製令={sourceNo} 製程={p1}-{p2} " +
+                    $"Qty={qty:N2} Price={price:N2} Amt={amount:N2} Ref={refAmt:N2} Ratio={costRatio:N3} " +
+                    $"交期={(dueDate.HasValue ? dueDate.Value.ToString("yyyy/MM/dd") : string.Empty)}");
+            }
         }
 
         return string.Join(Environment.NewLine, output);
+    }
+
+    private static void CreateOrderReportTempTable(OdbcConnection connection, string orderNo)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "IF OBJECT_ID('tempdb..#ATEMP') IS NOT NULL DROP TABLE #ATEMP; " +
+            "CREATE TABLE #ATEMP (" +
+            " PURNO VARCHAR(20) NOT NULL, PURDY DATETIME NULL, PURDP VARCHAR(20) NULL, PUUSR VARCHAR(20) NULL, SCTRL VARCHAR(1) NULL, " +
+            " PURSQ VARCHAR(10) NULL, PUPRP VARCHAR(30) NULL, INDWG VARCHAR(40) NULL, PURCL VARCHAR(120) NULL, " +
+            " PUPA1 VARCHAR(10) NULL, PUPA2 VARCHAR(10) NULL, PUQY1 DECIMAL(18,4) NULL, PURP1 DECIMAL(18,4) NULL, " +
+            " PURM1 DECIMAL(18,4) NULL, PURM2 DECIMAL(18,4) NULL, PURP2 DECIMAL(18,6) NULL, PUNDY DATETIME NULL ); " +
+            "INSERT INTO #ATEMP (PURNO, PURDY, PURDP, PUUSR, SCTRL, PURSQ, PUPRP, INDWG, PURCL, PUPA1, PUPA2, PUQY1, PURP1, PURM1, PURM2, PURP2, PUNDY) " +
+            "SELECT H.PURNO, H.PURDY, H.PURDP, H.PUUSR, H.SCTRL, D.PURSQ, D.PUPRP, D.INDWG, D.PURCL, D.PUPA1, D.PUPA2, " +
+            " D.PUQY1, D.PURP1, D.PURM1, D.PURM2, D.PURP2, D.PUNDY " +
+            "FROM PURTM H LEFT JOIN PURTD D ON H.PURNO=D.PURNO " +
+            "WHERE H.PURTP='0' AND H.PURNO=?";
+        command.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo;
+        command.ExecuteNonQuery();
     }
 
     private (decimal OrderQty, int MaxProcessSq) ValidateSourceOrderForLine(OdbcConnection connection, OdbcTransaction? transaction, string sourceOrderNo)
@@ -765,6 +812,16 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
     {
         var code = statusCode?.Trim().ToUpperInvariant();
         return code is "Y" or "X" ? code : "N";
+    }
+
+    private static string StatusCodeToText(string statusCode)
+    {
+        return NormalizeStatusCode(statusCode) switch
+        {
+            "Y" => "已確認",
+            "X" => "已作廢",
+            _ => "未確認"
+        };
     }
 
     private static void ValidateHeaderRequest(DateTime orderDate, string department, string buyer, string userId)
