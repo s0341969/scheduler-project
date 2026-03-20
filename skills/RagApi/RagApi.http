@@ -1,0 +1,20 @@
+@RagApi_HostAddress = http://localhost:5008
+
+### 建立索引
+POST {{RagApi_HostAddress}}/api/rag/index-folder
+Content-Type: application/json
+
+{
+  "folderPath": "G:\\codex_pg\\skills\\RagApi\\pdfs",
+  "maxFiles": 100
+}
+
+### 檢索查詢
+POST {{RagApi_HostAddress}}/api/rag/retrieve
+Content-Type: application/json
+
+{
+  "query": "公司差旅報銷規則是什麼？",
+  "topK": 5,
+  "userId": "u123"
+}
