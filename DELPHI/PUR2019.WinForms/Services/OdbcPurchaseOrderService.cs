@@ -74,8 +74,12 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
 
         using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT PURNO, PURSQ, INDWG, PURCL, PUPRP, PUQY1, PURP1, PUNDY, SCTRL " +
-            "FROM PURTD WHERE PURNO=? ORDER BY PURNO, PURSQ";
+            "SELECT T.PURNO, T.PURSQ, T.INDWG, T.PURCL, T.PUPRP, T.PUPA1, T.PUPA2, " +
+            "T.PUQY1, T.PURP1, T.PUNDY, T.SCTRL, ISNULL(T.PURM2,0) AS PURM2, ISNULL(T.PURP2,0) AS PURP2, " +
+            "ISNULL(S.MOQ,0) AS MOQ " +
+            "FROM PURTD T " +
+            "LEFT JOIN INVMAST_SUPPLIER S ON S.INDWG=T.INDWG AND S.SQ='001' " +
+            "WHERE T.PURNO=? ORDER BY T.PURNO, T.PURSQ";
         command.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
 
         using var reader = command.ExecuteReader();
@@ -89,8 +93,13 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
                 ItemNo = reader["INDWG"].ToString()?.Trim() ?? string.Empty,
                 ItemName = reader["PURCL"].ToString()?.Trim() ?? string.Empty,
                 SourceOrderNo = reader["PUPRP"].ToString()?.Trim() ?? string.Empty,
+                ProcessFrom = reader["PUPA1"].ToString()?.Trim() ?? "0",
+                ProcessTo = reader["PUPA2"].ToString()?.Trim() ?? "0",
                 Quantity = reader["PUQY1"] is DBNull ? 0M : Convert.ToDecimal(reader["PUQY1"]),
                 UnitPrice = reader["PURP1"] is DBNull ? 0M : Convert.ToDecimal(reader["PURP1"]),
+                ReferenceAmount = reader["PURM2"] is DBNull ? 0M : Convert.ToDecimal(reader["PURM2"]),
+                CostRatio = reader["PURP2"] is DBNull ? 0M : Convert.ToDecimal(reader["PURP2"]),
+                MinimumOrderQty = reader["MOQ"] is DBNull ? 0 : Convert.ToInt32(reader["MOQ"]),
                 DueDate = reader["PUNDY"] is DBNull ? null : Convert.ToDateTime(reader["PUNDY"]),
                 StatusCode = NormalizeStatusCode(reader["SCTRL"].ToString())
             });
@@ -326,10 +335,20 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         var status = GetOrderStatus(connection, transaction, request.OrderNo);
         EnsureEditableStatus(status);
 
-        ValidateSourceOrderForLine(connection, transaction, request.SourceOrderNo);
+        var source = ValidateSourceOrderForLine(connection, transaction, request.SourceOrderNo);
+        var process = NormalizeProcessRange(request.ProcessFrom, request.ProcessTo, source.MaxProcessSq);
+        var moq = GetMoq(connection, transaction, request.ItemNo);
+        if (moq > 0 && request.Quantity < moq)
+        {
+            throw new InvalidOperationException($"數量不可小於 MOQ({moq})。");
+        }
 
         var sequence = GetNextSequence(connection, transaction, request.OrderNo);
         var amount = request.Quantity * request.UnitPrice;
+        var referenceAmount = CalculateReferenceAmount(connection, transaction, request.SourceOrderNo, process.ProcessFrom, process.ProcessTo);
+        var costRatio = referenceAmount > 0M ? Math.Round(amount / referenceAmount, 3, MidpointRounding.AwayFromZero) : 0M;
+        var dueDate = request.DueDate?.Date ?? DateTime.Today;
+        var remark = string.IsNullOrWhiteSpace(request.SourceOrderNo) ? string.Empty : $"製令:{request.SourceOrderNo.Trim()} 數量={source.OrderQty:0.##}";
 
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
@@ -349,11 +368,11 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         command.Parameters.Add("@puset2", OdbcType.VarChar).Value = "PCS";
         command.Parameters.Add("@puqy1", OdbcType.Decimal).Value = request.Quantity;
         command.Parameters.Add("@puqy2", OdbcType.Decimal).Value = 0M;
-        command.Parameters.Add("@pundy", OdbcType.DateTime).Value = request.DueDate?.Date ?? DateTime.Today;
+        command.Parameters.Add("@pundy", OdbcType.DateTime).Value = dueDate;
         command.Parameters.Add("@puprp", OdbcType.VarChar).Value = request.SourceOrderNo.Trim();
         command.Parameters.Add("@purod", OdbcType.VarChar).Value = request.SourceOrderNo.Trim();
-        command.Parameters.Add("@pupa1", OdbcType.VarChar).Value = "0";
-        command.Parameters.Add("@pupa2", OdbcType.VarChar).Value = "0";
+        command.Parameters.Add("@pupa1", OdbcType.VarChar).Value = process.ProcessFrom;
+        command.Parameters.Add("@pupa2", OdbcType.VarChar).Value = process.ProcessTo;
         command.Parameters.Add("@puusr", OdbcType.VarChar).Value = string.Empty;
         command.Parameters.Add("@pucus", OdbcType.VarChar).Value = string.Empty;
         command.Parameters.Add("@purdp", OdbcType.VarChar).Value = string.Empty;
@@ -361,12 +380,12 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         command.Parameters.Add("@purra", OdbcType.Decimal).Value = 1M;
         command.Parameters.Add("@purp1", OdbcType.Decimal).Value = request.UnitPrice;
         command.Parameters.Add("@purm1", OdbcType.Decimal).Value = amount;
-        command.Parameters.Add("@purp2", OdbcType.Decimal).Value = 0M;
-        command.Parameters.Add("@purm2", OdbcType.Decimal).Value = 0M;
+        command.Parameters.Add("@purp2", OdbcType.Decimal).Value = costRatio;
+        command.Parameters.Add("@purm2", OdbcType.Decimal).Value = referenceAmount;
         command.Parameters.Add("@pa1no", OdbcType.VarChar).Value = string.Empty;
         command.Parameters.Add("@pa1sq", OdbcType.VarChar).Value = string.Empty;
         command.Parameters.Add("@pa1sq1", OdbcType.VarChar).Value = string.Empty;
-        command.Parameters.Add("@purem", OdbcType.VarChar).Value = string.Empty;
+        command.Parameters.Add("@purem", OdbcType.VarChar).Value = remark;
         command.Parameters.Add("@cruser", OdbcType.VarChar).Value = request.UserId.Trim();
         command.ExecuteNonQuery();
 
@@ -391,9 +410,14 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
             ItemNo = request.ItemNo.Trim(),
             ItemName = request.ItemName.Trim(),
             SourceOrderNo = request.SourceOrderNo.Trim(),
+            ProcessFrom = process.ProcessFrom,
+            ProcessTo = process.ProcessTo,
             Quantity = request.Quantity,
             UnitPrice = request.UnitPrice,
-            DueDate = request.DueDate?.Date ?? DateTime.Today,
+            ReferenceAmount = referenceAmount,
+            CostRatio = costRatio,
+            MinimumOrderQty = moq,
+            DueDate = dueDate,
             StatusCode = "N"
         };
     }
@@ -436,41 +460,140 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
 
         if (!string.IsNullOrWhiteSpace(sourceOrderNo))
         {
-            using var unmarkCommand = connection.CreateCommand();
-            unmarkCommand.Transaction = transaction;
-            unmarkCommand.CommandText = "UPDATE ORDMENO SET MPCHK='N' WHERE INPART=?";
-            unmarkCommand.Parameters.Add("@inpart", OdbcType.VarChar).Value = sourceOrderNo;
-            unmarkCommand.ExecuteNonQuery();
+            using var countCommand = connection.CreateCommand();
+            countCommand.Transaction = transaction;
+            countCommand.CommandText = "SELECT COUNT(1) FROM PURTD WHERE PUPRP=?";
+            countCommand.Parameters.Add("@puprop", OdbcType.VarChar).Value = sourceOrderNo;
+            var remainCount = Convert.ToInt32(countCommand.ExecuteScalar());
+
+            if (remainCount == 0)
+            {
+                using var unmarkCommand = connection.CreateCommand();
+                unmarkCommand.Transaction = transaction;
+                unmarkCommand.CommandText = "UPDATE ORDMENO SET MPCHK='N' WHERE INPART=?";
+                unmarkCommand.Parameters.Add("@inpart", OdbcType.VarChar).Value = sourceOrderNo;
+                unmarkCommand.ExecuteNonQuery();
+            }
         }
 
         transaction.Commit();
     }
 
-    private void ValidateSourceOrderForLine(OdbcConnection connection, OdbcTransaction transaction, string sourceOrderNo)
+    private (decimal OrderQty, int MaxProcessSq) ValidateSourceOrderForLine(OdbcConnection connection, OdbcTransaction transaction, string sourceOrderNo)
     {
         if (string.IsNullOrWhiteSpace(sourceOrderNo))
         {
-            return;
+            return (0M, 0);
         }
 
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText =
-            "SELECT TOP 1 A.SCTRL FROM ORDE2 A INNER JOIN ORDE3 B ON B.ORDTP=A.ORDTP AND B.ORDNO=A.ORDNO AND B.ORDSQ=A.ORDSQ " +
+            "SELECT TOP 1 A.SCTRL, ISNULL(B.ORDQTY,0) AS ORDQTY FROM ORDE2 A " +
+            "INNER JOIN ORDE3 B ON B.ORDTP=A.ORDTP AND B.ORDNO=A.ORDNO AND B.ORDSQ=A.ORDSQ " +
             "WHERE B.INPART=?";
         command.Parameters.Add("@inpart", OdbcType.VarChar).Value = sourceOrderNo.Trim();
 
-        var result = command.ExecuteScalar();
-        if (result is null)
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
         {
             throw new InvalidOperationException("製令單號不存在，不能新增單身。");
         }
 
-        var orderStatus = Convert.ToString(result)?.Trim().ToUpperInvariant() ?? string.Empty;
+        var orderStatus = reader["SCTRL"].ToString()?.Trim().ToUpperInvariant() ?? string.Empty;
         if (orderStatus != "Y")
         {
             throw new InvalidOperationException("製令狀態非可採購狀態，不能新增單身。");
         }
+
+        var orderQty = reader["ORDQTY"] is DBNull ? 0M : Convert.ToDecimal(reader["ORDQTY"]);
+
+        using var sqCommand = connection.CreateCommand();
+        sqCommand.Transaction = transaction;
+        sqCommand.CommandText = "SELECT ISNULL(MAX(ORDSQ2),0) FROM ORDDE4 WHERE ORDFNO=?";
+        sqCommand.Parameters.Add("@ordfno", OdbcType.VarChar).Value = sourceOrderNo.Trim();
+        var maxSq = Convert.ToInt32(sqCommand.ExecuteScalar());
+
+        return (orderQty, maxSq);
+    }
+
+    private static (string ProcessFrom, string ProcessTo) NormalizeProcessRange(string processFromRaw, string processToRaw, int maxSq)
+    {
+        var fromText = string.IsNullOrWhiteSpace(processFromRaw) ? "0" : processFromRaw.Trim();
+        var toText = string.IsNullOrWhiteSpace(processToRaw) ? "0" : processToRaw.Trim();
+
+        if (!int.TryParse(fromText, out var p1) || !int.TryParse(toText, out var p2))
+        {
+            throw new InvalidOperationException("製程區間必須是數字。");
+        }
+
+        if (p1 == 99)
+        {
+            return ("99", "99");
+        }
+
+        if (p1 == 0 && p2 == 0)
+        {
+            return ("0", "0");
+        }
+
+        if (p1 <= 0 || p2 <= 0 || p1 > p2)
+        {
+            throw new InvalidOperationException("製程區間不合法。請輸入 0-0、99-99 或正確區間。");
+        }
+
+        if (maxSq > 0 && p2 > maxSq)
+        {
+            throw new InvalidOperationException($"製程上限不可超過最大站次({maxSq})。");
+        }
+
+        return (p1.ToString(), p2.ToString());
+    }
+
+    private static decimal CalculateReferenceAmount(OdbcConnection connection, OdbcTransaction transaction, string sourceOrderNo, string processFrom, string processTo)
+    {
+        if (string.IsNullOrWhiteSpace(sourceOrderNo))
+        {
+            return 0M;
+        }
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+
+        if (processFrom == "0" && processTo == "0")
+        {
+            command.CommandText = "SELECT ISNULL(SUM(ISNULL(ORDAMT,0)),0) FROM ORDDE4 WHERE ORDFNO=?";
+            command.Parameters.Add("@ordfno", OdbcType.VarChar).Value = sourceOrderNo.Trim();
+            return Convert.ToDecimal(command.ExecuteScalar());
+        }
+
+        if (processFrom == "99" && processTo == "99")
+        {
+            command.CommandText = "SELECT ISNULL(SUM(ISNULL(AMT,0)-ISNULL(ORDEMT,0)),0) FROM ORDDE4 WHERE ORDFNO=?";
+            command.Parameters.Add("@ordfno", OdbcType.VarChar).Value = sourceOrderNo.Trim();
+            return Convert.ToDecimal(command.ExecuteScalar());
+        }
+
+        command.CommandText = "SELECT ISNULL(SUM(ISNULL(AMT,0)-ISNULL(ORDEMT,0)),0) FROM ORDDE4 WHERE ORDFNO=? AND ORDSQ2 BETWEEN ? AND ?";
+        command.Parameters.Add("@ordfno", OdbcType.VarChar).Value = sourceOrderNo.Trim();
+        command.Parameters.Add("@fromSq", OdbcType.Int).Value = int.Parse(processFrom);
+        command.Parameters.Add("@toSq", OdbcType.Int).Value = int.Parse(processTo);
+        return Convert.ToDecimal(command.ExecuteScalar());
+    }
+
+    private static int GetMoq(OdbcConnection connection, OdbcTransaction transaction, string itemNo)
+    {
+        if (string.IsNullOrWhiteSpace(itemNo))
+        {
+            return 0;
+        }
+
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "SELECT TOP 1 ISNULL(MOQ,0) FROM INVMAST_SUPPLIER WHERE INDWG=? AND SQ='001'";
+        command.Parameters.Add("@indwg", OdbcType.VarChar).Value = itemNo.Trim();
+        var result = command.ExecuteScalar();
+        return result is null || result is DBNull ? 0 : Convert.ToInt32(result);
     }
 
     private static string NormalizeStatusCode(string? statusCode)
@@ -508,6 +631,11 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         if (string.IsNullOrWhiteSpace(request.ItemName))
         {
             throw new InvalidOperationException("品名不可空白。");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.ProcessFrom) || string.IsNullOrWhiteSpace(request.ProcessTo))
+        {
+            throw new InvalidOperationException("製程區間不可空白。");
         }
 
         if (request.Quantity <= 0)

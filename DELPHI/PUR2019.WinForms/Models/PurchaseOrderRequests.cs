@@ -34,6 +34,10 @@ public sealed record CreatePurchaseOrderLineRequest
 
     public required string SourceOrderNo { get; init; }
 
+    public required string ProcessFrom { get; init; }
+
+    public required string ProcessTo { get; init; }
+
     public decimal Quantity { get; init; }
 
     public decimal UnitPrice { get; init; }

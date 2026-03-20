@@ -15,11 +15,11 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
 
     private readonly List<PurchaseOrderLine> _lines =
     [
-        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 1, ItemNo = "MAT-1001", ItemName = "鋼板", SourceOrderNo = "", Quantity = 120M, UnitPrice = 350M, DueDate = new DateTime(2026, 3, 25), StatusCode = "Y" },
-        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 2, ItemNo = "MAT-3108", ItemName = "螺絲", SourceOrderNo = "", Quantity = 10000M, UnitPrice = 2.8M, DueDate = new DateTime(2026, 3, 26), StatusCode = "Y" },
-        new PurchaseOrderLine { OrderNo = "PO20260305009", Sequence = 1, ItemNo = "PKG-2210", ItemName = "包材", SourceOrderNo = "MO2503001", Quantity = 4500M, UnitPrice = 8.5M, DueDate = new DateTime(2026, 3, 28), StatusCode = "N" },
-        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 1, ItemNo = "EQP-0102", ItemName = "治具", SourceOrderNo = "", Quantity = 15M, UnitPrice = 8200M, DueDate = new DateTime(2026, 4, 5), StatusCode = "N" },
-        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 2, ItemNo = "MAT-7777", ItemName = "銅管", SourceOrderNo = "", Quantity = 300M, UnitPrice = 322M, DueDate = new DateTime(2026, 4, 1), StatusCode = "N" }
+        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 1, ItemNo = "MAT-1001", ItemName = "鋼板", SourceOrderNo = "", ProcessFrom = "0", ProcessTo = "0", Quantity = 120M, UnitPrice = 350M, ReferenceAmount = 0M, CostRatio = 0M, MinimumOrderQty = 0, DueDate = new DateTime(2026, 3, 25), StatusCode = "Y" },
+        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 2, ItemNo = "MAT-3108", ItemName = "螺絲", SourceOrderNo = "", ProcessFrom = "0", ProcessTo = "0", Quantity = 10000M, UnitPrice = 2.8M, ReferenceAmount = 0M, CostRatio = 0M, MinimumOrderQty = 0, DueDate = new DateTime(2026, 3, 26), StatusCode = "Y" },
+        new PurchaseOrderLine { OrderNo = "PO20260305009", Sequence = 1, ItemNo = "PKG-2210", ItemName = "包材", SourceOrderNo = "MO2503001", ProcessFrom = "0", ProcessTo = "0", Quantity = 4500M, UnitPrice = 8.5M, ReferenceAmount = 51000M, CostRatio = 0.75M, MinimumOrderQty = 500, DueDate = new DateTime(2026, 3, 28), StatusCode = "N" },
+        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 1, ItemNo = "EQP-0102", ItemName = "治具", SourceOrderNo = "", ProcessFrom = "0", ProcessTo = "0", Quantity = 15M, UnitPrice = 8200M, ReferenceAmount = 0M, CostRatio = 0M, MinimumOrderQty = 0, DueDate = new DateTime(2026, 4, 5), StatusCode = "N" },
+        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 2, ItemNo = "MAT-7777", ItemName = "銅管", SourceOrderNo = "", ProcessFrom = "0", ProcessTo = "0", Quantity = 300M, UnitPrice = 322M, ReferenceAmount = 0M, CostRatio = 0M, MinimumOrderQty = 100, DueDate = new DateTime(2026, 4, 1), StatusCode = "N" }
     ];
 
     public IReadOnlyList<PurchaseOrderHeader> QueryHeaders(DateTime fromDate, DateTime toDate, string? department)
@@ -181,6 +181,15 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
             EnsureEditableStatus(header.StatusCode);
 
             var nextSequence = _lines.Where(x => x.OrderNo.Equals(request.OrderNo, StringComparison.OrdinalIgnoreCase)).Select(x => x.Sequence).DefaultIfEmpty(0).Max() + 1;
+            var normalizedProcess = NormalizeProcessRange(request.ProcessFrom, request.ProcessTo);
+            var referenceAmount = normalizedProcess.ProcessFrom == "0" && normalizedProcess.ProcessTo == "0" ? 0M : Math.Round(request.Quantity * request.UnitPrice * 1.2M, 2, MidpointRounding.AwayFromZero);
+            var costRatio = referenceAmount > 0 ? Math.Round((request.Quantity * request.UnitPrice) / referenceAmount, 3, MidpointRounding.AwayFromZero) : 0M;
+            var moq = EstimateMoq(request.ItemNo);
+            if (moq > 0 && request.Quantity < moq)
+            {
+                throw new InvalidOperationException($"數量不可小於 MOQ({moq})。");
+            }
+
             var created = new PurchaseOrderLine
             {
                 OrderNo = request.OrderNo,
@@ -188,8 +197,13 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
                 ItemNo = request.ItemNo.Trim(),
                 ItemName = request.ItemName.Trim(),
                 SourceOrderNo = request.SourceOrderNo.Trim(),
+                ProcessFrom = normalizedProcess.ProcessFrom,
+                ProcessTo = normalizedProcess.ProcessTo,
                 Quantity = request.Quantity,
                 UnitPrice = request.UnitPrice,
+                ReferenceAmount = referenceAmount,
+                CostRatio = costRatio,
+                MinimumOrderQty = moq,
                 DueDate = request.DueDate?.Date,
                 StatusCode = "N"
             };
@@ -212,6 +226,44 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
                 throw new InvalidOperationException("找不到要刪除的單身資料。");
             }
         }
+    }
+
+    private static (string ProcessFrom, string ProcessTo) NormalizeProcessRange(string processFromRaw, string processToRaw)
+    {
+        var processFrom = string.IsNullOrWhiteSpace(processFromRaw) ? "0" : processFromRaw.Trim();
+        var processTo = string.IsNullOrWhiteSpace(processToRaw) ? "0" : processToRaw.Trim();
+
+        if (!int.TryParse(processFrom, out var p1) || !int.TryParse(processTo, out var p2))
+        {
+            throw new InvalidOperationException("製程區間必須是數字。");
+        }
+
+        if (p1 == 99)
+        {
+            return ("99", "99");
+        }
+
+        if (p1 == 0 && p2 == 0)
+        {
+            return ("0", "0");
+        }
+
+        if (p1 <= 0 || p2 <= 0 || p1 > p2)
+        {
+            throw new InvalidOperationException("製程區間不合法。請輸入 0-0、99-99 或正確區間。");
+        }
+
+        return (p1.ToString(), p2.ToString());
+    }
+
+    private static int EstimateMoq(string itemNo)
+    {
+        return itemNo.Trim().ToUpperInvariant() switch
+        {
+            "MAT-7777" => 100,
+            "PKG-2210" => 500,
+            _ => 0
+        };
     }
 
     private void MarkLines(string orderNo, string statusCode)

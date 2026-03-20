@@ -16,3 +16,6 @@
 - 新增 `SourceOrderNo(PUPRP)` 欄位，UI/Model/Service 全面串接。
 - 新增 `PURDEL` 防護（取消確認時檢核發料關聯），以及 `ORDMENO.MPCHK` 單身增刪同步。
 - 新增可選 `EnableLegacyStoredProcedureChecks`，可在確認流程啟用舊版 SP 檢核。
+- 新增 `PUPA1/PUPA2` 區間輸入、驗證與顯示。
+- 新增 `PURM2/PURP2` 計算與顯示，並納入單身新增流程。
+- 新增 MOQ 讀取與數量下限檢核。
