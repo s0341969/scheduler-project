@@ -541,6 +541,39 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         };
     }
 
+    public PurchaseOrderLinePreview PreviewLine(string sourceOrderNo, string itemNo, string processFrom, string processTo, decimal quantity, decimal unitPrice)
+    {
+        if (quantity <= 0M)
+        {
+            throw new InvalidOperationException("數量必須大於 0。");
+        }
+
+        if (unitPrice < 0M)
+        {
+            throw new InvalidOperationException("單價不可為負數。");
+        }
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+
+        var source = ValidateSourceOrderForLine(connection, null, sourceOrderNo);
+        var normalized = NormalizeProcessRange(processFrom, processTo, source.MaxProcessSq);
+        var moq = GetMoq(connection, null, itemNo);
+        var amount = quantity * unitPrice;
+        var referenceAmount = CalculateReferenceAmount(connection, null, sourceOrderNo, normalized.ProcessFrom, normalized.ProcessTo);
+        var costRatio = referenceAmount > 0M ? Math.Round(amount / referenceAmount, 3, MidpointRounding.AwayFromZero) : 0M;
+
+        return new PurchaseOrderLinePreview
+        {
+            ProcessFrom = normalized.ProcessFrom,
+            ProcessTo = normalized.ProcessTo,
+            MinimumOrderQty = moq,
+            ReferenceAmount = referenceAmount,
+            CostRatio = costRatio,
+            Amount = amount
+        };
+    }
+
     public string BuildOrderReportText(string orderNo)
     {
         EnsureOrderNo(orderNo);
@@ -599,7 +632,7 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         return string.Join(Environment.NewLine, output);
     }
 
-    private (decimal OrderQty, int MaxProcessSq) ValidateSourceOrderForLine(OdbcConnection connection, OdbcTransaction transaction, string sourceOrderNo)
+    private (decimal OrderQty, int MaxProcessSq) ValidateSourceOrderForLine(OdbcConnection connection, OdbcTransaction? transaction, string sourceOrderNo)
     {
         if (string.IsNullOrWhiteSpace(sourceOrderNo))
         {
@@ -607,7 +640,10 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         }
 
         using var command = connection.CreateCommand();
-        command.Transaction = transaction;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
         command.CommandText =
             "SELECT TOP 1 A.SCTRL, ISNULL(B.ORDQTY,0) AS ORDQTY FROM ORDE2 A " +
             "INNER JOIN ORDE3 B ON B.ORDTP=A.ORDTP AND B.ORDNO=A.ORDNO AND B.ORDSQ=A.ORDSQ " +
@@ -629,7 +665,10 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         var orderQty = reader["ORDQTY"] is DBNull ? 0M : Convert.ToDecimal(reader["ORDQTY"]);
 
         using var sqCommand = connection.CreateCommand();
-        sqCommand.Transaction = transaction;
+        if (transaction is not null)
+        {
+            sqCommand.Transaction = transaction;
+        }
         sqCommand.CommandText = "SELECT ISNULL(MAX(ORDSQ2),0) FROM ORDDE4 WHERE ORDFNO=?";
         sqCommand.Parameters.Add("@ordfno", OdbcType.VarChar).Value = sourceOrderNo.Trim();
         var maxSq = Convert.ToInt32(sqCommand.ExecuteScalar());
@@ -670,7 +709,7 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         return (p1.ToString(), p2.ToString());
     }
 
-    private static decimal CalculateReferenceAmount(OdbcConnection connection, OdbcTransaction transaction, string sourceOrderNo, string processFrom, string processTo)
+    private static decimal CalculateReferenceAmount(OdbcConnection connection, OdbcTransaction? transaction, string sourceOrderNo, string processFrom, string processTo)
     {
         if (string.IsNullOrWhiteSpace(sourceOrderNo))
         {
@@ -678,7 +717,10 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         }
 
         using var command = connection.CreateCommand();
-        command.Transaction = transaction;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
 
         if (processFrom == "0" && processTo == "0")
         {
@@ -701,7 +743,7 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         return Convert.ToDecimal(command.ExecuteScalar());
     }
 
-    private static int GetMoq(OdbcConnection connection, OdbcTransaction transaction, string itemNo)
+    private static int GetMoq(OdbcConnection connection, OdbcTransaction? transaction, string itemNo)
     {
         if (string.IsNullOrWhiteSpace(itemNo))
         {
@@ -709,7 +751,10 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         }
 
         using var command = connection.CreateCommand();
-        command.Transaction = transaction;
+        if (transaction is not null)
+        {
+            command.Transaction = transaction;
+        }
         command.CommandText = "SELECT TOP 1 ISNULL(MOQ,0) FROM INVMAST_SUPPLIER WHERE INDWG=? AND SQ='001'";
         command.Parameters.Add("@indwg", OdbcType.VarChar).Value = itemNo.Trim();
         var result = command.ExecuteScalar();

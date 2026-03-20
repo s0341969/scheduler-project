@@ -441,7 +441,9 @@ public sealed class PurchaseMainForm : Form
 
         using var dialog = new PurchaseOrderLineEditForm
         {
-            SuggestionProvider = source => _service.GetLineSuggestion(source)
+            SuggestionProvider = source => _service.GetLineSuggestion(source),
+            PreviewProvider = (source, itemNo, processFrom, processTo, quantity, unitPrice) =>
+                _service.PreviewLine(source, itemNo, processFrom, processTo, quantity, unitPrice)
         };
         if (dialog.ShowDialog(this) != DialogResult.OK)
         {

@@ -34,9 +34,9 @@
 |---|---|---|---|
 | `Query3NewRecord` | 單身預設值 | Y | 已含序號與預設欄位 |
 | `Query3BeforeDelete` | 單身刪除檢核 | Y | 含狀態與發料關聯防護 |
-| `Query3BeforePost` | 單身儲存前檢核 | P | 已有製令狀態、PUPA、MOQ；其餘欄位連動仍缺 |
+| `Query3BeforePost` | 單身儲存前檢核 | P | 已有製令狀態、PUPA、MOQ，且新增試算預檢；其餘欄位連動仍缺 |
 | `Query3CalcFields` | 計算欄位 | P | 成本比/參考金額已做，其他計算欄位未完整 |
-| `wwDBGrid1ColExit` | 欄位離開連動 | P | 部分邏輯移植，細節未全覆蓋 |
+| `wwDBGrid1ColExit` | 欄位離開連動 | P | 已補齊來源單號/製程/數量/單價離開時試算與驗證，仍有 Delphi 特殊欄位未全覆蓋 |
 
 ## 系統/介面事件
 | Delphi Procedure | 目的 | 狀態 | 備註 |

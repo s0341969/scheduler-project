@@ -16,11 +16,17 @@ public sealed class PurchaseOrderLineEditForm : Form
     private readonly Button _loadFromSource = new();
     private readonly Label _amountPreview = new();
     private readonly Label _moqHint = new();
+    private readonly Label _referenceAmountPreview = new();
+    private readonly Label _costRatioPreview = new();
     private int _currentSuggestedMoq;
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<string, PurchaseOrderLineSuggestion?>? SuggestionProvider { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Func<string, string, string, string, decimal, decimal, PurchaseOrderLinePreview>? PreviewProvider { get; set; }
 
     public string ItemNo => _itemNo.Text.Trim();
 
@@ -41,8 +47,8 @@ public sealed class PurchaseOrderLineEditForm : Form
     public PurchaseOrderLineEditForm()
     {
         Text = "新增單身";
-        Width = 450;
-        Height = 410;
+        Width = 540;
+        Height = 470;
         StartPosition = FormStartPosition.CenterParent;
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
@@ -66,10 +72,12 @@ public sealed class PurchaseOrderLineEditForm : Form
         _processFrom.Location = new Point(160, 140);
         _processFrom.Width = 100;
         _processFrom.Text = "0";
+        _processFrom.Leave += (_, _) => RefreshPreview();
 
         _processTo.Location = new Point(300, 140);
         _processTo.Width = 100;
         _processTo.Text = "0";
+        _processTo.Leave += (_, _) => RefreshPreview();
 
         _quantity.Location = new Point(160, 180);
         _quantity.Width = 120;
@@ -103,11 +111,20 @@ public sealed class PurchaseOrderLineEditForm : Form
             _currentSuggestedMoq = 0;
             _moqHint.Text = string.Empty;
         };
+        _sourceOrderNo.Leave += (_, _) => RefreshPreview();
 
-        var ok = new Button { Text = "確定", Location = new Point(160, 310), Width = 90 };
+        _referenceAmountPreview.Location = new Point(160, 260);
+        _referenceAmountPreview.AutoSize = true;
+        _referenceAmountPreview.ForeColor = Color.DarkSlateBlue;
+
+        _costRatioPreview.Location = new Point(330, 260);
+        _costRatioPreview.AutoSize = true;
+        _costRatioPreview.ForeColor = Color.DarkSlateBlue;
+
+        var ok = new Button { Text = "確定", Location = new Point(160, 360), Width = 90 };
         ok.Click += OnOkClicked;
 
-        var cancel = new Button { Text = "取消", Location = new Point(260, 310), Width = 90, DialogResult = DialogResult.Cancel };
+        var cancel = new Button { Text = "取消", Location = new Point(260, 360), Width = 90, DialogResult = DialogResult.Cancel };
 
         Controls.Add(new Label { Text = "料號", Location = new Point(30, 24), AutoSize = true });
         Controls.Add(new Label { Text = "品名", Location = new Point(30, 64), AutoSize = true });
@@ -126,6 +143,8 @@ public sealed class PurchaseOrderLineEditForm : Form
         Controls.Add(_unitPrice);
         Controls.Add(_dueDate);
         Controls.Add(_amountPreview);
+        Controls.Add(_referenceAmountPreview);
+        Controls.Add(_costRatioPreview);
         Controls.Add(_moqHint);
         Controls.Add(ok);
         Controls.Add(cancel);
@@ -165,6 +184,20 @@ public sealed class PurchaseOrderLineEditForm : Form
             return;
         }
 
+        if (PreviewProvider is not null)
+        {
+            var preview = PreviewProvider(SourceOrderNo, ItemNo, ProcessFrom, ProcessTo, Quantity, UnitPrice);
+            _processFrom.Text = preview.ProcessFrom;
+            _processTo.Text = preview.ProcessTo;
+            _currentSuggestedMoq = preview.MinimumOrderQty;
+            if (_currentSuggestedMoq > 0 && Quantity < _currentSuggestedMoq)
+            {
+                MessageBox.Show(this, $"數量不可小於 MOQ({_currentSuggestedMoq})。", "驗證失敗", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                _quantity.Focus();
+                return;
+            }
+        }
+
         DialogResult = DialogResult.OK;
     }
 
@@ -200,12 +233,36 @@ public sealed class PurchaseOrderLineEditForm : Form
         _processFrom.Text = suggestion.ProcessFrom;
         _processTo.Text = suggestion.ProcessTo;
         _currentSuggestedMoq = suggestion.MinimumOrderQty;
-        _moqHint.Text = _currentSuggestedMoq > 0 ? $"MOQ 提示: {_currentSuggestedMoq:N0}" : "MOQ 提示: 無下限";
         RefreshPreview();
     }
 
     private void RefreshPreview()
     {
         _amountPreview.Text = $"試算金額: {(Quantity * UnitPrice):N2}";
+
+        if (PreviewProvider is null || string.IsNullOrWhiteSpace(ItemNo))
+        {
+            _referenceAmountPreview.Text = "預估成本: 0.00";
+            _costRatioPreview.Text = "成本比: 0.000";
+            _moqHint.Text = _currentSuggestedMoq > 0 ? $"MOQ 提示: {_currentSuggestedMoq:N0}" : string.Empty;
+            return;
+        }
+
+        try
+        {
+            var preview = PreviewProvider(SourceOrderNo, ItemNo, ProcessFrom, ProcessTo, Quantity, UnitPrice);
+            _processFrom.Text = preview.ProcessFrom;
+            _processTo.Text = preview.ProcessTo;
+            _currentSuggestedMoq = preview.MinimumOrderQty;
+            _referenceAmountPreview.Text = $"預估成本: {preview.ReferenceAmount:N2}";
+            _costRatioPreview.Text = $"成本比: {preview.CostRatio:N3}";
+            _moqHint.Text = _currentSuggestedMoq > 0 ? $"MOQ 提示: {_currentSuggestedMoq:N0}" : "MOQ 提示: 無下限";
+        }
+        catch (Exception ex)
+        {
+            _referenceAmountPreview.Text = "預估成本: 驗證失敗";
+            _costRatioPreview.Text = "成本比: -";
+            _moqHint.Text = ex.Message;
+        }
     }
 }

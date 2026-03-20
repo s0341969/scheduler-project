@@ -263,6 +263,28 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
         };
     }
 
+    public PurchaseOrderLinePreview PreviewLine(string sourceOrderNo, string itemNo, string processFrom, string processTo, decimal quantity, decimal unitPrice)
+    {
+        _ = sourceOrderNo;
+        var normalized = NormalizeProcessRange(processFrom, processTo);
+        var moq = EstimateMoq(itemNo);
+        var amount = quantity * unitPrice;
+        var referenceAmount = normalized.ProcessFrom == "0" && normalized.ProcessTo == "0"
+            ? 0M
+            : Math.Round(amount * 1.2M, 2, MidpointRounding.AwayFromZero);
+        var costRatio = referenceAmount > 0M ? Math.Round(amount / referenceAmount, 3, MidpointRounding.AwayFromZero) : 0M;
+
+        return new PurchaseOrderLinePreview
+        {
+            ProcessFrom = normalized.ProcessFrom,
+            ProcessTo = normalized.ProcessTo,
+            MinimumOrderQty = moq,
+            ReferenceAmount = referenceAmount,
+            CostRatio = costRatio,
+            Amount = amount
+        };
+    }
+
     public string BuildOrderReportText(string orderNo)
     {
         var header = FindOrder(orderNo);

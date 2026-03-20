@@ -26,5 +26,7 @@ public interface IPurchaseOrderService
 
     PurchaseOrderLineSuggestion? GetLineSuggestion(string sourceOrderNo);
 
+    PurchaseOrderLinePreview PreviewLine(string sourceOrderNo, string itemNo, string processFrom, string processTo, decimal quantity, decimal unitPrice);
+
     string BuildOrderReportText(string orderNo);
 }
