@@ -17,7 +17,7 @@
 | `SpeedButton7Click` | 取消確認 | Y | 含 `PURDEL` 防護 |
 | `SpeedButton8Click` | 執行查詢 | Y | 已對應 QueryHeaders |
 | `SpeedButton9Click` / `SpeedButton10Click` | 上一筆/下一筆 | Y | 已加入 UI 導覽 |
-| `SpeedButton11Click` | 印表 | P | 已接入 `#ATEMP / Query12 / Query13` 報表 SQL 骨架，欄位與版型仍未全覆蓋 |
+| `SpeedButton11Click` | 印表 | P | 已接入 `#ATEMP / Query12 / Query13` + 固定欄寬文字版型，欄位與版型仍未全覆蓋 |
 | `SpeedButton12Click` | 作廢 | Y | 已含單頭狀態與刪除單身 |
 
 ## 單頭資料事件

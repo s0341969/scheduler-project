@@ -34,6 +34,7 @@
 - 報表流程補強第四批：
   - `OdbcPurchaseOrderService.BuildOrderReportText` 已改為 `#ATEMP` 暫存表 + Query12/Query13 風格查詢輸出
   - 已支援抬頭摘要與明細列分段輸出，接近 Delphi 報表 SQL 執行順序
+  - 報表文字內容改為固定欄寬表格（欄位標題、分隔線、總計資訊）
 - 儲存流程使用交易（transaction）保護，避免單頭單身狀態不一致。
 
 ## 資料來源設定

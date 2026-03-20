@@ -615,6 +615,7 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         var output = new List<string>
         {
             "PUR2019 採購單報表（Query12/Query13）",
+            $"列印時間: {DateTime.Now:yyyy/MM/dd HH:mm:ss}",
             $"單號: {headerOrderNo}",
             $"日期: {headerOrderDate:yyyy/MM/dd}",
             $"部門: {headerDepartment}",
@@ -623,9 +624,14 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
             $"總數量: {totalQty:N2}",
             $"總金額: {totalAmt:N2}",
             "",
-            "明細:"
+            "明細:",
+            new string('=', 160),
+            $"{FitText("序號", 4)} {FitText("製令單號", 12)} {FitText("料號", 18)} {FitText("品名/材質", 28)} {FitText("製程", 9)} " +
+            $"{FitText("數量", 11)} {FitText("單價", 11)} {FitText("金額", 13)} {FitText("預估成本", 13)} {FitText("成本比", 8)} {FitText("交期", 10)}",
+            new string('-', 160)
         };
 
+        var detailCount = 0;
         using (var detailCommand = connection.CreateCommand())
         {
             detailCommand.CommandText =
@@ -651,11 +657,15 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
                 DateTime? dueDate = detailReader[11] is DBNull ? null : Convert.ToDateTime(detailReader[11]);
 
                 output.Add(
-                    $"- {sqText.PadLeft(3, '0')} 料號={itemNo} 品名={itemName} 製令={sourceNo} 製程={p1}-{p2} " +
-                    $"Qty={qty:N2} Price={price:N2} Amt={amount:N2} Ref={refAmt:N2} Ratio={costRatio:N3} " +
-                    $"交期={(dueDate.HasValue ? dueDate.Value.ToString("yyyy/MM/dd") : string.Empty)}");
+                    $"{FitText(sqText.PadLeft(3, '0'), 4)} {FitText(sourceNo, 12)} {FitText(itemNo, 18)} {FitText(itemName, 28)} {FitText($"{p1}-{p2}", 9)} " +
+                    $"{FormatNumber(qty, 11, 2)} {FormatNumber(price, 11, 2)} {FormatNumber(amount, 13, 2)} {FormatNumber(refAmt, 13, 2)} {FormatNumber(costRatio, 8, 3)} " +
+                    $"{FitText(dueDate?.ToString("yyyy/MM/dd") ?? string.Empty, 10)}");
+                detailCount++;
             }
         }
+
+        output.Add(new string('=', 160));
+        output.Add($"總筆數: {detailCount}");
 
         return string.Join(Environment.NewLine, output);
     }
@@ -822,6 +832,28 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
             "X" => "已作廢",
             _ => "未確認"
         };
+    }
+
+    private static string FitText(string value, int width)
+    {
+        var text = string.IsNullOrEmpty(value) ? string.Empty : value.Trim();
+        if (text.Length == width)
+        {
+            return text;
+        }
+
+        if (text.Length > width)
+        {
+            return width <= 1 ? text[..1] : text[..(width - 1)] + "~";
+        }
+
+        return text.PadRight(width);
+    }
+
+    private static string FormatNumber(decimal value, int width, int decimals)
+    {
+        var text = value.ToString($"N{decimals}");
+        return text.Length >= width ? text : text.PadLeft(width);
     }
 
     private static void ValidateHeaderRequest(DateTime orderDate, string department, string buyer, string userId)
