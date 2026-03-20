@@ -60,3 +60,4 @@ dotnet build
 - 尚未完整移植 `PUR2019P` 全部欄位事件（如更多欄位連動、畫面快捷鍵與報表流程）。
 - 尚未完整映射 Delphi `.dfm` 上所有控制項與事件邏輯。
 \n## UI 現況\n- PUR2019F 已改為接近 Delphi 舊版排版（功能列、頭資料區、明細大表格）。\n- 按鍵命名保留 F2/F3/F5/F8/F9/F10/F11/F12 風格。
+\n## 功能等價追蹤\n- 新增對照矩陣：[PUR2019P_PARITY_MATRIX.md](G:\\codex_pg\\DELPHI\\PUR2019P_PARITY_MATRIX.md)\n- 以 Delphi TPUR2019F procedure 清單逐項對照 Y/P/N 狀態。\n- F2~F12 已對齊快捷鍵操作。

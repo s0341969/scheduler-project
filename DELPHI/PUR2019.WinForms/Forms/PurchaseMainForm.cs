@@ -33,6 +33,7 @@ public sealed class PurchaseMainForm : Form
         Text = "PUR2019F";
         Width = 1520;
         Height = 900;
+        KeyPreview = true;
         StartPosition = FormStartPosition.CenterParent;
         Font = new Font("Microsoft JhengHei UI", 9F);
         BackColor = Color.FromArgb(238, 229, 210);
@@ -495,5 +496,41 @@ public sealed class PurchaseMainForm : Form
     {
         var text = BusinessLogicCoverageService.BuildReportText();
         MessageBox.Show(this, text, "商業邏輯覆蓋檢查", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+    {
+        switch (keyData)
+        {
+            case Keys.F2:
+                CreateHeader();
+                return true;
+            case Keys.F3:
+                LoadHeaders();
+                return true;
+            case Keys.F5:
+                UpdateHeader();
+                return true;
+            case Keys.F7:
+                UnconfirmHeader();
+                return true;
+            case Keys.F8:
+                LoadHeaders();
+                return true;
+            case Keys.F9:
+                MoveHeader(-1);
+                return true;
+            case Keys.F10:
+                MoveHeader(1);
+                return true;
+            case Keys.F11:
+                VoidHeader();
+                return true;
+            case Keys.F12:
+                Close();
+                return true;
+            default:
+                return base.ProcessCmdKey(ref msg, keyData);
+        }
     }
 }
