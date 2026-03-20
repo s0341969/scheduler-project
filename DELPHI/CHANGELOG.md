@@ -13,3 +13,6 @@
 - `PurchaseMainForm` 新增 Delphi 對應操作按鈕與編輯區，已串接新增、儲存、刪除、確認、取消確認、作廢、單身增刪。
 - 新增 `PurchaseOrderHeaderEditForm`、`PurchaseOrderLineEditForm` 供輸入資料。
 - `OdbcPurchaseOrderService` 導入交易式更新，確保 `PURTM/PURTD` 狀態同步。
+- 新增 `SourceOrderNo(PUPRP)` 欄位，UI/Model/Service 全面串接。
+- 新增 `PURDEL` 防護（取消確認時檢核發料關聯），以及 `ORDMENO.MPCHK` 單身增刪同步。
+- 新增可選 `EnableLegacyStoredProcedureChecks`，可在確認流程啟用舊版 SP 檢核。

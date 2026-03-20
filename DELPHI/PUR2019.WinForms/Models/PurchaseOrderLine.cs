@@ -10,6 +10,8 @@ public sealed record PurchaseOrderLine
 
     public required string ItemName { get; init; }
 
+    public required string SourceOrderNo { get; init; }
+
     public decimal Quantity { get; init; }
 
     public decimal UnitPrice { get; init; }

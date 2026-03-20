@@ -174,13 +174,14 @@ public sealed class PurchaseMainForm : Form
         };
 
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "序", DataPropertyName = nameof(PurchaseOrderLine.Sequence), Width = 60 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "料號", DataPropertyName = nameof(PurchaseOrderLine.ItemNo), Width = 160 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "品名", DataPropertyName = nameof(PurchaseOrderLine.ItemName), Width = 260 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "數量", DataPropertyName = nameof(PurchaseOrderLine.Quantity), Width = 100, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "單價", DataPropertyName = nameof(PurchaseOrderLine.UnitPrice), Width = 100, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "金額", DataPropertyName = nameof(PurchaseOrderLine.Amount), Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "交期", DataPropertyName = nameof(PurchaseOrderLine.DueDate), Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy/MM/dd" } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "狀態", DataPropertyName = nameof(PurchaseOrderLine.StatusCode), Width = 80 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "料號", DataPropertyName = nameof(PurchaseOrderLine.ItemNo), Width = 150 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "品名", DataPropertyName = nameof(PurchaseOrderLine.ItemName), Width = 220 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製令單號", DataPropertyName = nameof(PurchaseOrderLine.SourceOrderNo), Width = 150 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "數量", DataPropertyName = nameof(PurchaseOrderLine.Quantity), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "單價", DataPropertyName = nameof(PurchaseOrderLine.UnitPrice), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "金額", DataPropertyName = nameof(PurchaseOrderLine.Amount), Width = 100, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "交期", DataPropertyName = nameof(PurchaseOrderLine.DueDate), Width = 110, DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy/MM/dd" } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "狀態", DataPropertyName = nameof(PurchaseOrderLine.StatusCode), Width = 70 });
 
         return grid;
     }
@@ -368,6 +369,7 @@ public sealed class PurchaseMainForm : Form
                 OrderNo = selected.OrderNo,
                 ItemNo = dialog.ItemNo,
                 ItemName = dialog.ItemName,
+                SourceOrderNo = dialog.SourceOrderNo,
                 Quantity = dialog.Quantity,
                 UnitPrice = dialog.UnitPrice,
                 DueDate = dialog.DueDate,

@@ -15,11 +15,11 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
 
     private readonly List<PurchaseOrderLine> _lines =
     [
-        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 1, ItemNo = "MAT-1001", ItemName = "鋼板", Quantity = 120M, UnitPrice = 350M, DueDate = new DateTime(2026, 3, 25), StatusCode = "Y" },
-        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 2, ItemNo = "MAT-3108", ItemName = "螺絲", Quantity = 10000M, UnitPrice = 2.8M, DueDate = new DateTime(2026, 3, 26), StatusCode = "Y" },
-        new PurchaseOrderLine { OrderNo = "PO20260305009", Sequence = 1, ItemNo = "PKG-2210", ItemName = "包材", Quantity = 4500M, UnitPrice = 8.5M, DueDate = new DateTime(2026, 3, 28), StatusCode = "N" },
-        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 1, ItemNo = "EQP-0102", ItemName = "治具", Quantity = 15M, UnitPrice = 8200M, DueDate = new DateTime(2026, 4, 5), StatusCode = "N" },
-        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 2, ItemNo = "MAT-7777", ItemName = "銅管", Quantity = 300M, UnitPrice = 322M, DueDate = new DateTime(2026, 4, 1), StatusCode = "N" }
+        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 1, ItemNo = "MAT-1001", ItemName = "鋼板", SourceOrderNo = "", Quantity = 120M, UnitPrice = 350M, DueDate = new DateTime(2026, 3, 25), StatusCode = "Y" },
+        new PurchaseOrderLine { OrderNo = "PO20260301001", Sequence = 2, ItemNo = "MAT-3108", ItemName = "螺絲", SourceOrderNo = "", Quantity = 10000M, UnitPrice = 2.8M, DueDate = new DateTime(2026, 3, 26), StatusCode = "Y" },
+        new PurchaseOrderLine { OrderNo = "PO20260305009", Sequence = 1, ItemNo = "PKG-2210", ItemName = "包材", SourceOrderNo = "MO2503001", Quantity = 4500M, UnitPrice = 8.5M, DueDate = new DateTime(2026, 3, 28), StatusCode = "N" },
+        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 1, ItemNo = "EQP-0102", ItemName = "治具", SourceOrderNo = "", Quantity = 15M, UnitPrice = 8200M, DueDate = new DateTime(2026, 4, 5), StatusCode = "N" },
+        new PurchaseOrderLine { OrderNo = "PO20260312003", Sequence = 2, ItemNo = "MAT-7777", ItemName = "銅管", SourceOrderNo = "", Quantity = 300M, UnitPrice = 322M, DueDate = new DateTime(2026, 4, 1), StatusCode = "N" }
     ];
 
     public IReadOnlyList<PurchaseOrderHeader> QueryHeaders(DateTime fromDate, DateTime toDate, string? department)
@@ -38,11 +38,7 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
                 query = query.Where(x => string.Equals(x.Department, department.Trim(), StringComparison.OrdinalIgnoreCase));
             }
 
-            return query
-                .Select(RefreshTotalAmount)
-                .OrderByDescending(x => x.OrderDate)
-                .ThenBy(x => x.OrderNo)
-                .ToArray();
+            return query.Select(RefreshTotalAmount).OrderByDescending(x => x.OrderDate).ThenBy(x => x.OrderNo).ToArray();
         }
     }
 
@@ -55,10 +51,7 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
 
         lock (_lockObject)
         {
-            return _lines
-                .Where(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
-                .OrderBy(x => x.Sequence)
-                .ToArray();
+            return _lines.Where(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Sequence).ToArray();
         }
     }
 
@@ -92,15 +85,12 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
         {
             var current = FindOrder(request.OrderNo);
             EnsureEditableStatus(current.StatusCode);
-
-            var updated = current with
+            ReplaceHeader(current with
             {
                 OrderDate = request.OrderDate.Date,
                 Department = request.Department.Trim(),
                 Buyer = request.Buyer.Trim()
-            };
-
-            ReplaceHeader(updated);
+            });
         }
     }
 
@@ -133,14 +123,7 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
             }
 
             ReplaceHeader(current with { StatusCode = "Y" });
-
-            for (var i = 0; i < _lines.Count; i++)
-            {
-                if (_lines[i].OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
-                {
-                    _lines[i] = _lines[i] with { StatusCode = "Y" };
-                }
-            }
+            MarkLines(orderNo, "Y");
         }
     }
 
@@ -162,14 +145,7 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
             }
 
             ReplaceHeader(current with { StatusCode = "N" });
-
-            for (var i = 0; i < _lines.Count; i++)
-            {
-                if (_lines[i].OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
-                {
-                    _lines[i] = _lines[i] with { StatusCode = "N" };
-                }
-            }
+            MarkLines(orderNo, "N");
         }
     }
 
@@ -204,13 +180,14 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
             var header = FindOrder(request.OrderNo);
             EnsureEditableStatus(header.StatusCode);
 
-            var nextSequence = (_lines.Where(x => x.OrderNo.Equals(request.OrderNo, StringComparison.OrdinalIgnoreCase)).Select(x => x.Sequence).DefaultIfEmpty(0).Max()) + 1;
+            var nextSequence = _lines.Where(x => x.OrderNo.Equals(request.OrderNo, StringComparison.OrdinalIgnoreCase)).Select(x => x.Sequence).DefaultIfEmpty(0).Max() + 1;
             var created = new PurchaseOrderLine
             {
                 OrderNo = request.OrderNo,
                 Sequence = nextSequence,
                 ItemNo = request.ItemNo.Trim(),
                 ItemName = request.ItemName.Trim(),
+                SourceOrderNo = request.SourceOrderNo.Trim(),
                 Quantity = request.Quantity,
                 UnitPrice = request.UnitPrice,
                 DueDate = request.DueDate?.Date,
@@ -237,6 +214,17 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
         }
     }
 
+    private void MarkLines(string orderNo, string statusCode)
+    {
+        for (var i = 0; i < _lines.Count; i++)
+        {
+            if (_lines[i].OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase))
+            {
+                _lines[i] = _lines[i] with { StatusCode = statusCode };
+            }
+        }
+    }
+
     private PurchaseOrderHeader FindOrder(string orderNo)
     {
         if (string.IsNullOrWhiteSpace(orderNo))
@@ -257,12 +245,7 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
     private string GenerateNextOrderNo(DateTime orderDate)
     {
         var prefix = $"PO{orderDate:yyyyMMdd}";
-        var maxSeq = _headers
-            .Where(x => x.OrderNo.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            .Select(x => int.TryParse(x.OrderNo[prefix.Length..], out var seq) ? seq : 0)
-            .DefaultIfEmpty(0)
-            .Max();
-
+        var maxSeq = _headers.Where(x => x.OrderNo.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).Select(x => int.TryParse(x.OrderNo[prefix.Length..], out var seq) ? seq : 0).DefaultIfEmpty(0).Max();
         return $"{prefix}{maxSeq + 1:000}";
     }
 

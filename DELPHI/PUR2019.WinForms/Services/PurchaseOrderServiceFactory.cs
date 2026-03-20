@@ -13,7 +13,9 @@ public static class PurchaseOrderServiceFactory
                 throw new InvalidOperationException("資料來源模式為 Database，但未設定 OdbcConnectionString。");
             }
 
-            return (new OdbcPurchaseOrderService(settings.OdbcConnectionString), "資料來源：Database (ODBC)");
+            return (
+                new OdbcPurchaseOrderService(settings.OdbcConnectionString, settings.EnableLegacyStoredProcedureChecks),
+                settings.EnableLegacyStoredProcedureChecks ? "資料來源：Database (ODBC, LegacyChecks=On)" : "資料來源：Database (ODBC)");
         }
 
         return (new InMemoryPurchaseOrderService(), "資料來源：InMemory");

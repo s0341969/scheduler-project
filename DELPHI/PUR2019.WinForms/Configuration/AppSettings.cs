@@ -48,6 +48,18 @@ public sealed record AppSettings
             };
         }
 
+        var legacyCheckFromEnv = Environment.GetEnvironmentVariable("PUR2019_ENABLE_LEGACY_SP_CHECKS");
+        if (!string.IsNullOrWhiteSpace(legacyCheckFromEnv) && bool.TryParse(legacyCheckFromEnv, out var legacyEnabled))
+        {
+            settings = settings with
+            {
+                DataSource = settings.DataSource with
+                {
+                    EnableLegacyStoredProcedureChecks = legacyEnabled
+                }
+            };
+        }
+
         return settings;
     }
 }
@@ -57,4 +69,6 @@ public sealed record DataSourceSettings
     public string Mode { get; init; } = "InMemory";
 
     public string OdbcConnectionString { get; init; } = string.Empty;
+
+    public bool EnableLegacyStoredProcedureChecks { get; init; } = false;
 }

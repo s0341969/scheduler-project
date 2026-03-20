@@ -15,6 +15,11 @@
   - 查詢：`PURTM` (`PURTP='0'`) + `PURTD` (`PURNO`)
   - 單頭：新增、儲存、刪除、確認、取消確認、作廢
   - 單身：新增、刪除
+- 進階邏輯第一批：
+  - `PURDEL` 防護：已有發料關聯時禁止取消確認
+  - `ORDMENO.MPCHK` 同步：單身新增/刪除時同步更新
+  - `PUPRP`（製令單號）欄位已導入 UI 與服務層
+  - 可選啟用 Legacy SP 檢核（確認時）
 - 儲存流程使用交易（transaction）保護，避免單頭單身狀態不一致。
 
 ## 資料來源設定
@@ -25,7 +30,8 @@
 {
   "DataSource": {
     "Mode": "InMemory",
-    "OdbcConnectionString": "Driver={SQL Server};Server=127.0.0.1;Database=MISD;Uid=sa;Pwd=CHANGE_ME;TrustServerCertificate=Yes;"
+    "OdbcConnectionString": "Driver={SQL Server};Server=127.0.0.1;Database=MISD;Uid=sa;Pwd=CHANGE_ME;TrustServerCertificate=Yes;",
+    "EnableLegacyStoredProcedureChecks": false
   }
 }
 ```
@@ -33,6 +39,7 @@
 也可用環境變數覆蓋：
 - `PUR2019_DATA_SOURCE`：`InMemory` 或 `Database`
 - `PUR2019_ODBC_CONNECTION_STRING`：ODBC 連線字串
+- `PUR2019_ENABLE_LEGACY_SP_CHECKS`：`true/false`
 
 ## 建置
 ```powershell
@@ -45,5 +52,5 @@ dotnet build
 - 每次搬移以可編譯、可測試為單位提交。
 
 ## 目前限制
-- 目前尚未完整移植 `PUR2019P` 的進階檢核（如 ORDMENO/PURDEL 特殊規則、SP 檢核、預算檢核）。
+- 尚未完整移植 `PUR2019P` 全部欄位事件與計價細節（如 `PUPA1/PUPA2` 分段金額邏輯、MOQ 等）。
 - 尚未完整映射 Delphi `.dfm` 上所有控制項與事件邏輯。
