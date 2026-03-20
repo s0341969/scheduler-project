@@ -502,6 +502,103 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         transaction.Commit();
     }
 
+    public PurchaseOrderLineSuggestion? GetLineSuggestion(string sourceOrderNo)
+    {
+        if (string.IsNullOrWhiteSpace(sourceOrderNo))
+        {
+            return null;
+        }
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT TOP 1 B.INPART, ISNULL(B.INDWG,''), ISNULL(C.INCDS,''), ISNULL(B.ORDQTY,0), ISNULL(S.MOQ,0), ISNULL(MAX4.MAXSQ,0) " +
+            "FROM ORDE3 B " +
+            "LEFT JOIN INVMAST C ON C.INDWG=B.INDWG AND C.INTYP='5' AND C.SCTRL NOT IN ('X','P') " +
+            "LEFT JOIN INVMAST_SUPPLIER S ON S.INDWG=B.INDWG AND S.SQ='001' " +
+            "LEFT JOIN (SELECT ORDFNO, MAX(ORDSQ2) AS MAXSQ FROM ORDDE4 GROUP BY ORDFNO) MAX4 ON MAX4.ORDFNO=B.INPART " +
+            "WHERE B.INPART=?";
+        command.Parameters.Add("@inpart", OdbcType.VarChar).Value = sourceOrderNo.Trim();
+
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+        {
+            return null;
+        }
+
+        return new PurchaseOrderLineSuggestion
+        {
+            SourceOrderNo = reader[0]?.ToString()?.Trim() ?? sourceOrderNo.Trim(),
+            ItemNo = reader[1]?.ToString()?.Trim() ?? string.Empty,
+            ItemName = reader[2]?.ToString()?.Trim() ?? string.Empty,
+            SuggestedQuantity = reader[3] is DBNull ? 0M : Convert.ToDecimal(reader[3]),
+            SuggestedUnitPrice = 0M,
+            MinimumOrderQty = reader[4] is DBNull ? 0 : Convert.ToInt32(reader[4]),
+            ProcessFrom = "0",
+            ProcessTo = "0"
+        };
+    }
+
+    public string BuildOrderReportText(string orderNo)
+    {
+        EnsureOrderNo(orderNo);
+
+        using var connection = new OdbcConnection(_connectionString);
+        connection.Open();
+
+        PurchaseOrderHeader? header = null;
+        using (var headerCommand = connection.CreateCommand())
+        {
+            headerCommand.CommandText = "SELECT PURNO, PURDY, PURDP, PUUSR, SCTRL FROM PURTM WHERE PURNO=?";
+            headerCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
+            using var reader = headerCommand.ExecuteReader();
+            if (reader.Read())
+            {
+                header = new PurchaseOrderHeader
+                {
+                    OrderNo = reader["PURNO"].ToString()?.Trim() ?? string.Empty,
+                    OrderDate = reader["PURDY"] is DBNull ? DateTime.MinValue : Convert.ToDateTime(reader["PURDY"]),
+                    Department = reader["PURDP"].ToString()?.Trim() ?? string.Empty,
+                    Buyer = reader["PUUSR"].ToString()?.Trim() ?? string.Empty,
+                    StatusCode = NormalizeStatusCode(reader["SCTRL"].ToString()),
+                    TotalAmount = 0M
+                };
+            }
+        }
+
+        if (header is null)
+        {
+            throw new InvalidOperationException($"找不到單號：{orderNo}");
+        }
+
+        var lines = QueryLines(orderNo);
+        var totalQty = lines.Sum(x => x.Quantity);
+        var totalAmt = lines.Sum(x => x.Amount);
+
+        var output = new List<string>
+        {
+            "PUR2019 採購單報表",
+            $"單號: {header.OrderNo}",
+            $"日期: {header.OrderDate:yyyy/MM/dd}",
+            $"部門: {header.Department}",
+            $"採購員: {header.Buyer}",
+            $"狀態: {header.Status} ({header.StatusCode})",
+            $"總數量: {totalQty:N2}",
+            $"總金額: {totalAmt:N2}",
+            "",
+            "明細:"
+        };
+
+        foreach (var line in lines)
+        {
+            output.Add($"- {line.Sequence:000} {line.ItemNo} {line.ItemName} Qty={line.Quantity:N2} Price={line.UnitPrice:N2} Amt={line.Amount:N2}");
+        }
+
+        return string.Join(Environment.NewLine, output);
+    }
+
     private (decimal OrderQty, int MaxProcessSq) ValidateSourceOrderForLine(OdbcConnection connection, OdbcTransaction transaction, string sourceOrderNo)
     {
         if (string.IsNullOrWhiteSpace(sourceOrderNo))

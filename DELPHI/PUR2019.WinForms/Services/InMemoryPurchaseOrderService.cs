@@ -228,6 +228,70 @@ public sealed class InMemoryPurchaseOrderService : IPurchaseOrderService
         }
     }
 
+    public PurchaseOrderLineSuggestion? GetLineSuggestion(string sourceOrderNo)
+    {
+        if (string.IsNullOrWhiteSpace(sourceOrderNo))
+        {
+            return null;
+        }
+
+        var key = sourceOrderNo.Trim().ToUpperInvariant();
+        return key switch
+        {
+            "MO2503001" => new PurchaseOrderLineSuggestion
+            {
+                SourceOrderNo = sourceOrderNo,
+                ItemNo = "PKG-2210",
+                ItemName = "包材",
+                SuggestedQuantity = 4500M,
+                SuggestedUnitPrice = 8.5M,
+                MinimumOrderQty = 500,
+                ProcessFrom = "0",
+                ProcessTo = "0"
+            },
+            _ => new PurchaseOrderLineSuggestion
+            {
+                SourceOrderNo = sourceOrderNo,
+                ItemNo = "MAT-1001",
+                ItemName = "料件-" + key,
+                SuggestedQuantity = 100M,
+                SuggestedUnitPrice = 10M,
+                MinimumOrderQty = 0,
+                ProcessFrom = "0",
+                ProcessTo = "0"
+            }
+        };
+    }
+
+    public string BuildOrderReportText(string orderNo)
+    {
+        var header = FindOrder(orderNo);
+        var lines = _lines.Where(x => x.OrderNo.Equals(orderNo, StringComparison.OrdinalIgnoreCase)).OrderBy(x => x.Sequence).ToArray();
+        var totalAmount = lines.Sum(x => x.Amount);
+        var totalQty = lines.Sum(x => x.Quantity);
+
+        var output = new List<string>
+        {
+            "PUR2019 採購單報表",
+            $"單號: {header.OrderNo}",
+            $"日期: {header.OrderDate:yyyy/MM/dd}",
+            $"部門: {header.Department}",
+            $"採購員: {header.Buyer}",
+            $"狀態: {header.Status} ({header.StatusCode})",
+            $"總數量: {totalQty:N2}",
+            $"總金額: {totalAmount:N2}",
+            "",
+            "明細:"
+        };
+
+        foreach (var line in lines)
+        {
+            output.Add($"- {line.Sequence:000} {line.ItemNo} {line.ItemName} Qty={line.Quantity:N2} Price={line.UnitPrice:N2} Amt={line.Amount:N2}");
+        }
+
+        return string.Join(Environment.NewLine, output);
+    }
+
     private static (string ProcessFrom, string ProcessTo) NormalizeProcessRange(string processFromRaw, string processToRaw)
     {
         var processFrom = string.IsNullOrWhiteSpace(processFromRaw) ? "0" : processFromRaw.Trim();

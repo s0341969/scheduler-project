@@ -25,3 +25,5 @@
 - 新增 PUR2019P_PARITY_MATRIX.md，逐項對照 Delphi procedure 與 C# 落地狀態。
 - PurchaseMainForm 新增 F2~F12 快捷鍵行為（對齊 Delphi 操作習慣）。
 - 商業邏輯覆蓋報告升級為 Y/P/N 三態。
+- 印表 改為可輸出採購單報表文字視窗（TextReportForm）。
+- 新增單身視窗可依製令單號執行欄位帶入（料號/品名/數量/MOQ）。

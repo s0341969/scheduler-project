@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using PUR2019.WinForms.Models;
+
 namespace PUR2019.WinForms.Forms;
 
 public sealed class PurchaseOrderLineEditForm : Form
@@ -10,6 +13,11 @@ public sealed class PurchaseOrderLineEditForm : Form
     private readonly NumericUpDown _quantity = new();
     private readonly NumericUpDown _unitPrice = new();
     private readonly DateTimePicker _dueDate = new();
+    private readonly Button _loadFromSource = new();
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public Func<string, PurchaseOrderLineSuggestion?>? SuggestionProvider { get; set; }
 
     public string ItemNo => _itemNo.Text.Trim();
 
@@ -44,7 +52,13 @@ public sealed class PurchaseOrderLineEditForm : Form
         _itemName.Width = 240;
 
         _sourceOrderNo.Location = new Point(160, 100);
-        _sourceOrderNo.Width = 240;
+        _sourceOrderNo.Width = 160;
+
+        _loadFromSource.Text = "帶入製令";
+        _loadFromSource.Location = new Point(325, 98);
+        _loadFromSource.Width = 75;
+        _loadFromSource.Height = 26;
+        _loadFromSource.Click += (_, _) => ApplySuggestionFromSource();
 
         _processFrom.Location = new Point(160, 140);
         _processFrom.Width = 100;
@@ -86,6 +100,7 @@ public sealed class PurchaseOrderLineEditForm : Form
         Controls.Add(_itemNo);
         Controls.Add(_itemName);
         Controls.Add(_sourceOrderNo);
+        Controls.Add(_loadFromSource);
         Controls.Add(_processFrom);
         Controls.Add(_processTo);
         Controls.Add(_quantity);
@@ -122,5 +137,38 @@ public sealed class PurchaseOrderLineEditForm : Form
         }
 
         DialogResult = DialogResult.OK;
+    }
+
+    private void ApplySuggestionFromSource()
+    {
+        if (SuggestionProvider is null)
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(SourceOrderNo))
+        {
+            MessageBox.Show(this, "請先輸入製令單號。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            _sourceOrderNo.Focus();
+            return;
+        }
+
+        var suggestion = SuggestionProvider(SourceOrderNo);
+        if (suggestion is null)
+        {
+            MessageBox.Show(this, "找不到可帶入資料。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        _itemNo.Text = suggestion.ItemNo;
+        _itemName.Text = suggestion.ItemName;
+        _quantity.Value = Math.Max(_quantity.Minimum, Math.Min(_quantity.Maximum, suggestion.SuggestedQuantity <= 0 ? _quantity.Value : suggestion.SuggestedQuantity));
+        if (suggestion.SuggestedUnitPrice > 0)
+        {
+            _unitPrice.Value = Math.Max(_unitPrice.Minimum, Math.Min(_unitPrice.Maximum, suggestion.SuggestedUnitPrice));
+        }
+
+        _processFrom.Text = suggestion.ProcessFrom;
+        _processTo.Text = suggestion.ProcessTo;
     }
 }

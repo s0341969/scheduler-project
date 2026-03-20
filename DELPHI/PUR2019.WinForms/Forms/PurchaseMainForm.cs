@@ -76,7 +76,7 @@ public sealed class PurchaseMainForm : Form
             CreateCommandButton("F10下一筆", (_, _) => MoveHeader(1)),
             CreateCommandButton("新增單身", (_, _) => AddLine()),
             CreateCommandButton("刪除單身", (_, _) => DeleteLine()),
-            CreateCommandButton("印表", (_, _) => MessageBox.Show(this, "報表流程尚未完成移植。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information)),
+            CreateCommandButton("印表", (_, _) => PrintCurrentOrderReport()),
             CreateCommandButton("F11作廢", (_, _) => VoidHeader()),
             CreateCommandButton("F7取消", (_, _) => UnconfirmHeader()),
             CreateCommandButton("F12關閉", (_, _) => Close()),
@@ -417,7 +417,10 @@ public sealed class PurchaseMainForm : Form
             return;
         }
 
-        using var dialog = new PurchaseOrderLineEditForm();
+        using var dialog = new PurchaseOrderLineEditForm
+        {
+            SuggestionProvider = source => _service.GetLineSuggestion(source)
+        };
         if (dialog.ShowDialog(this) != DialogResult.OK)
         {
             return;
@@ -496,6 +499,22 @@ public sealed class PurchaseMainForm : Form
     {
         var text = BusinessLogicCoverageService.BuildReportText();
         MessageBox.Show(this, text, "商業邏輯覆蓋檢查", MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+
+    private void PrintCurrentOrderReport()
+    {
+        var selected = GetSelectedHeader();
+        if (selected is null)
+        {
+            return;
+        }
+
+        ExecuteAction(() =>
+        {
+            var reportText = _service.BuildOrderReportText(selected.OrderNo);
+            using var report = new TextReportForm($"採購單報表 - {selected.OrderNo}", reportText);
+            report.ShowDialog(this);
+        }, "報表已產生");
     }
 
     protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

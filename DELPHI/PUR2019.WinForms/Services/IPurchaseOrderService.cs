@@ -23,4 +23,8 @@ public interface IPurchaseOrderService
     PurchaseOrderLine AddLine(CreatePurchaseOrderLineRequest request);
 
     void DeleteLine(string orderNo, int sequence);
+
+    PurchaseOrderLineSuggestion? GetLineSuggestion(string sourceOrderNo);
+
+    string BuildOrderReportText(string orderNo);
 }
