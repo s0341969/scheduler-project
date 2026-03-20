@@ -15,7 +15,7 @@ public static class BusinessLogicCoverageService
             new LogicCoverageItem("製令連動 ORDMENO.MPCHK", "Y", "已落地"),
             new LogicCoverageItem("PUPA1/PUPA2 分段金額計算", "Y", "已落地"),
             new LogicCoverageItem("MOQ 檢核", "Y", "已落地"),
-            new LogicCoverageItem("Delphi 全欄位 UI 事件連動", "P", "部分完成"),
+            new LogicCoverageItem("Delphi 全欄位 UI 事件連動", "P", "已補齊 F2~F12 主要快捷鍵與離開前未存檔提示"),
             new LogicCoverageItem("報表與列印流程（SpeedButton11）", "P", "已可輸出報表文字，尚未完整複製 Delphi SQL 報表"),
             new LogicCoverageItem("PUR2019AP 管理模組完整邏輯", "N", "尚未移植")
         ];

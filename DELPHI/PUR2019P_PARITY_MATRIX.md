@@ -43,7 +43,7 @@
 |---|---|---|---|
 | `FormCreate` | 啟動初始化 | P | 已有文化與資料來源初始化，權限載入未完整 |
 | `FormKeyDown` | F2~F12 快捷鍵 | Y | C# 已加入快捷鍵 |
-| `FormCloseQuery` | 關閉前檢查 | P | 尚未完整移植暫存刪除與離開提示 |
+| `FormCloseQuery` | 關閉前檢查 | P | 已加入未存檔提示；暫存資料刪除流程未完整移植 |
 | `SpeedButton6Click` | 關閉 | Y | 已對應關閉視窗 |
 | `ALMailSlot1NewMessage` | 訊息顯示 | N | 尚未移植 |
 

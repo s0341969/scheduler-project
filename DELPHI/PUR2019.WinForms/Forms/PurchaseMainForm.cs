@@ -20,6 +20,8 @@ public sealed class PurchaseMainForm : Form
     private readonly Label _summaryQty = new();
     private readonly Label _summaryAmount = new();
     private readonly string _currentUserId = Environment.UserName;
+    private bool _isBindingHeader;
+    private bool _headerDirty;
 
     public PurchaseMainForm(IPurchaseOrderService service)
     {
@@ -72,6 +74,8 @@ public sealed class PurchaseMainForm : Form
             CreateCommandButton("F3查詢", (_, _) => LoadHeaders()),
             CreateCommandButton("F8執行", (_, _) => LoadHeaders()),
             CreateCommandButton("F5存檔", (_, _) => UpdateHeader()),
+            CreateCommandButton("F6確認", (_, _) => ConfirmHeader()),
+            CreateCommandButton("刪除單頭", (_, _) => DeleteHeader()),
             CreateCommandButton("F9上一筆", (_, _) => MoveHeader(-1)),
             CreateCommandButton("F10下一筆", (_, _) => MoveHeader(1)),
             CreateCommandButton("新增單身", (_, _) => AddLine()),
@@ -117,9 +121,11 @@ public sealed class PurchaseMainForm : Form
 
         _editBuyer.Location = new Point(560, 8);
         _editBuyer.Width = 90;
+        _editBuyer.TextChanged += (_, _) => MarkHeaderDirty();
 
         _editDepartment.Location = new Point(660, 8);
         _editDepartment.Width = 90;
+        _editDepartment.TextChanged += (_, _) => MarkHeaderDirty();
 
         _orderNo.Location = new Point(850, 8);
         _orderNo.Width = 120;
@@ -129,6 +135,7 @@ public sealed class PurchaseMainForm : Form
         _editDate.Format = DateTimePickerFormat.Short;
         _editDate.Location = new Point(980, 8);
         _editDate.Width = 120;
+        _editDate.ValueChanged += (_, _) => MarkHeaderDirty();
 
         _statusCode.Location = new Point(1110, 8);
         _statusCode.Width = 50;
@@ -243,8 +250,11 @@ public sealed class PurchaseMainForm : Form
                 _lineBinding.DataSource = new BindingList<PurchaseOrderLine>();
                 _orderNo.Clear();
                 _statusCode.Clear();
+                _editDepartment.Clear();
+                _editBuyer.Clear();
                 _summaryQty.Text = "總數量: 0";
                 _summaryAmount.Text = "總金額: 0";
+                SetHeaderDirty(false);
                 return;
             }
 
@@ -273,11 +283,14 @@ public sealed class PurchaseMainForm : Form
 
     private void BindHeader(PurchaseOrderHeader header)
     {
+        _isBindingHeader = true;
         _orderNo.Text = header.OrderNo;
         _statusCode.Text = header.StatusCode;
         _editDate.Value = header.OrderDate.Date;
         _editDepartment.Text = header.Department;
         _editBuyer.Text = header.Buyer;
+        _isBindingHeader = false;
+        SetHeaderDirty(false);
     }
 
     private void CreateHeader()
@@ -303,13 +316,19 @@ public sealed class PurchaseMainForm : Form
 
     private void UpdateHeader()
     {
+        _ = UpdateHeader(showSuccessMessage: true);
+    }
+
+    private bool UpdateHeader(bool showSuccessMessage)
+    {
         var selected = GetSelectedHeader();
         if (selected is null)
         {
-            return;
+            return false;
         }
 
-        ExecuteAction(() =>
+        var succeeded = false;
+        ExecuteActionCore(() =>
         {
             _service.UpdateOrder(new UpdatePurchaseOrderRequest
             {
@@ -320,7 +339,10 @@ public sealed class PurchaseMainForm : Form
                 UserId = _currentUserId
             });
             LoadHeaders(selected.OrderNo);
-        }, "儲存單頭成功");
+            succeeded = true;
+        }, showSuccessMessage ? "儲存單頭成功" : null);
+
+        return succeeded;
     }
 
     private void DeleteHeader()
@@ -484,10 +506,18 @@ public sealed class PurchaseMainForm : Form
 
     private void ExecuteAction(Action action, string successMessage)
     {
+        ExecuteActionCore(action, successMessage);
+    }
+
+    private void ExecuteActionCore(Action action, string? successMessage)
+    {
         try
         {
             action();
-            MessageBox.Show(this, successMessage, "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (!string.IsNullOrWhiteSpace(successMessage))
+            {
+                MessageBox.Show(this, successMessage, "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
         catch (Exception ex)
         {
@@ -530,6 +560,9 @@ public sealed class PurchaseMainForm : Form
             case Keys.F5:
                 UpdateHeader();
                 return true;
+            case Keys.F6:
+                ConfirmHeader();
+                return true;
             case Keys.F7:
                 UnconfirmHeader();
                 return true;
@@ -551,5 +584,42 @@ public sealed class PurchaseMainForm : Form
             default:
                 return base.ProcessCmdKey(ref msg, keyData);
         }
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (_headerDirty)
+        {
+            var result = MessageBox.Show(this, "單頭資料尚未存檔，是否先儲存？", "離開確認", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+            if (result == DialogResult.Cancel)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            if (result == DialogResult.Yes && !UpdateHeader(showSuccessMessage: false))
+            {
+                e.Cancel = true;
+                return;
+            }
+        }
+
+        base.OnFormClosing(e);
+    }
+
+    private void MarkHeaderDirty()
+    {
+        if (_isBindingHeader || _headerBinding.Current is not PurchaseOrderHeader)
+        {
+            return;
+        }
+
+        SetHeaderDirty(true);
+    }
+
+    private void SetHeaderDirty(bool isDirty)
+    {
+        _headerDirty = isDirty;
+        Text = _headerDirty ? "PUR2019F *" : "PUR2019F";
     }
 }

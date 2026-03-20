@@ -14,6 +14,9 @@ public sealed class PurchaseOrderLineEditForm : Form
     private readonly NumericUpDown _unitPrice = new();
     private readonly DateTimePicker _dueDate = new();
     private readonly Button _loadFromSource = new();
+    private readonly Label _amountPreview = new();
+    private readonly Label _moqHint = new();
+    private int _currentSuggestedMoq;
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -74,16 +77,32 @@ public sealed class PurchaseOrderLineEditForm : Form
         _quantity.Minimum = 0.01M;
         _quantity.Maximum = 100000000M;
         _quantity.Value = 1M;
+        _quantity.ValueChanged += (_, _) => RefreshPreview();
 
         _unitPrice.Location = new Point(160, 220);
         _unitPrice.Width = 120;
         _unitPrice.DecimalPlaces = 2;
         _unitPrice.Minimum = 0M;
         _unitPrice.Maximum = 100000000M;
+        _unitPrice.ValueChanged += (_, _) => RefreshPreview();
 
         _dueDate.Location = new Point(160, 260);
         _dueDate.Format = DateTimePickerFormat.Short;
         _dueDate.Value = DateTime.Today.AddDays(7);
+
+        _amountPreview.Location = new Point(290, 224);
+        _amountPreview.AutoSize = true;
+        _amountPreview.ForeColor = Color.DarkBlue;
+
+        _moqHint.Location = new Point(160, 286);
+        _moqHint.AutoSize = true;
+        _moqHint.ForeColor = Color.Brown;
+
+        _sourceOrderNo.TextChanged += (_, _) =>
+        {
+            _currentSuggestedMoq = 0;
+            _moqHint.Text = string.Empty;
+        };
 
         var ok = new Button { Text = "確定", Location = new Point(160, 310), Width = 90 };
         ok.Click += OnOkClicked;
@@ -106,11 +125,14 @@ public sealed class PurchaseOrderLineEditForm : Form
         Controls.Add(_quantity);
         Controls.Add(_unitPrice);
         Controls.Add(_dueDate);
+        Controls.Add(_amountPreview);
+        Controls.Add(_moqHint);
         Controls.Add(ok);
         Controls.Add(cancel);
 
         AcceptButton = ok;
         CancelButton = cancel;
+        RefreshPreview();
     }
 
     private void OnOkClicked(object? sender, EventArgs e)
@@ -133,6 +155,13 @@ public sealed class PurchaseOrderLineEditForm : Form
         {
             MessageBox.Show(this, "製程區間不可空白。", "驗證失敗", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             _processFrom.Focus();
+            return;
+        }
+
+        if (_currentSuggestedMoq > 0 && Quantity < _currentSuggestedMoq)
+        {
+            MessageBox.Show(this, $"數量不可小於 MOQ({_currentSuggestedMoq})。", "驗證失敗", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            _quantity.Focus();
             return;
         }
 
@@ -170,5 +199,13 @@ public sealed class PurchaseOrderLineEditForm : Form
 
         _processFrom.Text = suggestion.ProcessFrom;
         _processTo.Text = suggestion.ProcessTo;
+        _currentSuggestedMoq = suggestion.MinimumOrderQty;
+        _moqHint.Text = _currentSuggestedMoq > 0 ? $"MOQ 提示: {_currentSuggestedMoq:N0}" : "MOQ 提示: 無下限";
+        RefreshPreview();
+    }
+
+    private void RefreshPreview()
+    {
+        _amountPreview.Text = $"試算金額: {(Quantity * UnitPrice):N2}";
     }
 }
