@@ -438,13 +438,36 @@ public sealed class OdbcPurchaseOrderService : IPurchaseOrderService
         EnsureEditableStatus(status);
 
         string sourceOrderNo;
+        string issueOrderNo;
+        string issueOrderSq;
         using (var getCommand = connection.CreateCommand())
         {
             getCommand.Transaction = transaction;
-            getCommand.CommandText = "SELECT PUPRP FROM PURTD WHERE PURNO=? AND PURSQ=?";
+            getCommand.CommandText = "SELECT PUPRP, PA1NO, PA1SQ FROM PURTD WHERE PURNO=? AND PURSQ=?";
             getCommand.Parameters.Add("@purno", OdbcType.VarChar).Value = orderNo.Trim();
             getCommand.Parameters.Add("@pursq", OdbcType.VarChar).Value = sequence.ToString("000");
-            sourceOrderNo = Convert.ToString(getCommand.ExecuteScalar())?.Trim() ?? string.Empty;
+            using var reader = getCommand.ExecuteReader();
+            if (!reader.Read())
+            {
+                throw new InvalidOperationException("找不到要刪除的單身資料。");
+            }
+
+            sourceOrderNo = reader["PUPRP"]?.ToString()?.Trim() ?? string.Empty;
+            issueOrderNo = reader["PA1NO"]?.ToString()?.Trim() ?? string.Empty;
+            issueOrderSq = reader["PA1SQ"]?.ToString()?.Trim() ?? string.Empty;
+        }
+
+        if (!string.IsNullOrWhiteSpace(issueOrderNo) && !string.IsNullOrWhiteSpace(issueOrderSq))
+        {
+            using var issueCheck = connection.CreateCommand();
+            issueCheck.Transaction = transaction;
+            issueCheck.CommandText = "SELECT TOP 1 1 FROM PURDEL WHERE PURNO=? AND PURSQ=?";
+            issueCheck.Parameters.Add("@purno", OdbcType.VarChar).Value = issueOrderNo;
+            issueCheck.Parameters.Add("@pursq", OdbcType.VarChar).Value = issueOrderSq;
+            if (issueCheck.ExecuteScalar() is not null)
+            {
+                throw new InvalidOperationException("此單身已有發料紀錄，不能刪除。");
+            }
         }
 
         using var command = connection.CreateCommand();

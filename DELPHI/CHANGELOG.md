@@ -19,3 +19,6 @@
 - 新增 `PUPA1/PUPA2` 區間輸入、驗證與顯示。
 - 新增 `PURM2/PURP2` 計算與顯示，並納入單身新增流程。
 - 新增 MOQ 讀取與數量下限檢核。
+- 新增刪除單身前發料防護（PURDEL）檢核。
+- 新增 BusinessLogicCoverageService 與 UI 按鈕，提供商業邏輯覆蓋檢查報告。
+- PurchaseMainForm 版面重排為接近 Delphi 原畫面（上方功能列 + 頭資料區 + 下方大表格）。

@@ -15,6 +15,10 @@ public sealed class PurchaseMainForm : Form
     private readonly DateTimePicker _editDate = new();
     private readonly TextBox _editDepartment = new();
     private readonly TextBox _editBuyer = new();
+    private readonly TextBox _orderNo = new();
+    private readonly TextBox _statusCode = new();
+    private readonly Label _summaryQty = new();
+    private readonly Label _summaryAmount = new();
     private readonly string _currentUserId = Environment.UserName;
 
     public PurchaseMainForm(IPurchaseOrderService service)
@@ -26,138 +30,142 @@ public sealed class PurchaseMainForm : Form
 
     private void InitializeUi()
     {
-        Text = "PUR2019F 採購單作業";
-        Width = 1280;
-        Height = 820;
+        Text = "PUR2019F";
+        Width = 1520;
+        Height = 900;
         StartPosition = FormStartPosition.CenterParent;
+        Font = new Font("Microsoft JhengHei UI", 9F);
+        BackColor = Color.FromArgb(238, 229, 210);
 
-        _fromDate.Value = DateTime.Today.AddDays(-30);
-        _fromDate.Format = DateTimePickerFormat.Short;
-        _fromDate.Location = new Point(80, 12);
+        var commandBar = BuildCommandBar();
+        commandBar.Location = new Point(0, 0);
+        commandBar.Width = 1504;
+        commandBar.Height = 54;
 
-        _toDate.Value = DateTime.Today;
-        _toDate.Format = DateTimePickerFormat.Short;
-        _toDate.Location = new Point(250, 12);
-
-        _department.PlaceholderText = "部門代碼";
-        _department.Location = new Point(420, 12);
-        _department.Width = 120;
-
-        var queryButton = new Button { Text = "查詢", Location = new Point(560, 10), Width = 90 };
-        queryButton.Click += (_, _) => LoadHeaders();
-
-        var newHeaderButton = new Button { Text = "新增單頭", Location = new Point(660, 10), Width = 95 };
-        newHeaderButton.Click += (_, _) => CreateHeader();
-
-        var saveHeaderButton = new Button { Text = "儲存單頭", Location = new Point(760, 10), Width = 95 };
-        saveHeaderButton.Click += (_, _) => UpdateHeader();
-
-        var deleteHeaderButton = new Button { Text = "刪除單頭", Location = new Point(860, 10), Width = 95 };
-        deleteHeaderButton.Click += (_, _) => DeleteHeader();
-
-        var confirmButton = new Button { Text = "確認", Location = new Point(960, 10), Width = 80 };
-        confirmButton.Click += (_, _) => ConfirmHeader();
-
-        var unconfirmButton = new Button { Text = "取消確認", Location = new Point(1045, 10), Width = 95 };
-        unconfirmButton.Click += (_, _) => UnconfirmHeader();
-
-        var voidButton = new Button { Text = "作廢", Location = new Point(1145, 10), Width = 80 };
-        voidButton.Click += (_, _) => VoidHeader();
-
-        var headerEditPanel = BuildHeaderEditPanel();
-        headerEditPanel.Location = new Point(12, 46);
-        headerEditPanel.Width = 1240;
-        headerEditPanel.Height = 78;
-
-        var headerGrid = BuildHeaderGrid();
-        headerGrid.Location = new Point(12, 130);
-        headerGrid.Width = 1240;
-        headerGrid.Height = 270;
-
-        var addLineButton = new Button { Text = "新增單身", Location = new Point(12, 410), Width = 95 };
-        addLineButton.Click += (_, _) => AddLine();
-
-        var deleteLineButton = new Button { Text = "刪除單身", Location = new Point(112, 410), Width = 95 };
-        deleteLineButton.Click += (_, _) => DeleteLine();
-
-        var detailButton = new Button { Text = "明細視窗", Location = new Point(212, 410), Width = 100 };
-        detailButton.Click += (_, _) => OpenSelectedDetail();
-
-        var checkButton = new Button { Text = "異常檢查", Location = new Point(317, 410), Width = 100 };
-        checkButton.Click += (_, _) => new PurchaseCheckForm(_lineBinding).ShowDialog(this);
+        var filterPanel = BuildFilterPanel();
+        filterPanel.Location = new Point(8, 58);
+        filterPanel.Width = 1488;
+        filterPanel.Height = 96;
 
         var lineGrid = BuildLineGrid();
-        lineGrid.Location = new Point(12, 446);
-        lineGrid.Width = 1240;
-        lineGrid.Height = 320;
+        lineGrid.Location = new Point(8, 162);
+        lineGrid.Width = 1488;
+        lineGrid.Height = 690;
 
-        Controls.Add(new Label { Text = "起日", Location = new Point(20, 16), AutoSize = true });
-        Controls.Add(new Label { Text = "迄日", Location = new Point(190, 16), AutoSize = true });
-        Controls.Add(_fromDate);
-        Controls.Add(_toDate);
-        Controls.Add(_department);
-        Controls.Add(queryButton);
-        Controls.Add(newHeaderButton);
-        Controls.Add(saveHeaderButton);
-        Controls.Add(deleteHeaderButton);
-        Controls.Add(confirmButton);
-        Controls.Add(unconfirmButton);
-        Controls.Add(voidButton);
-        Controls.Add(headerEditPanel);
-        Controls.Add(headerGrid);
-        Controls.Add(addLineButton);
-        Controls.Add(deleteLineButton);
-        Controls.Add(detailButton);
-        Controls.Add(checkButton);
+        Controls.Add(commandBar);
+        Controls.Add(filterPanel);
         Controls.Add(lineGrid);
     }
 
-    private Panel BuildHeaderEditPanel()
+    private Panel BuildCommandBar()
     {
-        var panel = new Panel { BorderStyle = BorderStyle.FixedSingle };
+        var panel = new Panel
+        {
+            BackColor = Color.FromArgb(236, 236, 236),
+            BorderStyle = BorderStyle.FixedSingle
+        };
 
-        _editDate.Format = DateTimePickerFormat.Short;
-        _editDate.Location = new Point(90, 22);
+        var buttons = new[]
+        {
+            CreateCommandButton("F2新增", (_, _) => CreateHeader()),
+            CreateCommandButton("F3查詢", (_, _) => LoadHeaders()),
+            CreateCommandButton("F8執行", (_, _) => LoadHeaders()),
+            CreateCommandButton("F5存檔", (_, _) => UpdateHeader()),
+            CreateCommandButton("F9上一筆", (_, _) => MoveHeader(-1)),
+            CreateCommandButton("F10下一筆", (_, _) => MoveHeader(1)),
+            CreateCommandButton("新增單身", (_, _) => AddLine()),
+            CreateCommandButton("刪除單身", (_, _) => DeleteLine()),
+            CreateCommandButton("印表", (_, _) => MessageBox.Show(this, "報表流程尚未完成移植。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information)),
+            CreateCommandButton("F11作廢", (_, _) => VoidHeader()),
+            CreateCommandButton("F7取消", (_, _) => UnconfirmHeader()),
+            CreateCommandButton("F12關閉", (_, _) => Close()),
+            CreateCommandButton("邏輯覆蓋", (_, _) => ShowCoverageReport())
+        };
 
-        _editDepartment.Location = new Point(290, 22);
-        _editDepartment.Width = 120;
-
-        _editBuyer.Location = new Point(520, 22);
-        _editBuyer.Width = 140;
-
-        panel.Controls.Add(new Label { Text = "採購日期", Location = new Point(20, 26), AutoSize = true });
-        panel.Controls.Add(new Label { Text = "部門", Location = new Point(245, 26), AutoSize = true });
-        panel.Controls.Add(new Label { Text = "採購員", Location = new Point(470, 26), AutoSize = true });
-        panel.Controls.Add(new Label { Text = $"目前使用者：{_currentUserId}", Location = new Point(720, 26), AutoSize = true, ForeColor = Color.DarkBlue });
-        panel.Controls.Add(_editDate);
-        panel.Controls.Add(_editDepartment);
-        panel.Controls.Add(_editBuyer);
+        var x = 8;
+        foreach (var button in buttons)
+        {
+            button.Location = new Point(x, 10);
+            panel.Controls.Add(button);
+            x += button.Width + 6;
+        }
 
         return panel;
     }
 
-    private DataGridView BuildHeaderGrid()
+    private Panel BuildFilterPanel()
     {
-        var grid = new DataGridView
+        var panel = new Panel
         {
-            AutoGenerateColumns = false,
-            DataSource = _headerBinding,
-            ReadOnly = true,
-            SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-            MultiSelect = false,
-            AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false
+            BackColor = Color.FromArgb(236, 229, 210),
+            BorderStyle = BorderStyle.FixedSingle
         };
 
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "單號", DataPropertyName = nameof(PurchaseOrderHeader.OrderNo), Width = 180 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "日期", DataPropertyName = nameof(PurchaseOrderHeader.OrderDate), Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy/MM/dd" } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "部門", DataPropertyName = nameof(PurchaseOrderHeader.Department), Width = 110 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "採購員", DataPropertyName = nameof(PurchaseOrderHeader.Buyer), Width = 120 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "狀態", DataPropertyName = nameof(PurchaseOrderHeader.Status), Width = 90 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "總金額", DataPropertyName = nameof(PurchaseOrderHeader.TotalAmount), Width = 120, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        _fromDate.Value = DateTime.Today.AddDays(-30);
+        _fromDate.Format = DateTimePickerFormat.Short;
+        _fromDate.Location = new Point(90, 8);
+        _fromDate.Width = 130;
 
-        grid.SelectionChanged += (_, _) => LoadLinesForSelection();
-        return grid;
+        _toDate.Value = DateTime.Today;
+        _toDate.Format = DateTimePickerFormat.Short;
+        _toDate.Location = new Point(230, 8);
+        _toDate.Width = 130;
+
+        _department.Location = new Point(370, 8);
+        _department.Width = 80;
+
+        _editBuyer.Location = new Point(560, 8);
+        _editBuyer.Width = 90;
+
+        _editDepartment.Location = new Point(660, 8);
+        _editDepartment.Width = 90;
+
+        _orderNo.Location = new Point(850, 8);
+        _orderNo.Width = 120;
+        _orderNo.ReadOnly = true;
+        _orderNo.BackColor = Color.WhiteSmoke;
+
+        _editDate.Format = DateTimePickerFormat.Short;
+        _editDate.Location = new Point(980, 8);
+        _editDate.Width = 120;
+
+        _statusCode.Location = new Point(1110, 8);
+        _statusCode.Width = 50;
+        _statusCode.ReadOnly = true;
+        _statusCode.BackColor = Color.WhiteSmoke;
+
+        _summaryQty.Location = new Point(90, 58);
+        _summaryQty.AutoSize = true;
+        _summaryQty.ForeColor = Color.DarkBlue;
+        _summaryQty.Text = "總數量: 0";
+
+        _summaryAmount.Location = new Point(260, 58);
+        _summaryAmount.AutoSize = true;
+        _summaryAmount.ForeColor = Color.DarkBlue;
+        _summaryAmount.Text = "總金額: 0";
+
+        panel.Controls.Add(new Label { Text = "採購日期", Location = new Point(16, 12), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "~", Location = new Point(222, 12), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "部門", Location = new Point(340, 12), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "請購人員", Location = new Point(500, 12), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "扣預算部門", Location = new Point(660, 40), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "請購單號", Location = new Point(790, 12), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "建立日期", Location = new Point(980, 40), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = "控制碼", Location = new Point(1110, 40), AutoSize = true, ForeColor = Color.Navy });
+        panel.Controls.Add(new Label { Text = $"使用者: {_currentUserId}", Location = new Point(1210, 12), AutoSize = true, ForeColor = Color.Brown });
+
+        panel.Controls.Add(_fromDate);
+        panel.Controls.Add(_toDate);
+        panel.Controls.Add(_department);
+        panel.Controls.Add(_editBuyer);
+        panel.Controls.Add(_editDepartment);
+        panel.Controls.Add(_orderNo);
+        panel.Controls.Add(_editDate);
+        panel.Controls.Add(_statusCode);
+        panel.Controls.Add(_summaryQty);
+        panel.Controls.Add(_summaryAmount);
+
+        return panel;
     }
 
     private DataGridView BuildLineGrid()
@@ -170,24 +178,44 @@ public sealed class PurchaseMainForm : Form
             SelectionMode = DataGridViewSelectionMode.FullRowSelect,
             MultiSelect = false,
             AllowUserToAddRows = false,
-            AllowUserToDeleteRows = false
+            AllowUserToDeleteRows = false,
+            RowHeadersVisible = false,
+            BackgroundColor = Color.FromArgb(245, 238, 224),
+            GridColor = Color.SaddleBrown,
+            BorderStyle = BorderStyle.FixedSingle
         };
 
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "序", DataPropertyName = nameof(PurchaseOrderLine.Sequence), Width = 60 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "料號", DataPropertyName = nameof(PurchaseOrderLine.ItemNo), Width = 130 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "品名", DataPropertyName = nameof(PurchaseOrderLine.ItemName), Width = 170 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製令單號", DataPropertyName = nameof(PurchaseOrderLine.SourceOrderNo), Width = 120 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製程區間", DataPropertyName = nameof(PurchaseOrderLine.ProcessRange), Width = 90 });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "數量", DataPropertyName = nameof(PurchaseOrderLine.Quantity), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "單價", DataPropertyName = nameof(PurchaseOrderLine.UnitPrice), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "金額", DataPropertyName = nameof(PurchaseOrderLine.Amount), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "參考金額", DataPropertyName = nameof(PurchaseOrderLine.ReferenceAmount), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "成本比", DataPropertyName = nameof(PurchaseOrderLine.CostRatio), Width = 70, DefaultCellStyle = new DataGridViewCellStyle { Format = "N3", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "序號", DataPropertyName = nameof(PurchaseOrderLine.Sequence), Width = 50 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "採購單號", DataPropertyName = nameof(PurchaseOrderLine.OrderNo), Width = 120 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "製令單號", DataPropertyName = nameof(PurchaseOrderLine.SourceOrderNo), Width = 130 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "起始製程", DataPropertyName = nameof(PurchaseOrderLine.ProcessFrom), Width = 70 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "結束製程", DataPropertyName = nameof(PurchaseOrderLine.ProcessTo), Width = 70 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "料號", DataPropertyName = nameof(PurchaseOrderLine.ItemNo), Width = 120 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "品名/材質", DataPropertyName = nameof(PurchaseOrderLine.ItemName), Width = 280 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "數量", DataPropertyName = nameof(PurchaseOrderLine.Quantity), Width = 80, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
         grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "MOQ", DataPropertyName = nameof(PurchaseOrderLine.MinimumOrderQty), Width = 60, DefaultCellStyle = new DataGridViewCellStyle { Alignment = DataGridViewContentAlignment.MiddleRight } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "交期", DataPropertyName = nameof(PurchaseOrderLine.DueDate), Width = 110, DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy/MM/dd" } });
-        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "狀態", DataPropertyName = nameof(PurchaseOrderLine.StatusCode), Width = 70 });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "單價", DataPropertyName = nameof(PurchaseOrderLine.UnitPrice), Width = 80, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "金額", DataPropertyName = nameof(PurchaseOrderLine.Amount), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "預估成本", DataPropertyName = nameof(PurchaseOrderLine.ReferenceAmount), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "N2", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "成本比", DataPropertyName = nameof(PurchaseOrderLine.CostRatio), Width = 70, DefaultCellStyle = new DataGridViewCellStyle { Format = "N3", Alignment = DataGridViewContentAlignment.MiddleRight } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "需求日", DataPropertyName = nameof(PurchaseOrderLine.DueDate), Width = 90, DefaultCellStyle = new DataGridViewCellStyle { Format = "yyyy/MM/dd" } });
+        grid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "狀態", DataPropertyName = nameof(PurchaseOrderLine.StatusCode), Width = 60 });
 
         return grid;
+    }
+
+    private static Button CreateCommandButton(string text, EventHandler clickHandler)
+    {
+        var button = new Button
+        {
+            Text = text,
+            Width = 90,
+            Height = 30,
+            FlatStyle = FlatStyle.Flat,
+            BackColor = Color.FromArgb(248, 248, 248)
+        };
+        button.Click += clickHandler;
+        return button;
     }
 
     private void LoadHeaders(string? focusOrderNo = null)
@@ -209,7 +237,24 @@ public sealed class PurchaseMainForm : Form
                 }
             }
 
-            LoadLinesForSelection();
+            if (_headerBinding.Count == 0)
+            {
+                _lineBinding.DataSource = new BindingList<PurchaseOrderLine>();
+                _orderNo.Clear();
+                _statusCode.Clear();
+                _summaryQty.Text = "總數量: 0";
+                _summaryAmount.Text = "總金額: 0";
+                return;
+            }
+
+            if (_headerBinding.Current is not PurchaseOrderHeader first)
+            {
+                first = (PurchaseOrderHeader)_headerBinding[0]!;
+                _headerBinding.Position = 0;
+            }
+
+            BindHeader(first);
+            LoadLinesForSelectedOrder(first.OrderNo);
         }
         catch (Exception ex)
         {
@@ -217,24 +262,21 @@ public sealed class PurchaseMainForm : Form
         }
     }
 
-    private void LoadLinesForSelection()
+    private void LoadLinesForSelectedOrder(string orderNo)
     {
-        var selected = _headerBinding.Current as PurchaseOrderHeader;
-        if (selected is null)
-        {
-            _lineBinding.DataSource = new BindingList<PurchaseOrderLine>();
-            _editDate.Value = DateTime.Today;
-            _editDepartment.Clear();
-            _editBuyer.Clear();
-            return;
-        }
-
-        _editDate.Value = selected.OrderDate.Date;
-        _editDepartment.Text = selected.Department;
-        _editBuyer.Text = selected.Buyer;
-
-        var lines = _service.QueryLines(selected.OrderNo);
+        var lines = _service.QueryLines(orderNo);
         _lineBinding.DataSource = new BindingList<PurchaseOrderLine>(lines.ToList());
+        _summaryQty.Text = $"總數量: {lines.Sum(x => x.Quantity):N2}";
+        _summaryAmount.Text = $"總金額: {lines.Sum(x => x.Amount):N2}";
+    }
+
+    private void BindHeader(PurchaseOrderHeader header)
+    {
+        _orderNo.Text = header.OrderNo;
+        _statusCode.Text = header.StatusCode;
+        _editDate.Value = header.OrderDate.Date;
+        _editDepartment.Text = header.Department;
+        _editBuyer.Text = header.Buyer;
     }
 
     private void CreateHeader()
@@ -254,7 +296,6 @@ public sealed class PurchaseMainForm : Form
                 Buyer = dialog.Buyer,
                 UserId = _currentUserId
             });
-
             LoadHeaders(created.OrderNo);
         }, "新增單頭成功");
     }
@@ -277,7 +318,6 @@ public sealed class PurchaseMainForm : Form
                 Buyer = _editBuyer.Text,
                 UserId = _currentUserId
             });
-
             LoadHeaders(selected.OrderNo);
         }, "儲存單頭成功");
     }
@@ -352,6 +392,22 @@ public sealed class PurchaseMainForm : Form
         }, "作廢成功");
     }
 
+    private void MoveHeader(int delta)
+    {
+        if (_headerBinding.Count == 0)
+        {
+            return;
+        }
+
+        var target = Math.Clamp(_headerBinding.Position + delta, 0, _headerBinding.Count - 1);
+        _headerBinding.Position = target;
+        if (_headerBinding.Current is PurchaseOrderHeader selected)
+        {
+            BindHeader(selected);
+            LoadLinesForSelectedOrder(selected.OrderNo);
+        }
+    }
+
     private void AddLine()
     {
         var selected = GetSelectedHeader();
@@ -381,7 +437,6 @@ public sealed class PurchaseMainForm : Form
                 DueDate = dialog.DueDate,
                 UserId = _currentUserId
             });
-
             LoadHeaders(selected.OrderNo);
         }, "新增單身成功");
     }
@@ -416,7 +471,7 @@ public sealed class PurchaseMainForm : Form
     {
         if (_headerBinding.Current is not PurchaseOrderHeader selected)
         {
-            MessageBox.Show(this, "請先選擇採購單。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(this, "請先執行查詢並選擇採購單。", "提示", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return null;
         }
 
@@ -436,14 +491,9 @@ public sealed class PurchaseMainForm : Form
         }
     }
 
-    private void OpenSelectedDetail()
+    private void ShowCoverageReport()
     {
-        var selected = GetSelectedHeader();
-        if (selected is null)
-        {
-            return;
-        }
-
-        new PurchaseDetailForm(selected, _service.QueryLines(selected.OrderNo)).ShowDialog(this);
+        var text = BusinessLogicCoverageService.BuildReportText();
+        MessageBox.Show(this, text, "商業邏輯覆蓋檢查", MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 }
