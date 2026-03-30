@@ -68,3 +68,13 @@
   - `IX_TMP2_MAIN / IX_QA1_OLDPART_ORDSQ2 / IX_RST_MAIN / IX_TEMP3_INPART_STATUS`
   - `#指派時間_SetUpKey / #指派時間_機台區間 / #指派時間_最小機台`
   - `OUTER APPLY` 決定性更新 `WKNO/DEPTNO`
+
+## 2026-03-30 同資料表單次查詢再重用（第二波）
+
+- 針對使用者反饋「同一資料表重複 SELECT 仍偏慢」，新增 `PRODTM` 一次快照策略：
+  - `#PRODTM_PTPSQ`：先取 `PTPSQ > 0` 必要欄位並建索引。
+  - `#PRODTM_已報工彙總`：供 `ORDDE4` 已報工更新重用。
+  - `#PRODTM_最後報工`：供 `#TEMP3` 取最後報工時間重用。
+  - `#PRODTM_有效PTPNO`：供「後製程已報工」判斷重用（取代兩處重複子查詢）。
+- `#指派時間` 再補一層重用：
+  - 新增 `#指派時間_機台首站`，取代原本一處 `MIN(StartTime)` 重複 Group By 子查詢。

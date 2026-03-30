@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-03-30 10:47 同資料表單次查詢再重用（PRODTM / 指派時間）
+
+- 依使用者回饋「跑速未改善」，再做一次「同表只查一次」優化並部署到 TEST。
+- 新增 `PRODTM` 一次快照與重用鏈：
+  - `#PRODTM_PTPSQ`
+  - `#PRODTM_已報工彙總`
+  - `#PRODTM_最後報工`
+  - `#PRODTM_有效PTPNO`
+- 取代重複子查詢：
+  - `ORDDE4` 已報工更新改用 `#PRODTM_已報工彙總`
+  - `#TEMP3` 最後報工時間改用 `#PRODTM_最後報工`
+  - 兩處「後製程已報工」判斷改用 `#PRODTM_有效PTPNO`
+  - `WKNO/DEPTNO` `OUTER APPLY` 改接 `#PRODTM_PTPSQ`
+- 新增 `#指派時間_機台首站`，替換一處重複 `#指派時間` Group By 子查詢。
+- 已部署，`sys.procedures.modify_date` 更新為 `2026-03-30 10:47:07`。
+
 ## 2026-03-30 10:36 直接部署 DB 版優化 SP（TEST）
 
 - 依使用者提供連線字串，直接讀取 `10.1.1.76 / TEST` 內 `dbo.產生ORDE3剩餘製程` 定義。
