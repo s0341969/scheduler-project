@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-03-30 10:36 直接部署 DB 版優化 SP（TEST）
+
+- 依使用者提供連線字串，直接讀取 `10.1.1.76 / TEST` 內 `dbo.產生ORDE3剩餘製程` 定義。
+- 新增 `產生ORDE3剩餘製程_從DB直接優化.sql`（以 DB 版本為母版，產生可直接執行 `ALTER PROCEDURE`）。
+- 已執行 `ALTER PROCEDURE` 部署到 TEST，`sys.procedures.modify_date` 更新為 `2026-03-30 10:36:10`。
+- 回讀驗證關鍵優化項目均存在（XACT_ABORT、TEMP 索引、重複彙總暫存、OUTER APPLY 決定性更新、DLYTIME_O 歸零）。
+
+## 2026-03-30 09:46 新增效能基準測試腳本（dbo.產生ORDE3剩餘製程）
+
+- 新增 `benchmark_產生ORDE3剩餘製程.sql`。
+- 腳本可直接在 `TEST` 執行，輸出：
+  - 每次執行明細（wall-clock / CPU / elapsed / logical reads / physical reads / writes）
+  - 情境彙總（AVG / P95 / MIN / MAX）
+- 使用 `sys.dm_exec_procedure_stats` 前後差值估算單次資源成本，並保留併發污染風險註記。
+
 ## 2026-03-30 09:39 產生ORDE3剩餘製程.sql 效能優化（排程重算）
 
 - 直接寫改本體檔 產生ORDE3剩餘製程.sql，新增 2026/03/30 MODIFY 註記。

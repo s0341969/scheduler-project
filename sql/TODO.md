@@ -12,3 +12,7 @@
 - [ ] 在 TEST 驗證 ORDDTP 範圍收斂更新（@INPART 非 %）的影響筆數與舊版一致性。
 - [ ] 在 TEST 驗證 2026-03-30 新增索引（#TEMP3 / #指派時間 / #指派時間_SetUpKey / #指派時間_機台區間 / #指派時間_最小機台）是否命中預期查詢。
 - [ ] 針對常用 INPART 與全量（@INPART='%'）各跑 3 次，紀錄修正前後平均耗時、P95、CPU time、logical reads。
+- [ ] 使用 `benchmark_產生ORDE3剩餘製程.sql` 先在舊版 SP 執行並保存結果，再部署新版後重跑一次做對照。
+- [ ] 在低併發時段執行 benchmark，避免 `sys.dm_exec_procedure_stats` 受其他 session 污染。
+- [ ] 已部署 TEST 新版 SP 後，針對常用 INPART（至少 3 組）回填實測耗時，確認是否由 7-8 分鐘下降到目標區間。
+- [ ] 若 `%` 全量仍偏慢，下一步拆分長鏈條段落（#TEMP3 產生前/後）做分段計時與瓶頸定位。

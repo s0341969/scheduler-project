@@ -44,3 +44,27 @@
   - 新增 `#指派時間_機台區間`（機台時段彙總用）
   - 新增 `#指派時間_最小機台`（MIN(Applier) 關聯用）
 - 將 A1 排程與機台超前工時段落改為使用上述彙總暫存表，避免重複計算。
+
+## 效能量測腳本（2026-03-30）
+
+- 新增可直接執行的基準測試腳本：
+  - `benchmark_產生ORDE3剩餘製程.sql`
+- 量測內容：
+  - 每次執行 wall-clock 毫秒
+  - `sys.dm_exec_procedure_stats` 前後差值（CPU / elapsed / logical reads / physical reads / writes）
+  - 各情境彙總（AVG / P95 / MIN / MAX）
+- 預設情境：
+  - 單一製卡（可自行替換）
+  - 特定前綴批次
+  - 全量 `%` 高負載
+
+## 2026-03-30 直接以資料庫版本改寫與部署
+
+- 來源基準改為直接讀取 DB 定義（`10.1.1.76 / TEST / dbo.產生ORDE3剩餘製程`），避免目錄檔與 DB 漂移。
+- 新增部署腳本：
+  - `產生ORDE3剩餘製程_從DB直接優化.sql`（可直接 `ALTER PROCEDURE`）
+- 已直接部署到 TEST，並回讀驗證關鍵優化標記存在：
+  - `SET XACT_ABORT ON`
+  - `IX_TMP2_MAIN / IX_QA1_OLDPART_ORDSQ2 / IX_RST_MAIN / IX_TEMP3_INPART_STATUS`
+  - `#指派時間_SetUpKey / #指派時間_機台區間 / #指派時間_最小機台`
+  - `OUTER APPLY` 決定性更新 `WKNO/DEPTNO`
