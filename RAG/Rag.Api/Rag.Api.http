@@ -1,0 +1,24 @@
+@Rag_Api_HostAddress = http://localhost:5039
+
+POST {{Rag_Api_HostAddress}}/api/rag/init
+Accept: application/json
+
+###
+
+POST {{Rag_Api_HostAddress}}/api/rag/ingest
+Content-Type: application/json
+
+{
+  "directoryPath": "\\\\10.1.1.10\\share\\pdf",
+  "recursive": true
+}
+
+###
+
+POST {{Rag_Api_HostAddress}}/api/rag/query
+Content-Type: application/json
+
+{
+  "question": "請問請款流程的核准條件是什麼？",
+  "topK": 5
+}
