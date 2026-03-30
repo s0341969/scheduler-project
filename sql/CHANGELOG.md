@@ -1,5 +1,18 @@
-﻿# Changelog
+# Changelog
 
+## 2026-03-30 09:39 產生ORDE3剩餘製程.sql 效能優化（排程重算）
+
+- 直接寫改本體檔 產生ORDE3剩餘製程.sql，新增 2026/03/30 MODIFY 註記。
+- 調整 #TEMP3 索引：
+  - 將聚集鍵由包含可變欄位（WKNO/Applier/PRTFM）改為穩定鍵（ORDTP,ORDNO,ORDSQ,ORDSQ1,ORDSQ2,ORDSQ3）。
+  - 新增 IX_TEMP3_INPART_STATUS、IX_TEMP3_INPART_OP，強化 INPART/ORDSQ2/狀態 路徑。
+- 強化 #指派時間：
+  - 新增 IX_TMP_DISPATCH_INPART_OP、IX_TMP_DISPATCH_STATUS。
+  - 新增彙總暫存表 #指派時間_SetUpKey、#指派時間_機台區間、#指派時間_最小機台 及其索引。
+- 將重複子查詢改為彙總暫存重用：
+  - A1DLYTIME 兩段 SetUpTime 子查詢改接 #指派時間_SetUpKey。
+  - 機台超前工時段落改接 #指派時間_機台區間。
+  - #TEMP3 建立時 MIN(Applier) 子查詢改接 #指派時間_最小機台。
 ## 2026-03-12 23:54 產生ORDE3剩餘製程.sql 再校正
 
 - 直接寫改本體檔 產生ORDE3剩餘製程.sql，新增 2026/03/12 MODIFY 註記。
@@ -40,4 +53,6 @@
 
 - 直接修改 [產生ORDE3剩餘製程.sql]。
 - 實際套用：XACT_ABORT、@INPART 正規化、ORDDTP 範圍收斂、#SOPNAME/#指派時間 索引、WKNO/DEPTNO 決定性更新、DLYTIME_O 歸零。
+
+
 
