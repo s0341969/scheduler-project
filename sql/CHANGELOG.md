@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-03-31 15:17 新增全重寫 v2 並完成初步基準（TEST）
+
+- 新增檔案 `產生ORDE3剩餘製程_v2.sql`，建立 `dbo.產生ORDE3剩餘製程_v2`。
+- v2 以單次快照重用為核心：`#Card / #SOP / #ProdAgg / #Dispatch / #FlowDedup / #Summary`。
+- v2 已部署至 `10.1.1.76 / TEST`，`modify_date=2026-03-31 15:17:14`。
+- 快速 wall-clock 測試（單次）：
+  - `@INPART='24X01008MT-0%'`：`104 ms`
+  - `@INPART='23G%'`：`1,807 ms`
+  - `@INPART='%'`：`57,797 ms`
+- 備註：v2 目前定位為 A/B 驗證版，尚需逐項比對舊版商規輸出等價性。
+
 ## 2026-03-30 10:58 重複鍵修補 + 實測（TEST）
 
 - 修補 `PK_ORDDE4_剩餘製程明細_直式_D` 重複鍵：
