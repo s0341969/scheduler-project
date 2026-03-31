@@ -7,16 +7,46 @@
 - NAS：存放原始 PDF 檔案
 - Rag.Api：負責 PDF 匯入、切塊、embedding、向量檢索、回答生成
 - PostgreSQL + pgvector：儲存 chunk 與向量
-- LM Studio：提供 embedding 與 chat 模型（目前預設 `http://10.1.1.123:1234/v1`）
+- LM Studio：提供 embedding 與 chat 模型
 
-## 必要條件
+## 目前預設連線
 
-- .NET 9 SDK
-- Docker / Docker Compose（Linux 主機建議）
-- LM Studio 已啟動 API Server
-- Embedding 模型：`text-embedding-nomic-embed-text-v1.5`
-- Chat 模型：任一可用指令模型（預設 `qwen2.5-7b-instruct`）
-- Linux 安裝 `pdftotext`：
+- LM Studio：`http://10.1.1.123:1234/v1`
+- PostgreSQL：`Host=10.1.1.12;Port=5432;Database=ragdb;Username=raguser;Password=ragpass`
+
+## Windows 安裝重點
+
+### 1) PostgreSQL (Windows)
+
+可使用 PostgreSQL 官方安裝程式（建議 16 版）。
+
+### 2) pgvector
+
+必須能執行 `CREATE EXTENSION vector;` 才能做向量檢索。
+
+若你的 Windows PostgreSQL 無法直接安裝 pgvector，建議改用 Docker 版 PostgreSQL + pgvector：
+
+```powershell
+docker run -d --name rag-postgres -e POSTGRES_DB=ragdb -e POSTGRES_USER=raguser -e POSTGRES_PASSWORD=ragpass -p 5432:5432 pgvector/pgvector:pg16
+```
+
+### 3) pdftotext (Windows)
+
+本專案匯入 PDF 使用 `pdftotext.exe`。
+
+- 安裝 Poppler for Windows
+- 將 `pdftotext.exe` 加入 PATH
+- 或在 `Rag:PdfToTextPath` 設定完整路徑
+
+範例：
+
+```json
+"Rag": {
+  "PdfToTextPath": "C:\\Program Files\\poppler\\Library\\bin\\pdftotext.exe"
+}
+```
+
+## Linux 依賴（若部署在 Linux）
 
 ```bash
 sudo apt update
@@ -28,38 +58,18 @@ sudo apt install -y poppler-utils
 請調整 `Rag.Api/appsettings.json`：
 
 - `Rag:ConnectionString`：PostgreSQL 連線字串
-- `LmStudio:BaseUrl`：預設 `http://10.1.1.123:1234/v1`
+- `Rag:PdfToTextPath`：Windows 可指定 `pdftotext.exe` 完整路徑
+- `LmStudio:BaseUrl`：LM Studio API 位址
 - `LmStudio:EmbeddingModel`：`text-embedding-nomic-embed-text-v1.5`
 - `LmStudio:ChatModel`：你的 LM Studio 已載入模型名稱
 
 ## 啟動步驟
 
-1. 啟動 PostgreSQL
-
-```bash
-docker compose up -d
-```
-
-2. 還原與建置
-
-```bash
-dotnet restore
-dotnet build RagServer.sln
-```
-
-3. 啟動 API
-
-```bash
-dotnet run --project Rag.Api
-```
-
-## API
-
-### 1) 初始化資料表
+1. 建立資料表（首次）
 
 `POST /api/rag/init`
 
-### 2) 匯入 NAS PDF
+2. 匯入 NAS PDF
 
 `POST /api/rag/ingest`
 
@@ -72,7 +82,7 @@ Request body:
 }
 ```
 
-### 3) 查詢
+3. 查詢
 
 `POST /api/rag/query`
 
@@ -90,14 +100,8 @@ Response 會回傳：
 - `answer`：模型回答
 - `citations`：引用來源（檔案路徑、頁碼、相似度）
 
-## WinForms 串接建議
-
-- WinForms 只呼叫 `/api/rag/query`
-- UI 顯示答案與來源列表（檔案+頁碼）
-- 建立「重建索引」按鈕呼叫 `/api/rag/ingest`
-
 ## 目前行為與限制
 
 - 採用增量索引（依檔案 SHA-256 判斷是否需重建）
 - chunk 策略為字元長度切分（可在 `Rag:ChunkSize/ChunkOverlap` 調整）
-- 目前 PDF 抽取依賴 `pdftotext`（掃描 PDF 需另接 OCR）
+- 僅支援可抽取文字的 PDF（掃描 PDF 需另接 OCR）
