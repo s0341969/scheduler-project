@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-04-01 第三輪優化：批次化 PRODTM 時間差 + 索引補強（TEST）
+
+- 直接修改並部署 `dbo.產生ORDE3剩餘製程`：
+  - `#PRODTM_S_合併` 改含 `ID`，新增 `IX_PRODTM_S_MERGE_MAIN` / `IX_PRODTM_S_MERGE_KEY`。
+  - 新增 `#PRODTM_S_分鐘`，改用 `EXEC [dbo].[時間分鐘差_依上班時間]` 批次計算分鐘差後回寫 `DLYTIME`。
+  - 補強索引：
+    - `#SOPNAME`: `IX_SOPNAME_GROUP`, `IX_SOPNAME_DESC_KIND`
+    - `#TOT3`: `IX_TOT3_INPART_ORDSQ2`
+    - `#製卡明細`: `IX_CARD_MAIN`
+    - `#TEMP3`: `IX_TEMP3_INPART_ORDSQ2KEY`
+- 單次 wall-clock 測試：
+  - `@INPART='24X01008MT-0%'`：`104577ms`
+  - `@INPART='23G%'`：`111441ms`
+  - `@INPART='%'`：`343962ms`
+- 與上一輪比較：`%` 由 `442892ms` 降至 `343962ms`（約 -22%）。
+
 ## 2026-04-01 直接改寫正式 SP 第二輪熱點修補（TEST）
 
 - 直接修改 `產生ORDE3剩餘製程.sql` 並部署到 `10.1.1.76 / TEST` 的 `[dbo].[產生ORDE3剩餘製程]`。
