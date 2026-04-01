@@ -1,6 +1,6 @@
 # TODO
 
-- [ ] 針對 `INSERT INTO ORDDE4_剩餘製程明細_D` 建立 `#TEMP3` 字串欄位預彙總表（避免同一 INPART 重複 FOR XML 子查詢）。
+- [x] 針對 `INSERT INTO ORDDE4_剩餘製程明細_D` 建立 `#TEMP3` 字串欄位預彙總表（避免同一 INPART 重複 FOR XML 子查詢）。
 
 - [ ] 針對 `ORDDE4_剩餘製程明細_D` 做「預彙總再寫入」重寫（取代單次大 SQL 內多個相關子查詢）。
 - [ ] 對 `%` 全量執行加上分段計時（建 `#TEMP3` / 寫直式 / 寫明細 / DLYTIME 計算）並輸出每段 ms。
