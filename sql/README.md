@@ -1,4 +1,19 @@
-﻿# 專案說明
+# 專案說明
+## 2026-04-03 第八輪定位：`AfterOutsourcePhase -> BeforeHMSection` 再細分（CMM/LQ）
+
+- 已在 `產生ORDE3剩餘製程.sql` 新增 `%` 條件下的里程碑：
+  - `AfterDlytimeOPhase`
+  - `AfterCMMSchedule`
+  - `AfterLQSchedule`
+  - （銜接既有）`BeforeHMSection`
+- TEST 單次 `%` 實測（2026-04-03 00:09~00:15，`TOTAL_MS=321848`）：
+  - `AfterOutsourcePhase -> AfterDlytimeOPhase`: `6268 ms`
+  - `AfterDlytimeOPhase -> AfterCMMSchedule`: `19227 ms`
+  - `AfterCMMSchedule -> AfterLQSchedule`: `125 ms`
+  - `AfterLQSchedule -> BeforeHMSection`: `0 ms`
+- 結論：
+  - `AfterOutsourcePhase -> BeforeHMSection` 的主要耗時已定位在 CMM 排程段（約 `19.2s`）。
+  - LQ 與 HM 前銜接幾乎無成本，下一步應優先切分/優化 CMM 內部 SQL。
 
 本次針對 `dbo.產生ORDE3剩餘製程` 進行 5 輪檢查與修正，重點是：
 
@@ -311,3 +326,5 @@
 - 判讀：
   - HM 指派本身不是瓶頸。
   - 主要耗時位於 HM 前段（同區段含 CMM/LQ 等排程流程），下一輪應切細該段。
+
+

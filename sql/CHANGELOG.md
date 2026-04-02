@@ -1,4 +1,19 @@
 # Changelog
+## 2026-04-03 第八輪定位：CMM/LQ 細分里程碑（TEST）
+
+- 目的：把 `AfterOutsourcePhase -> BeforeHMSection` 再切細，確認實際卡點。
+- 在 `產生ORDE3剩餘製程.sql` 新增里程碑（僅 `%` 顯示）：
+  - `AfterDlytimeOPhase`
+  - `AfterCMMSchedule`
+  - `AfterLQSchedule`
+- `%` 單次結果（`TOTAL_MS=321848`）重點：
+  - `AfterOutsourcePhase -> AfterDlytimeOPhase`: `6268ms`
+  - `AfterDlytimeOPhase -> AfterCMMSchedule`: `19227ms`
+  - `AfterCMMSchedule -> AfterLQSchedule`: `125ms`
+  - `AfterLQSchedule -> BeforeHMSection`: `0ms`
+- 結論：
+  - 此區段主要耗時在 CMM 排程（約 19.2 秒）。
+  - LQ 與 HM 前銜接非瓶頸；下一輪優先拆 CMM 段內部 SQL。
 
 ## 2026-04-02 第七輪定位：HM 子段細分里程碑（TEST）
 
@@ -307,6 +322,8 @@
 
 - 直接修改 [產生ORDE3剩餘製程.sql]。
 - 實際套用：XACT_ABORT、@INPART 正規化、ORDDTP 範圍收斂、#SOPNAME/#指派時間 索引、WKNO/DEPTNO 決定性更新、DLYTIME_O 歸零。
+
+
 
 
 

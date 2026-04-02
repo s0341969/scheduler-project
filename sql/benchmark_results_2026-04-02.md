@@ -58,3 +58,18 @@
 | AfterHMAssignCore -> AfterHMSchedule | 0 |
 
 結論：HM 子段不是瓶頸，熱點在 HM 前段（CMM/LQ 等流程）。
+## 第八輪定位 `%` 單次（CMM/LQ 細分里程碑）
+
+| 指標 | ms |
+|---|---:|
+| TOTAL_MS | 321,848 |
+| AfterOutsourcePhase -> AfterDlytimeOPhase | 6,268 |
+| AfterDlytimeOPhase -> AfterCMMSchedule | 19,227 |
+| AfterCMMSchedule -> AfterLQSchedule | 125 |
+| AfterLQSchedule -> BeforeHMSection | 0 |
+
+測試時間（Asia/Taipei）：2026-04-03 00:09~00:15  
+對應 log：`_perf_run_2026-04-03_000928_stage8_cmm_lq_split.log`
+
+結論：本區段瓶頸已定位在 CMM 排程，LQ/HM 前銜接不是主要耗時來源。
+
