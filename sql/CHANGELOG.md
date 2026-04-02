@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-04-02 緊急修補：解決 `INPART` 模稜兩可與欄位數不符（TEST）
+
+- 問題來源：
+  - `ORDDE4_剩餘製程明細_D` 兩個 `INSERT` 分支在接入 `#TEMP3_字串彙總` 後仍使用 `SELECT *`，且維持 `ORDER BY INPART`。
+- 修補內容（`產生ORDE3剩餘製程.sql`）：
+  - 兩段 `SELECT *,剩餘製程明細 = TMP3S...` 改為 `SELECT #製卡明細.*,剩餘製程明細 = TMP3S...`。
+  - 兩段 `ORDER BY INPART` 改為 `ORDER BY #製卡明細.INPART`。
+- 部署與驗證：
+  - 已部署至 `10.1.1.76 / TEST`。
+  - 以 `@INPART='24X01008MT-0%'` 執行完成，未再出現：
+    - `模稜兩可的資料行名稱 'INPART'`
+    - `資料行名稱或提供的數值數量與資料表定義不相符`
+
 ## 2026-04-02 雲端留存：單次 Benchmark 結果（TEST）
 
 - 新增 `benchmark_results_2026-04-02.md`，保存本次單次實測結果。

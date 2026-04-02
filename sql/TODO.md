@@ -1,6 +1,7 @@
 # TODO
 
 - [x] 針對 `INSERT INTO ORDDE4_剩餘製程明細_D` 建立 `#TEMP3` 字串欄位預彙總表（避免同一 INPART 重複 FOR XML 子查詢）。
+- [x] 修補 `#TEMP3_字串彙總` 接入後的 SQL 錯誤：兩段 `INSERT INTO ORDDE4_剩餘製程明細_D` 改 `SELECT #製卡明細.*`、`ORDER BY #製卡明細.INPART`，避免 `INPART` 模稜兩可與欄位數不符。
 
 - [ ] 針對 `ORDDE4_剩餘製程明細_D` 做「預彙總再寫入」重寫（取代單次大 SQL 內多個相關子查詢）。
 - [ ] 對 `%` 全量執行加上分段計時（建 `#TEMP3` / 寫直式 / 寫明細 / DLYTIME 計算）並輸出每段 ms。
