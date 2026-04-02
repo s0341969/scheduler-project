@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-04-02 雲端留存：單次 Benchmark 結果（TEST）
+
+- 新增 `benchmark_results_2026-04-02.md`，保存本次單次實測結果。
+- 測試條件：`10.1.1.76 / TEST / dbo.產生ORDE3剩餘製程`，每個情境執行 1 次（wall-clock）。
+- 結果：
+  - `@INPART='24X01008MT-0%'`：`356571 ms`
+  - `@INPART='23G%'`：`350177 ms`
+  - `@INPART='%'`：`345210 ms`
+
 ## 2026-04-02 字串預彙總（`#TEMP3_字串彙總`）接入兩分支 INSERT（本體檔）
 
 - 修改 `產生ORDE3剩餘製程.sql`：
