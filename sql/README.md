@@ -188,3 +188,20 @@
   - 兩段排序改為 `ORDER BY #製卡明細.INPART`（避免欄位名稱衝突）。
 - 驗證：
   - 已部署 TEST 後以 `@INPART='24X01008MT-0%'` 直接執行，程序可完成，未再出現上述兩個錯誤。
+
+## 2026-04-02 `%` 全量分段計時（TEST）
+
+- 為定位 5~6 分鐘瓶頸，已在 SP 加入僅 `@INPART='%'` 啟用的 `[PERF]` 訊息點：
+  - `START`
+  - `BeforeSummaryInsert`
+  - `AfterSummaryInsert`
+  - `BeforeCommit`
+- 本次單次實測（wall-clock）：
+  - `TOTAL_MS = 334,707 ms`（約 5 分 35 秒）
+- 分段結果：
+  - `START -> BeforeSummaryInsert`: `122,104 ms`
+  - `BeforeSummaryInsert -> AfterSummaryInsert`: `82,178 ms`
+  - `AfterSummaryInsert -> BeforeCommit`: `113,499 ms`
+  - `BeforeCommit -> 結束`: 約 `16,926 ms`（以 wall-clock 推估）
+- 初步結論：
+  - 目前主要耗時集中在「前處理 + 後處理」兩段（合計約 235 秒），不只 `ORDDE4_剩餘製程明細_D` 插入段落。

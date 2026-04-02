@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-04-02 分段計時定位 `%` 全量耗時（TEST）
+
+- `產生ORDE3剩餘製程.sql` 加入 `%` 條件啟用的 `[PERF]` 訊息（`RAISERROR ... WITH NOWAIT`）：
+  - `START`
+  - `BeforeSummaryInsert`
+  - `AfterSummaryInsert`
+  - `BeforeCommit`
+- `%` 單次實測：
+  - `TOTAL_MS=334707`
+  - `BeforeSummaryInsert total=122104ms`
+  - `AfterSummaryInsert total=204282ms`（delta `82178ms`）
+  - `BeforeCommit total=317781ms`（delta `113499ms`）
+- 結論：
+  - 5 分鐘等級耗時不只在 summary insert，前後處理段落仍為主要成本來源。
+
 ## 2026-04-02 緊急修補：解決 `INPART` 模稜兩可與欄位數不符（TEST）
 
 - 問題來源：
