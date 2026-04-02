@@ -36,6 +36,29 @@
 - 判讀：
   - 目前最大單段為 `AfterSummaryInsert -> BeforeCommit`（約 `123,439 ms`），其次是 `AfterVerticalInsert2 -> AfterDlytimeCore` 與 `summary insert` 本段（各約 `75s`）。
 
+## 2026-04-02 細分里程碑（第三輪）拆解 `AfterSummaryInsert -> BeforeCommit`（TEST）
+
+- 新增里程碑：
+  - `BeforeOutsourcePhase`
+  - `AfterOutsourcePhase`
+  - `BeforeFinalTxnPhase`
+- `%` 單次實測：
+  - `TOTAL_MS=344045`
+  - `AfterDlytimeCore total=117460ms`
+  - `BeforeSummaryInsert total=129979ms`
+  - `AfterSummaryInsert total=205069ms`
+  - `BeforeOutsourcePhase total=257620ms`
+  - `AfterOutsourcePhase total=279175ms`
+  - `BeforeFinalTxnPhase total=305340ms`
+  - `BeforeCommit total=322704ms`
+- 區段判讀（delta）：
+  - `AfterVerticalInsert2 -> AfterDlytimeCore`: `73803ms`
+  - `BeforeSummaryInsert -> AfterSummaryInsert`: `75090ms`
+  - `AfterSummaryInsert -> BeforeOutsourcePhase`: `52551ms`
+  - `BeforeOutsourcePhase -> AfterOutsourcePhase`: `21555ms`
+  - `AfterOutsourcePhase -> BeforeFinalTxnPhase`: `26165ms`
+  - `BeforeFinalTxnPhase -> BeforeCommit`: `17364ms`
+
 ## 2026-04-02 緊急修補：解決 `INPART` 模稜兩可與欄位數不符（TEST）
 
 - 問題來源：

@@ -222,3 +222,26 @@
   - `AfterVerticalInsert2 -> AfterDlytimeCore`: `75,139 ms`
   - `BeforeSummaryInsert -> AfterSummaryInsert`: `74,348 ms`
   - `AfterSummaryInsert -> BeforeCommit`: `123,439 ms`（目前最大瓶頸）
+
+## 2026-04-02 `%` 全量細分里程碑（第三輪，TEST）
+
+- `%` 單次 wall-clock：`344,045 ms`（約 5 分 44 秒）
+- 里程碑：
+  - `AfterTemp3Build total=16,501 ms`
+  - `BeforeVerticalInsert total=37,514 ms`
+  - `AfterVerticalInsert1 total=43,110 ms`
+  - `AfterVerticalInsert2 total=43,657 ms`
+  - `AfterDlytimeCore total=117,460 ms`
+  - `BeforeSummaryInsert total=129,979 ms`
+  - `AfterSummaryInsert total=205,069 ms`
+  - `BeforeOutsourcePhase total=257,620 ms`
+  - `AfterOutsourcePhase total=279,175 ms`
+  - `BeforeFinalTxnPhase total=305,340 ms`
+  - `BeforeCommit total=322,704 ms`
+- 主要區段耗時（delta）：
+  - `AfterVerticalInsert2 -> AfterDlytimeCore`: `73,803 ms`
+  - `BeforeSummaryInsert -> AfterSummaryInsert`: `75,090 ms`
+  - `AfterSummaryInsert -> BeforeOutsourcePhase`: `52,551 ms`
+  - `BeforeOutsourcePhase -> AfterOutsourcePhase`: `21,555 ms`
+  - `AfterOutsourcePhase -> BeforeFinalTxnPhase`: `26,165 ms`
+  - `BeforeFinalTxnPhase -> BeforeCommit`: `17,364 ms`
