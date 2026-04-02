@@ -245,3 +245,19 @@
   - `BeforeOutsourcePhase -> AfterOutsourcePhase`: `21,555 ms`
   - `AfterOutsourcePhase -> BeforeFinalTxnPhase`: `26,165 ms`
   - `BeforeFinalTxnPhase -> BeforeCommit`: `17,364 ms`
+
+## 2026-04-02 第四輪：`-1000/-500` 時間差改批次計算（TEST）
+
+- 目的：
+  - 將兩段高頻逐列 `dbo.時間差_依上班時間` 改為批次 `EXEC [dbo].[時間分鐘差_依上班時間]`，減少 scalar UDF 呼叫成本。
+- 改寫段落：
+  - `ORDSQ2='-1000'`：改為 `#訂單接單紀錄_分鐘` 批次計算後回寫。
+  - `ORDSQ2='-500'`：改為 `#整批整理DLYTIME_負500_分鐘` 批次計算後回寫。
+- 實測（`@INPART='%'`，TEST，部署後連跑 2 次）：
+  - Run1: `330,745 ms`
+  - Run2: `352,789 ms`
+  - 平均: `341,767 ms`（約 5 分 41 秒）
+- 與第三輪基準比較（`344,045 ms`）：
+  - 平均改善約 `2,278 ms`（`0.66%`），整體視為無顯著改善。
+- 判讀：
+  - 目前主瓶頸仍不在此段，後續優先應放在 `AfterSummaryInsert -> BeforeOutsourcePhase` 與 summary 前後的大型更新/寫入段。

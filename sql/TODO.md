@@ -12,7 +12,9 @@
 - [x] 已拆解 `AfterSummaryInsert -> BeforeCommit`（第三輪）並定位到 `AfterSummaryInsert -> BeforeOutsourcePhase` 約 52.6 秒、`BeforeOutsource -> AfterOutsource` 約 21.6 秒、`AfterOutsource -> BeforeFinalTxn` 約 26.2 秒。
 - [ ] 先優化 `AfterDlytimeCore`（約 73.8 秒）與 `summary insert`（約 75.1 秒）兩段，再回頭優化 `AfterSummaryInsert -> BeforeOutsourcePhase`（約 52.6 秒）。
 - [ ] 針對 2026-04-02 單次結果（約 345~356 秒）進一步檢查是否受測試時段資料量/鎖競爭影響，並在離峰時段重跑 3 次取平均與 P95。
-- [ ] 評估把 `dbo.時間差_依上班時間` 在高頻段改為批次計算（避免逐列 scalar UDF）。
+- [x] 評估把 `dbo.時間差_依上班時間` 在高頻段改為批次計算（2026-04-02：已套用 `-1000/-500`，`%` 兩次平均僅改善約 `0.66%`）。
+- [ ] 針對 `AfterSummaryInsert -> BeforeOutsourcePhase`（約 45~52 秒）再細切到每個 UPDATE/INSERT，找出前兩大 SQL。
+- [ ] 優先改寫 `AfterSummaryInsert -> BeforeOutsourcePhase` 最大 SQL（先做一次預彙總快照，再回寫），目標 `%` 下降至少 30 秒。
 
 - [ ] 在 SQL Server `TEST` 先執行 `產生ORDE3剩餘製程_實際修補SP.sql`，確認 5 輪片段皆匹配成功。
 - [ ] 將 `dbo.產生ORDE3剩餘製程` 拆分為多個子程序（資料準備、排程標記、統計輸出）。
