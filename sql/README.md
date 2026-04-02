@@ -261,3 +261,24 @@
   - 平均改善約 `2,278 ms`（`0.66%`），整體視為無顯著改善。
 - 判讀：
   - 目前主瓶頸仍不在此段，後續優先應放在 `AfterSummaryInsert -> BeforeOutsourcePhase` 與 summary 前後的大型更新/寫入段。
+
+## 2026-04-02 第五輪：HM/PM 排程段落 set-based + 索引補強（TEST）
+
+- 調整內容（維持既有商規）：
+  - HM 三段指派（`精品/航太/HM`）由多次條件更新改為單次 `OUTER APPLY TOP 1` 指派。
+  - PM 排程由 `WHILE` 逐輪更新改為 set-based 一次更新。
+  - 補強 HM/PM 暫存表索引：
+    - `#TEMP1_HM工作`、`#MACPRD_HM機台`
+    - `#TEMP1_PM工作`、`#MACPRD_PM機台`
+  - 新增 PERF 里程碑：
+    - `AfterHMSchedule`
+    - `AfterPMSchedule`
+- `%` 實測（部署後連跑 2 次）：
+  - Run1: `340,553 ms`
+  - Run2: `338,533 ms`
+  - 平均: `339,543 ms`（約 5 分 40 秒）
+- 與第三輪基準 `344,045 ms` 比較：
+  - 平均改善約 `4,502 ms`（`1.31%`，小幅改善）。
+- 目前判讀：
+  - `AfterPMSchedule` 已壓到子秒級（約 `0.3~0.5s`）。
+  - `AfterOutsourcePhase -> AfterHMSchedule` 仍約 `21~25s`，下一輪應聚焦 HM 其餘排序與回寫段落。

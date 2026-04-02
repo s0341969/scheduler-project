@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-04-02 第五輪優化：HM/PM 排程段落 set-based + 索引補強（TEST）
+
+- 修改 `產生ORDE3剩餘製程.sql`（不改商規、僅改熱點實作）：
+  - HM 配機（`精品/航太/HM`）原本多次 `UPDATE ... ROW_ID='n'` 改為單次 `OUTER APPLY TOP 1 ... ORDER BY ROW_ID DESC`。
+  - PM 配機原本 `WHILE` 逐輪更新改為 set-based 一次回寫：
+    - `Applier` 依 `((ROW_ID-1)%@機台數)+1` 對應機台。
+    - `目前排程順序` 依 `((ROW_ID-1)/@機台數)+1` 產生 `A1/A2/...`。
+  - 新增 temp index（HM/PM）：
+    - `IX_TMP_HMWORK_MAIN`, `IX_TMP_HMWORK_SEQ`, `IX_TMP_HMMAC_KIND_ROW`
+    - `IX_TMP_PMWORK_MAIN`, `IX_TMP_PMWORK_ROW`, `IX_TMP_PMMAC_BASE`
+  - 新增里程碑：
+    - `AfterHMSchedule`
+    - `AfterPMSchedule`
+- `%` 實測（部署後 2 次）：
+  - Run1: `TOTAL_MS=340553`
+  - Run2: `TOTAL_MS=338533`
+  - 平均: `339543`
+- 與第三輪基準（`344045`）相比：
+  - 平均改善 `-4502 ms`（約 `-1.31%`，小幅下降）。
+
 ## 2026-04-02 第四輪優化實測：批次化 `-1000/-500` 時間差計算（TEST）
 
 - 直接修改 `產生ORDE3剩餘製程.sql`：

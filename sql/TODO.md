@@ -11,6 +11,9 @@
 - [ ] 針對目前最大瓶頸 `AfterSummaryInsert -> BeforeCommit`（約 123 秒）再切細（鎖定實際卡在哪幾段 UPDATE/INSERT）。
 - [x] 已拆解 `AfterSummaryInsert -> BeforeCommit`（第三輪）並定位到 `AfterSummaryInsert -> BeforeOutsourcePhase` 約 52.6 秒、`BeforeOutsource -> AfterOutsource` 約 21.6 秒、`AfterOutsource -> BeforeFinalTxn` 約 26.2 秒。
 - [ ] 先優化 `AfterDlytimeCore`（約 73.8 秒）與 `summary insert`（約 75.1 秒）兩段，再回頭優化 `AfterSummaryInsert -> BeforeOutsourcePhase`（約 52.6 秒）。
+- [x] 完成 HM/PM 排程段落 set-based + temp index 補強（2026-04-02，第五輪；`%` 兩次平均 `339543 ms`，較 `344045 ms` 約 `-1.31%`）。
+- [ ] 針對 `AfterOutsourcePhase -> AfterHMSchedule`（約 21~25 秒）再細切 HM 子段（建表/分類/指派/回寫）並鎖定前兩大 SQL。
+- [ ] 在低併發時段補跑 `%` 3 次，確認第五輪改善是否穩定（避免尖峰負載造成假改善/假退步）。
 - [ ] 針對 2026-04-02 單次結果（約 345~356 秒）進一步檢查是否受測試時段資料量/鎖競爭影響，並在離峰時段重跑 3 次取平均與 P95。
 - [x] 評估把 `dbo.時間差_依上班時間` 在高頻段改為批次計算（2026-04-02：已套用 `-1000/-500`，`%` 兩次平均僅改善約 `0.66%`）。
 - [ ] 針對 `AfterSummaryInsert -> BeforeOutsourcePhase`（約 45~52 秒）再細切到每個 UPDATE/INSERT，找出前兩大 SQL。
