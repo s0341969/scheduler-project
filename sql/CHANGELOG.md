@@ -1,5 +1,24 @@
 # Changelog
 
+## 2026-04-02 第七輪定位：HM 子段細分里程碑（TEST）
+
+- 目的：釐清 `AfterOutsourcePhase -> AfterHMSchedule` 是否真由 HM 指派造成。
+- 在 `產生ORDE3剩餘製程.sql` 新增 HM 細分里程碑（僅 `%` 顯示）：
+  - `BeforeHMSection`
+  - `AfterHMWorkBuild`
+  - `AfterHMClassify`
+  - `AfterHMAssignCore`
+  - （保留既有）`AfterHMSchedule`
+- `%` 單次結果（`TOTAL_MS=359394`）重點：
+  - `AfterOutsourcePhase -> BeforeHMSection`: `25803ms`
+  - `BeforeHMSection -> AfterHMWorkBuild`: `157ms`
+  - `AfterHMWorkBuild -> AfterHMClassify`: `47ms`
+  - `AfterHMClassify -> AfterHMAssignCore`: `46ms`
+  - `AfterHMAssignCore -> AfterHMSchedule`: `0ms`
+- 結論：
+  - HM 本體不是主要瓶頸（子段合計僅數百毫秒）。
+  - 熱點在 HM 之前的區段（同段含 CMM/LQ 等流程），下一輪應把 `AfterOutsourcePhase -> BeforeHMSection` 再拆細。
+
 ## 2026-04-02 第六輪實驗（已回退）：HM 指派再整併為單一序號表（TEST）
 
 - 實驗內容：

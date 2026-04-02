@@ -12,7 +12,8 @@
 - [x] 已拆解 `AfterSummaryInsert -> BeforeCommit`（第三輪）並定位到 `AfterSummaryInsert -> BeforeOutsourcePhase` 約 52.6 秒、`BeforeOutsource -> AfterOutsource` 約 21.6 秒、`AfterOutsource -> BeforeFinalTxn` 約 26.2 秒。
 - [ ] 先優化 `AfterDlytimeCore`（約 73.8 秒）與 `summary insert`（約 75.1 秒）兩段，再回頭優化 `AfterSummaryInsert -> BeforeOutsourcePhase`（約 52.6 秒）。
 - [x] 完成 HM/PM 排程段落 set-based + temp index 補強（2026-04-02，第五輪；`%` 兩次平均 `339543 ms`，較 `344045 ms` 約 `-1.31%`）。
-- [ ] 針對 `AfterOutsourcePhase -> AfterHMSchedule`（約 21~25 秒）再細切 HM 子段（建表/分類/指派/回寫）並鎖定前兩大 SQL。
+- [x] 已細切 HM 子段（2026-04-02）：`HM` 本體僅數百毫秒，非主要瓶頸。
+- [ ] 針對 `AfterOutsourcePhase -> BeforeHMSection`（約 25 秒）再細切 CMM/LQ/其他前置段，鎖定前兩大 SQL。
 - [x] 已完成「HM 單一序號表一次回寫」實驗並回退（2026-04-02）：3 次平均 `358174 ms`，不優於第五輪穩定版 `339543 ms`。
 - [ ] 下一輪改走「僅切細、不改邏輯」：在 HM 段新增更細里程碑（建表/分類/指派/回寫），先定位前兩大 SQL 再動刀。
 - [ ] 在低併發時段補跑 `%` 3 次，確認第五輪改善是否穩定（避免尖峰負載造成假改善/假退步）。

@@ -293,3 +293,21 @@
 - 結論：
   - 未優於第五輪穩定版（平均 `339,543 ms`），且波動偏大。
   - 已回退此實驗，TEST 目前維持第五輪穩定版。
+
+## 2026-04-02 第七輪定位：HM 子段細分
+
+- 新增 HM 細分里程碑：
+  - `BeforeHMSection`
+  - `AfterHMWorkBuild`
+  - `AfterHMClassify`
+  - `AfterHMAssignCore`
+  - `AfterHMSchedule`
+- `%` 單次結果：
+  - `AfterOutsourcePhase -> BeforeHMSection`: `25,803 ms`
+  - `BeforeHMSection -> AfterHMWorkBuild`: `157 ms`
+  - `AfterHMWorkBuild -> AfterHMClassify`: `47 ms`
+  - `AfterHMClassify -> AfterHMAssignCore`: `46 ms`
+  - `AfterHMAssignCore -> AfterHMSchedule`: `0 ms`
+- 判讀：
+  - HM 指派本身不是瓶頸。
+  - 主要耗時位於 HM 前段（同區段含 CMM/LQ 等排程流程），下一輪應切細該段。

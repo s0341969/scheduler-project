@@ -45,3 +45,16 @@
 | 平均 | `%` | 358,174 | 5.97 |
 
 結論：未優於第五輪穩定版（平均 `339,543 ms`），已回退到第五輪版本。
+
+## 第七輪定位 `%` 單次（HM 子段細分里程碑）
+
+| 指標 | ms |
+|---|---:|
+| TOTAL_MS | 359,394 |
+| AfterOutsourcePhase -> BeforeHMSection | 25,803 |
+| BeforeHMSection -> AfterHMWorkBuild | 157 |
+| AfterHMWorkBuild -> AfterHMClassify | 47 |
+| AfterHMClassify -> AfterHMAssignCore | 46 |
+| AfterHMAssignCore -> AfterHMSchedule | 0 |
+
+結論：HM 子段不是瓶頸，熱點在 HM 前段（CMM/LQ 等流程）。
