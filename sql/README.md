@@ -205,3 +205,20 @@
   - `BeforeCommit -> 結束`: 約 `16,926 ms`（以 wall-clock 推估）
 - 初步結論：
   - 目前主要耗時集中在「前處理 + 後處理」兩段（合計約 235 秒），不只 `ORDDE4_剩餘製程明細_D` 插入段落。
+
+## 2026-04-02 `%` 全量細分里程碑（第二輪，TEST）
+
+- `%` 單次 wall-clock：`349,985 ms`（約 5 分 50 秒）
+- 里程碑：
+  - `AfterTemp3Build total=16,020 ms`
+  - `BeforeVerticalInsert total=36,856 ms`
+  - `AfterVerticalInsert1 total=42,357 ms`
+  - `AfterVerticalInsert2 total=42,903 ms`
+  - `AfterDlytimeCore total=118,042 ms`
+  - `BeforeSummaryInsert total=130,608 ms`
+  - `AfterSummaryInsert total=204,956 ms`
+  - `BeforeCommit total=328,395 ms`
+- 主要區段耗時（delta）：
+  - `AfterVerticalInsert2 -> AfterDlytimeCore`: `75,139 ms`
+  - `BeforeSummaryInsert -> AfterSummaryInsert`: `74,348 ms`
+  - `AfterSummaryInsert -> BeforeCommit`: `123,439 ms`（目前最大瓶頸）

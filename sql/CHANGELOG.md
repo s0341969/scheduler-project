@@ -15,6 +15,27 @@
 - 結論：
   - 5 分鐘等級耗時不只在 summary insert，前後處理段落仍為主要成本來源。
 
+## 2026-04-02 細分里程碑（第二輪）定位最大瓶頸（TEST）
+
+- 在既有 `[PERF]` 基礎上新增里程碑：
+  - `AfterTemp3Build`
+  - `BeforeVerticalInsert`
+  - `AfterVerticalInsert1`
+  - `AfterVerticalInsert2`
+  - `AfterDlytimeCore`
+- `%` 單次實測：
+  - `TOTAL_MS=349985`
+  - `AfterTemp3Build total=16020ms`
+  - `BeforeVerticalInsert total=36856ms`
+  - `AfterVerticalInsert1 total=42357ms`
+  - `AfterVerticalInsert2 total=42903ms`
+  - `AfterDlytimeCore total=118042ms`
+  - `BeforeSummaryInsert total=130608ms`
+  - `AfterSummaryInsert total=204956ms`
+  - `BeforeCommit total=328395ms`
+- 判讀：
+  - 目前最大單段為 `AfterSummaryInsert -> BeforeCommit`（約 `123,439 ms`），其次是 `AfterVerticalInsert2 -> AfterDlytimeCore` 與 `summary insert` 本段（各約 `75s`）。
+
 ## 2026-04-02 緊急修補：解決 `INPART` 模稜兩可與欄位數不符（TEST）
 
 - 問題來源：

@@ -7,6 +7,8 @@
 - [ ] 對 `%` 全量執行加上分段計時（建 `#TEMP3` / 寫直式 / 寫明細 / DLYTIME 計算）並輸出每段 ms。
 - [x] 對 `%` 全量執行分段計時並輸出里程碑 ms（2026-04-02：`122104 / 82178 / 113499 / ~16926` ms）。
 - [ ] 將目前 4 個 `[PERF]` 粗粒度里程碑細化為更多段（例如：`#TEMP3 建立`、`直式寫入`、`DLYTIME 批次計算`、`最終寫回`）以鎖定可直接優化的 SQL 區塊。
+- [x] 將 `[PERF]` 里程碑細化到 `AfterTemp3Build / BeforeVerticalInsert / AfterVerticalInsert1 / AfterVerticalInsert2 / AfterDlytimeCore`（2026-04-02 第二輪定位完成）。
+- [ ] 針對目前最大瓶頸 `AfterSummaryInsert -> BeforeCommit`（約 123 秒）再切細（鎖定實際卡在哪幾段 UPDATE/INSERT）。
 - [ ] 針對 2026-04-02 單次結果（約 345~356 秒）進一步檢查是否受測試時段資料量/鎖競爭影響，並在離峰時段重跑 3 次取平均與 P95。
 - [ ] 評估把 `dbo.時間差_依上班時間` 在高頻段改為批次計算（避免逐列 scalar UDF）。
 
