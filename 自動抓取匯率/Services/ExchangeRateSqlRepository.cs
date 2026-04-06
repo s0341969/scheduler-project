@@ -6,10 +6,16 @@ using BotExchangeRateWinForms.Models;
 
 namespace BotExchangeRateWinForms.Services
 {
+    /// <summary>
+    /// 負責所有 MSSQL 讀寫、建表與幣別對應邏輯。
+    /// </summary>
     public sealed class ExchangeRateSqlRepository
     {
         private const string EnvironmentVariableName = "BOT_RATE_DB_CONN";
 
+        /// <summary>
+        /// 取得實際可用的 MSSQL 連線字串，優先使用畫面設定，否則讀環境變數。
+        /// </summary>
         public string ResolveConnectionString(UserSettings settings)
         {
             if (settings != null && !string.IsNullOrWhiteSpace(settings.SqlConnectionString))
@@ -27,6 +33,9 @@ namespace BotExchangeRateWinForms.Services
                 string.Format("\u5c1a\u672a\u8a2d\u5b9a MSSQL \u9023\u7dda\u5b57\u4e32\u3002\u8acb\u5728\u756b\u9762\u8f38\u5165\uff0c\u6216\u8a2d\u5b9a\u74b0\u5883\u8b8a\u6578 {0}\u3002", EnvironmentVariableName));
         }
 
+        /// <summary>
+        /// 初始化專案需要的資料表結構。
+        /// </summary>
         public async Task InitializeDatabaseAsync(string connectionString)
         {
             if (string.IsNullOrWhiteSpace(connectionString))
@@ -47,6 +56,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 依目前設定將抓取結果寫入主檔與歷史檔，並回傳寫入與略過筆數。
+        /// </summary>
         public async Task<Tuple<int, int>> SaveAsync(string connectionString, ScrapeResult result, bool writeChrname, bool writeChrnameHistory)
         {
             if (result == null)
@@ -126,6 +138,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 將最新匯率寫入 CHRNAME，若幣別已存在則更新，不存在則新增。
+        /// </summary>
         private static async Task UpsertCurrentAsync(
             SqlConnection connection,
             SqlTransaction transaction,
@@ -156,6 +171,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 讀取指定資料表實際使用的幣別說明欄位名稱。
+        /// </summary>
         private static async Task<TableSchema> LoadDescriptionSchemaAsync(
             SqlConnection connection,
             SqlTransaction transaction,
@@ -185,6 +203,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 讀取 CHRNAME 目前已存的主檔匯率，用來判斷是否真的有變動。
+        /// </summary>
         private static async Task<RateSnapshot> LoadCurrentSnapshotAsync(
             SqlConnection connection,
             SqlTransaction transaction,
@@ -216,6 +237,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 讀取 CHRNAME-HISTORY 最新一筆歷史匯率，用來判斷是否需要新增歷史。
+        /// </summary>
         private static async Task<RateSnapshot> LoadLatestHistorySnapshotAsync(
             SqlConnection connection,
             SqlTransaction transaction,
@@ -248,6 +272,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 判斷目前新匯率和既有匯率是否不同，不同才需要寫入。
+        /// </summary>
         private static bool NeedsWrite(RateSnapshot snapshot, decimal? newFtil, decimal? newFtol)
         {
             if (snapshot == null || !snapshot.Exists)
@@ -258,6 +285,9 @@ namespace BotExchangeRateWinForms.Services
             return !AreRatesEqual(snapshot.Ftil, newFtil) || !AreRatesEqual(snapshot.Ftol, newFtol);
         }
 
+        /// <summary>
+        /// 比較兩個可為 null 的匯率值是否相同。
+        /// </summary>
         private static bool AreRatesEqual(decimal? left, decimal? right)
         {
             if (!left.HasValue && !right.HasValue)
@@ -273,6 +303,9 @@ namespace BotExchangeRateWinForms.Services
             return left.Value == right.Value;
         }
 
+        /// <summary>
+        /// 安全讀取 DataReader 中可為 null 的 decimal 欄位。
+        /// </summary>
         private static decimal? ReadNullableDecimal(SqlDataReader reader, int ordinal)
         {
             if (reader.IsDBNull(ordinal))
@@ -283,6 +316,9 @@ namespace BotExchangeRateWinForms.Services
             return reader.GetDecimal(ordinal);
         }
 
+        /// <summary>
+        /// 依資料表實際欄位組出 CHRNAME 的 UPSERT SQL。
+        /// </summary>
         private static string BuildChrnameUpsertSql(TableSchema tableSchema)
         {
             if (tableSchema != null && tableSchema.HasDescriptionColumn)
@@ -315,6 +351,9 @@ namespace BotExchangeRateWinForms.Services
                 "END";
         }
 
+        /// <summary>
+        /// 將匯率新增到 CHRNAME-HISTORY 歷史檔。
+        /// </summary>
         private static async Task InsertHistoryAsync(
             SqlConnection connection,
             SqlTransaction transaction,
@@ -345,6 +384,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 依資料表實際欄位組出 CHRNAME-HISTORY 的 INSERT SQL。
+        /// </summary>
         private static string BuildChrnameHistoryInsertSql(TableSchema tableSchema)
         {
             if (tableSchema != null && tableSchema.HasDescriptionColumn)
@@ -369,6 +411,9 @@ namespace BotExchangeRateWinForms.Services
                 "END";
         }
 
+        /// <summary>
+        /// 按既有規則決定寫入 FTIL / FTOL 要使用現金或即期匯率。
+        /// </summary>
         private static void ResolveStoredRates(ExchangeRateRecord record, out decimal? ftil, out decimal? ftol)
         {
             var isCny = Contains(record.CurrencyCode, "CNY") || Contains(record.CurrencyName, "\u4eba\u6c11\u5e63");
@@ -383,6 +428,9 @@ namespace BotExchangeRateWinForms.Services
             ftol = record.SpotSell ?? 0m;
         }
 
+        /// <summary>
+        /// 將來源幣別映射成資料庫使用的 CHRNAM 與中文名稱。
+        /// </summary>
         private static bool TryMapCurrency(ExchangeRateRecord record, out CurrencyMap currencyMap)
         {
             var sourceText = string.Format(
@@ -460,6 +508,9 @@ namespace BotExchangeRateWinForms.Services
             return false;
         }
 
+        /// <summary>
+        /// 產生初始化資料庫所需的建表 SQL。
+        /// </summary>
         private static string GetCreateTableSql()
         {
             return
@@ -488,6 +539,9 @@ namespace BotExchangeRateWinForms.Services
                 "END;";
         }
 
+        /// <summary>
+        /// 忽略大小寫判斷字串是否包含指定關鍵字。
+        /// </summary>
         private static bool Contains(string input, string token)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -498,40 +552,70 @@ namespace BotExchangeRateWinForms.Services
             return input.IndexOf(token, StringComparison.OrdinalIgnoreCase) >= 0;
         }
 
+        /// <summary>
+        /// 保存資料庫要用的幣別代碼與中文名稱。
+        /// </summary>
         private sealed class CurrencyMap
         {
+            /// <summary>
+            /// 建立一組資料庫幣別代碼與顯示名稱。
+            /// </summary>
             public CurrencyMap(string code, string name)
             {
                 Code = code;
                 Name = name;
             }
 
+            /// <summary>
+            /// 資料庫使用的 CHRNAM。
+            /// </summary>
             public string Code { get; private set; }
 
+            /// <summary>
+            /// 寫入說明欄位使用的中文名稱。
+            /// </summary>
             public string Name { get; private set; }
         }
 
+        /// <summary>
+        /// 保存資料表實際存在的說明欄位資訊。
+        /// </summary>
         private sealed class TableSchema
         {
             public static readonly TableSchema Empty = new TableSchema(null);
 
+            /// <summary>
+            /// 建立資料表欄位描述資訊。
+            /// </summary>
             public TableSchema(string descriptionColumnName)
             {
                 DescriptionColumnName = descriptionColumnName;
             }
 
+            /// <summary>
+            /// 實際存在的幣別說明欄位名稱。
+            /// </summary>
             public string DescriptionColumnName { get; private set; }
 
+            /// <summary>
+            /// 是否存在可寫入的幣別說明欄位。
+            /// </summary>
             public bool HasDescriptionColumn
             {
                 get { return !string.IsNullOrWhiteSpace(DescriptionColumnName); }
             }
         }
 
+        /// <summary>
+        /// 保存資料表中目前或最新一筆的 FTIL / FTOL 快照。
+        /// </summary>
         private sealed class RateSnapshot
         {
             public static readonly RateSnapshot Empty = new RateSnapshot(null, null, false);
 
+            /// <summary>
+            /// 建立一組匯率快照。
+            /// </summary>
             public RateSnapshot(decimal? ftil, decimal? ftol, bool exists)
             {
                 Ftil = ftil;
@@ -539,10 +623,19 @@ namespace BotExchangeRateWinForms.Services
                 Exists = exists;
             }
 
+            /// <summary>
+            /// 主檔或歷史檔中的 FTIL。
+            /// </summary>
             public decimal? Ftil { get; private set; }
 
+            /// <summary>
+            /// 主檔或歷史檔中的 FTOL。
+            /// </summary>
             public decimal? Ftol { get; private set; }
 
+            /// <summary>
+            /// 代表這個快照是否真的來自資料表既有資料。
+            /// </summary>
             public bool Exists { get; private set; }
         }
     }

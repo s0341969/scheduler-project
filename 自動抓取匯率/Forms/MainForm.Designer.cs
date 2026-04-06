@@ -1,7 +1,13 @@
 namespace BotExchangeRateWinForms.Forms
 {
+    /// <summary>
+    /// 主畫面的 Designer 區塊，集中定義控制項與版面配置。
+    /// </summary>
     partial class MainForm
     {
+        /// <summary>
+        /// WinForms Designer 自動管理的元件容器。
+        /// </summary>
         private System.ComponentModel.IContainer components = null;
         private System.Windows.Forms.Label lblSourceUrl;
         private System.Windows.Forms.TextBox txtSourceUrl;
@@ -36,6 +42,9 @@ namespace BotExchangeRateWinForms.Forms
         private System.Windows.Forms.Label lblResultCountValue;
         private System.Windows.Forms.Timer pollTimer;
 
+        /// <summary>
+        /// 釋放 Designer 建立的控制項與元件資源。
+        /// </summary>
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
@@ -46,6 +55,9 @@ namespace BotExchangeRateWinForms.Forms
             base.Dispose(disposing);
         }
 
+        /// <summary>
+        /// 建立並配置畫面上所有控制項。
+        /// </summary>
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();

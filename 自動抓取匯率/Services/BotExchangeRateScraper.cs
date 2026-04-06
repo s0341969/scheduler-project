@@ -9,32 +9,56 @@ using BotExchangeRateWinForms.Models;
 
 namespace BotExchangeRateWinForms.Services
 {
+    /// <summary>
+    /// 負責下載臺銀匯率頁面並解析成可寫入資料庫的結構。
+    /// </summary>
     public sealed class BotExchangeRateScraper
     {
+        /// <summary>
+        /// 擷取頁面中的最新掛牌時間。
+        /// </summary>
         private static readonly Regex UpdatedAtRegex = new Regex(
             "\\u724c\\u50f9\\u6700\\u65b0\\u639b\\u724c\\u6642\\u9593\\s*[:\\uFF1A]\\s*(?<value>\\d{4}/\\d{2}/\\d{2}\\s+\\d{2}:\\d{2})",
             RegexOptions.Compiled);
 
+        /// <summary>
+        /// 擷取頁面中的掛牌日期。
+        /// </summary>
         private static readonly Regex RateDateRegex = new Regex(
             "(?<value>\\d{4}/\\d{2}/\\d{2})\\s*\\u672c\\u884c\\s*.*?\\u724c\\u544a\\u532f\\u7387",
             RegexOptions.Compiled);
 
+        /// <summary>
+        /// 找出表格中的每一列資料。
+        /// </summary>
         private static readonly Regex TableRowRegex = new Regex(
             "<tr[^>]*>(?<row>.*?)</tr>",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
+        /// <summary>
+        /// 找出每列中的儲存格內容。
+        /// </summary>
         private static readonly Regex TableCellRegex = new Regex(
             "<td[^>]*>(?<cell>.*?)</td>",
             RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Singleline);
 
+        /// <summary>
+        /// 從「幣別名稱 (代碼)」格式中拆出名稱與代碼。
+        /// </summary>
         private static readonly Regex CurrencyRegex = new Regex(
             "^(?<name>.+?)\\s*\\((?<code>[A-Z]{3})\\)$",
             RegexOptions.Compiled);
 
+        /// <summary>
+        /// 判斷欄位是否為可解析的數值字串。
+        /// </summary>
         private static readonly Regex NumericRegex = new Regex(
             "^(?:-|\\d+(?:\\.\\d+)?)$",
             RegexOptions.Compiled);
 
+        /// <summary>
+        /// 依設定抓取來源頁面 HTML，並轉成結構化結果。
+        /// </summary>
         public async Task<ScrapeResult> ScrapeAsync(UserSettings settings)
         {
             if (settings == null)
@@ -61,6 +85,9 @@ namespace BotExchangeRateWinForms.Services
             return Parse(html, settings.SourceUrl);
         }
 
+        /// <summary>
+        /// 解析下載到的 HTML，組出完整的抓取結果與各幣別明細。
+        /// </summary>
         internal ScrapeResult Parse(string html, string sourceUrl)
         {
             var plainText = NormalizeWhitespace(RemoveHtmlTags(html));
@@ -130,6 +157,9 @@ namespace BotExchangeRateWinForms.Services
             return result;
         }
 
+        /// <summary>
+        /// 建立抓取用 HttpClient，包含逾時、壓縮與 User-Agent 設定。
+        /// </summary>
         private static HttpClient CreateHttpClient(UserSettings settings)
         {
             var handler = new HttpClientHandler
@@ -144,6 +174,9 @@ namespace BotExchangeRateWinForms.Services
             return client;
         }
 
+        /// <summary>
+        /// 從純文字中解析臺銀顯示的最新掛牌時間。
+        /// </summary>
         private static DateTime ParseDateTime(Regex regex, string input, string errorMessage)
         {
             var match = regex.Match(input);
@@ -166,6 +199,9 @@ namespace BotExchangeRateWinForms.Services
             return parsedValue;
         }
 
+        /// <summary>
+        /// 從頁面中解析掛牌日期；若缺少則退回更新時間的日期部分。
+        /// </summary>
         private static DateTime ParseDate(Regex regex, string input, DateTime fallbackDate)
         {
             var match = regex.Match(input);
@@ -188,6 +224,9 @@ namespace BotExchangeRateWinForms.Services
             return fallbackDate.Date;
         }
 
+        /// <summary>
+        /// 從單列表格 HTML 中擷取所有有效儲存格文字。
+        /// </summary>
         private static List<string> ExtractCells(string rowHtml)
         {
             var cells = new List<string>();
@@ -204,6 +243,9 @@ namespace BotExchangeRateWinForms.Services
             return cells;
         }
 
+        /// <summary>
+        /// 移除 HTML 標籤、script、style，保留可解析文字。
+        /// </summary>
         private static string RemoveHtmlTags(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -217,6 +259,9 @@ namespace BotExchangeRateWinForms.Services
             return WebUtility.HtmlDecode(withoutTags);
         }
 
+        /// <summary>
+        /// 將空白字元整理成單一空格，方便 Regex 比對。
+        /// </summary>
         private static string NormalizeWhitespace(string input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -227,6 +272,9 @@ namespace BotExchangeRateWinForms.Services
             return Regex.Replace(input, "\\s+", " ").Trim();
         }
 
+        /// <summary>
+        /// 將數值字串轉成 decimal；若為破折號則視為無值。
+        /// </summary>
         private static decimal? ParseDecimalOrNull(string value)
         {
             if (value == "-")

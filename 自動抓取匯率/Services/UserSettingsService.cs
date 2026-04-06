@@ -5,11 +5,17 @@ using BotExchangeRateWinForms.Models;
 
 namespace BotExchangeRateWinForms.Services
 {
+    /// <summary>
+    /// 負責將畫面設定序列化到本機 XML，並在啟動時載入。
+    /// </summary>
     public sealed class UserSettingsService
     {
         private readonly string _settingsDirectory;
         private readonly string _settingsFilePath;
 
+        /// <summary>
+        /// 建立設定檔儲存路徑。
+        /// </summary>
         public UserSettingsService()
         {
             _settingsDirectory = Path.Combine(
@@ -18,6 +24,9 @@ namespace BotExchangeRateWinForms.Services
             _settingsFilePath = Path.Combine(_settingsDirectory, "user-settings.xml");
         }
 
+        /// <summary>
+        /// 讀取本機設定；若檔案不存在或格式錯誤，回傳預設值。
+        /// </summary>
         public UserSettings Load()
         {
             try
@@ -51,6 +60,9 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
+        /// <summary>
+        /// 將目前設定寫入本機 XML 檔案。
+        /// </summary>
         public void Save(UserSettings settings)
         {
             if (settings == null)

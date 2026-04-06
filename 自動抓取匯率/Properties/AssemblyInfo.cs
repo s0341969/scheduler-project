@@ -1,6 +1,7 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
 
+// 組件基本資訊，提供執行檔名稱、版本與 COM 可見性設定。
 [assembly: AssemblyTitle("BotExchangeRateWinForms")]
 [assembly: AssemblyDescription("臺灣銀行牌告匯率 WinForms 自動抓取工具")]
 [assembly: AssemblyConfiguration("")]

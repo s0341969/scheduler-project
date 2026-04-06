@@ -6,6 +6,9 @@ using BotExchangeRateWinForms.Services;
 
 namespace BotExchangeRateWinForms.Forms
 {
+    /// <summary>
+    /// 主操作畫面，提供設定、手動執行、Timer 控制與結果顯示。
+    /// </summary>
     public partial class MainForm : Form
     {
         private readonly UserSettingsService _settingsService;
@@ -15,6 +18,9 @@ namespace BotExchangeRateWinForms.Forms
         private UserSettings _settings;
         private DateTime? _lastSuccessfulRunTime;
 
+        /// <summary>
+        /// 建立畫面並初始化服務與 Grid 設定。
+        /// </summary>
         public MainForm()
         {
             InitializeComponent();
@@ -27,6 +33,9 @@ namespace BotExchangeRateWinForms.Forms
             InitializeRateGrid();
         }
 
+        /// <summary>
+        /// 畫面載入時讀取設定並更新初始狀態。
+        /// </summary>
         private void MainForm_Load(object sender, EventArgs e)
         {
             try
@@ -43,6 +52,9 @@ namespace BotExchangeRateWinForms.Forms
             }
         }
 
+        /// <summary>
+        /// 儲存目前畫面設定，必要時同步重新套用 Timer 間隔。
+        /// </summary>
         private void btnSaveSettings_Click(object sender, EventArgs e)
         {
             try
@@ -62,6 +74,9 @@ namespace BotExchangeRateWinForms.Forms
             }
         }
 
+        /// <summary>
+        /// 依目前連線字串初始化所需資料表。
+        /// </summary>
         private async void btnInitializeDatabase_Click(object sender, EventArgs e)
         {
             await RunWithUiLockAsync(async delegate
@@ -74,11 +89,17 @@ namespace BotExchangeRateWinForms.Forms
             });
         }
 
+        /// <summary>
+        /// 由使用者手動觸發一次抓取與寫入流程。
+        /// </summary>
         private async void btnRunNow_Click(object sender, EventArgs e)
         {
             await ExecuteJobAsync("\u624b\u52d5\u57f7\u884c");
         }
 
+        /// <summary>
+        /// 啟動 Timer 並開始依設定週期自動抓取。
+        /// </summary>
         private void btnStartTimer_Click(object sender, EventArgs e)
         {
             try
@@ -96,6 +117,9 @@ namespace BotExchangeRateWinForms.Forms
             }
         }
 
+        /// <summary>
+        /// 停止 Timer 自動抓取。
+        /// </summary>
         private void btnStopTimer_Click(object sender, EventArgs e)
         {
             pollTimer.Stop();
@@ -104,11 +128,17 @@ namespace BotExchangeRateWinForms.Forms
             UpdateTimerStatus();
         }
 
+        /// <summary>
+        /// Timer 觸發時執行一次背景工作。
+        /// </summary>
         private async void pollTimer_Tick(object sender, EventArgs e)
         {
             await ExecuteJobAsync("Timer \u81ea\u52d5\u57f7\u884c");
         }
 
+        /// <summary>
+        /// 統一處理單次抓取、寫入、Grid 更新與畫面狀態顯示。
+        /// </summary>
         private async System.Threading.Tasks.Task ExecuteJobAsync(string triggerSource)
         {
             await RunWithUiLockAsync(async delegate
@@ -148,6 +178,9 @@ namespace BotExchangeRateWinForms.Forms
             });
         }
 
+        /// <summary>
+        /// 執行非同步工作時鎖定畫面控制項，避免重複操作。
+        /// </summary>
         private async System.Threading.Tasks.Task RunWithUiLockAsync(Func<System.Threading.Tasks.Task> action)
         {
             ToggleControls(false);
@@ -165,12 +198,18 @@ namespace BotExchangeRateWinForms.Forms
             }
         }
 
+        /// <summary>
+        /// 將畫面欄位轉成設定物件並立即保存。
+        /// </summary>
         private void SaveSettingsFromUi()
         {
             _settings = BuildSettingsFromUi();
             _settingsService.Save(_settings);
         }
 
+        /// <summary>
+        /// 從畫面控制項組出新的使用者設定。
+        /// </summary>
         private UserSettings BuildSettingsFromUi()
         {
             if (numIntervalValue.Value <= 0)
@@ -191,6 +230,9 @@ namespace BotExchangeRateWinForms.Forms
             };
         }
 
+        /// <summary>
+        /// 將已載入的設定套用回各個畫面控制項。
+        /// </summary>
         private void ApplySettingsToUi(UserSettings settings)
         {
             txtSourceUrl.Text = settings.SourceUrl;
@@ -211,6 +253,9 @@ namespace BotExchangeRateWinForms.Forms
             }
         }
 
+        /// <summary>
+        /// 根據目前設定計算 Timer 間隔並套用到元件。
+        /// </summary>
         private void ConfigureTimer()
         {
             var settings = BuildSettingsFromUi();
@@ -227,6 +272,9 @@ namespace BotExchangeRateWinForms.Forms
             pollTimer.Interval = (int)intervalMilliseconds;
         }
 
+        /// <summary>
+        /// 更新狀態區塊中的 Timer、下次執行與上次成功時間。
+        /// </summary>
         private void UpdateTimerStatus()
         {
             lblTimerEnabledValue.Text = pollTimer.Enabled ? "\u555f\u7528\u4e2d" : "\u672a\u555f\u7528";
@@ -250,6 +298,9 @@ namespace BotExchangeRateWinForms.Forms
             }
         }
 
+        /// <summary>
+        /// 設定 DataGridView 欄位、格式與資料繫結模式。
+        /// </summary>
         private void InitializeRateGrid()
         {
             dgvRates.AutoGenerateColumns = false;
@@ -272,12 +323,18 @@ namespace BotExchangeRateWinForms.Forms
             dgvRates.DataSource = _rateBindingSource;
         }
 
+        /// <summary>
+        /// 將抓到的匯率清單繫結到畫面表格。
+        /// </summary>
         private void BindRatesToGrid(IList<ExchangeRateRecord> records)
         {
             _rateBindingSource.DataSource = records ?? new List<ExchangeRateRecord>();
             lblResultCountValue.Text = _rateBindingSource.Count.ToString();
         }
 
+        /// <summary>
+        /// 建立一般文字欄位。
+        /// </summary>
         private static DataGridViewTextBoxColumn CreateTextColumn(string propertyName, string headerText, int minimumWidth)
         {
             return new DataGridViewTextBoxColumn
@@ -289,6 +346,9 @@ namespace BotExchangeRateWinForms.Forms
             };
         }
 
+        /// <summary>
+        /// 建立數值欄位，並套用小數格式與靠右對齊。
+        /// </summary>
         private static DataGridViewTextBoxColumn CreateNumericColumn(string propertyName, string headerText, int minimumWidth)
         {
             var column = CreateTextColumn(propertyName, headerText, minimumWidth);
@@ -297,6 +357,9 @@ namespace BotExchangeRateWinForms.Forms
             return column;
         }
 
+        /// <summary>
+        /// 建立日期或時間欄位，並套用指定顯示格式。
+        /// </summary>
         private static DataGridViewTextBoxColumn CreateDateTimeColumn(string propertyName, string headerText, string format, int minimumWidth)
         {
             var column = CreateTextColumn(propertyName, headerText, minimumWidth);
@@ -304,6 +367,9 @@ namespace BotExchangeRateWinForms.Forms
             return column;
         }
 
+        /// <summary>
+        /// 在執行工作期間統一切換控制項是否可操作。
+        /// </summary>
         private void ToggleControls(bool enabled)
         {
             btnSaveSettings.Enabled = enabled;
@@ -321,11 +387,17 @@ namespace BotExchangeRateWinForms.Forms
             UseWaitCursor = !enabled;
         }
 
+        /// <summary>
+        /// 在畫面下方記錄帶時間戳的執行日誌。
+        /// </summary>
         private void AppendLog(string message)
         {
             txtLog.AppendText(string.Format("[{0:yyyy/MM/dd HH:mm:ss}] {1}{2}", DateTime.Now, message, Environment.NewLine));
         }
 
+        /// <summary>
+        /// 統一處理 UI 錯誤訊息與訊息框顯示。
+        /// </summary>
         private void HandleUiException(Exception ex)
         {
             lblStatusValue.Text = "\u64cd\u4f5c\u5931\u6557";

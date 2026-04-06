@@ -6,12 +6,18 @@ using BotExchangeRateWinForms.Models;
 
 namespace BotExchangeRateWinForms.Services
 {
+    /// <summary>
+    /// 協調抓取流程與資料庫寫入，提供主畫面單次執行入口。
+    /// </summary>
     public sealed class ExchangeRateJobRunner
     {
         private readonly BotExchangeRateScraper _scraper;
         private readonly ExchangeRateSqlRepository _repository;
         private readonly SemaphoreSlim _runLock;
 
+        /// <summary>
+        /// 注入抓取器與資料庫存取元件。
+        /// </summary>
         public ExchangeRateJobRunner(BotExchangeRateScraper scraper, ExchangeRateSqlRepository repository)
         {
             _scraper = scraper;
@@ -19,6 +25,9 @@ namespace BotExchangeRateWinForms.Services
             _runLock = new SemaphoreSlim(1, 1);
         }
 
+        /// <summary>
+        /// 執行一次完整工作，包含抓取、條件寫入與結果整理。
+        /// </summary>
         public async Task<JobExecutionResult> ExecuteAsync(UserSettings settings)
         {
             if (!_runLock.Wait(0))
