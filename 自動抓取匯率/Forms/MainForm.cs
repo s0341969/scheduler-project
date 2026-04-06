@@ -262,10 +262,8 @@ namespace BotExchangeRateWinForms.Forms
             dgvRates.Columns.Clear();
             dgvRates.Columns.Add(CreateTextColumn("CurrencyCode", "\u5e63\u5225\u4ee3\u78bc", 80));
             dgvRates.Columns.Add(CreateTextColumn("CurrencyName", "\u5e63\u5225\u540d\u7a31", 120));
-            dgvRates.Columns.Add(CreateNumericColumn("CashBuy", "\u73fe\u91d1\u8cb7\u5165", 95));
-            dgvRates.Columns.Add(CreateNumericColumn("CashSell", "\u73fe\u91d1\u8ce3\u51fa", 95));
-            dgvRates.Columns.Add(CreateNumericColumn("SpotBuy", "\u5373\u671f\u8cb7\u5165", 95));
-            dgvRates.Columns.Add(CreateNumericColumn("SpotSell", "\u5373\u671f\u8ce3\u51fa", 95));
+            dgvRates.Columns.Add(CreateNumericColumn("CashBuy", "\u73fe\u91d1\u672c\u884c\u8cb7\u5165", 120));
+            dgvRates.Columns.Add(CreateNumericColumn("CashSell", "\u73fe\u91d1\u672c\u884c\u8ce3\u51fa", 120));
             dgvRates.Columns.Add(CreateDateTimeColumn("SourceRateDate", "\u639b\u724c\u65e5\u671f", "yyyy/MM/dd", 95));
             dgvRates.Columns.Add(CreateDateTimeColumn("SourceUpdatedAt", "\u66f4\u65b0\u6642\u9593", "yyyy/MM/dd HH:mm", 130));
             dgvRates.DataSource = _rateBindingSource;

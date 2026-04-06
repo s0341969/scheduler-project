@@ -63,7 +63,7 @@ namespace BotExchangeRateWinForms.Services
                     SourceUpdatedAt = scrapeResult.SourceUpdatedAt,
                     Records = records,
                     Message = string.Format(
-                        "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u65b0\u589e {1} \u7b46\uff0c\u91cd\u8907 {2} \u7b46\u3002",
+                        "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u5df2\u540c\u6b65 CHRNAME \u8207 CHRNAME-HISTORY {1} \u7b46\uff0c\u7565\u904e {2} \u7b46\u3002",
                         records.Count,
                         dbResult.Item1,
                         dbResult.Item2)
