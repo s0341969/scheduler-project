@@ -5,3 +5,4 @@
 - `CHRNAM` 幣別代號對應改為貼近既有 legacy 規則，重點保留 `MA` 與 `NT$` 的判斷方式。
 - 文件中的幣別代號對應說明同步更新。
 - 修正 `CHRNAME` 寫入 SQL 將 `CHRDS` 欄位寫死造成的錯誤，改為執行時自動相容 `CHRDS`、`CHRDSC` 或無說明欄位的資料表。
+- 已依 `MIS` 資料庫實際 schema 調整初始化 SQL 與歷史檔寫入邏輯，支援 `CHRNAME-HISTORY.CHRDSC` 及 `CNO IDENTITY`。

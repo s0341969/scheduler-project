@@ -29,7 +29,7 @@
    - `NT$ -> NT$`
    - `SGD -> SGD`
    - `AUD -> AUD`
-7. 寫入 `CHRNAME` 時，會自動偵測說明欄位：
+7. 寫入 `CHRNAME` 與 `CHRNAME-HISTORY` 時，會自動偵測說明欄位：
    - 若存在 `CHRDS`，寫入 `CHRDS`
    - 若存在 `CHRDSC`，寫入 `CHRDSC`
    - 若兩者都不存在，則只寫入 `CHRNAM / FTIL / FTOL / CRDATE`
@@ -56,15 +56,19 @@
 
 `CHRNAME`
 - `CHRNAM`
-- `CHRDS`
+- `CHRDSC`
 - `FTIL`
 - `FTOL`
 - `CRDATE`
+- `固定匯率`
+- `鼎新`
 
-若正式資料庫不是 `CHRDS` 而是 `CHRDSC`，或根本沒有幣別說明欄位，程式也會自動相容。
+程式已確認可相容正式 `MIS` 資料庫的 `CHRDSC` 欄位；若現場仍有舊版 `CHRDS` 結構，也會自動相容。
 
 `CHRNAME-HISTORY`
+- `CNO`
 - `CHRNAM`
+- `CHRDSC`
 - `FTIL`
 - `FTOL`
 - `CRDATE`

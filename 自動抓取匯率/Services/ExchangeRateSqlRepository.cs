@@ -60,8 +60,11 @@ namespace BotExchangeRateWinForms.Services
                 using (var transaction = connection.BeginTransaction(IsolationLevel.Serializable))
                 {
                     var chrnameSchema = writeChrname
-                        ? await LoadChrnameSchemaAsync(connection, transaction).ConfigureAwait(false)
-                        : ChrnameSchema.Empty;
+                        ? await LoadDescriptionSchemaAsync(connection, transaction, "dbo.CHRNAME").ConfigureAwait(false)
+                        : TableSchema.Empty;
+                    var chrnameHistorySchema = writeChrnameHistory
+                        ? await LoadDescriptionSchemaAsync(connection, transaction, "dbo.[CHRNAME-HISTORY]").ConfigureAwait(false)
+                        : TableSchema.Empty;
                     var savedRows = 0;
                     var skippedRows = 0;
 
@@ -92,7 +95,14 @@ namespace BotExchangeRateWinForms.Services
 
                         if (writeChrnameHistory)
                         {
-                            await InsertHistoryAsync(connection, transaction, currencyMap, ftil, ftol, record.SourceUpdatedAt).ConfigureAwait(false);
+                            await InsertHistoryAsync(
+                                connection,
+                                transaction,
+                                chrnameHistorySchema,
+                                currencyMap,
+                                ftil,
+                                ftol,
+                                record.SourceUpdatedAt).ConfigureAwait(false);
                         }
 
                         savedRows++;
@@ -107,7 +117,7 @@ namespace BotExchangeRateWinForms.Services
         private static async Task UpsertCurrentAsync(
             SqlConnection connection,
             SqlTransaction transaction,
-            ChrnameSchema chrnameSchema,
+            TableSchema tableSchema,
             CurrencyMap currencyMap,
             decimal? ftil,
             decimal? ftol,
@@ -118,14 +128,14 @@ namespace BotExchangeRateWinForms.Services
                 command.Transaction = transaction;
                 command.CommandType = CommandType.Text;
                 command.CommandTimeout = 30;
-                command.CommandText = BuildChrnameUpsertSql(chrnameSchema);
+                command.CommandText = BuildChrnameUpsertSql(tableSchema);
 
                 command.Parameters.AddWithValue("@CHRNAM", currencyMap.Code);
                 command.Parameters.AddWithValue("@FTIL", (object)ftil ?? DBNull.Value);
                 command.Parameters.AddWithValue("@FTOL", (object)ftol ?? DBNull.Value);
                 command.Parameters.AddWithValue("@CRDATE", crdate);
 
-                if (chrnameSchema.HasDescriptionColumn)
+                if (tableSchema.HasDescriptionColumn)
                 {
                     command.Parameters.AddWithValue("@DESCRIPTION", currencyMap.Name);
                 }
@@ -134,7 +144,10 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
-        private static async Task<ChrnameSchema> LoadChrnameSchemaAsync(SqlConnection connection, SqlTransaction transaction)
+        private static async Task<TableSchema> LoadDescriptionSchemaAsync(
+            SqlConnection connection,
+            SqlTransaction transaction,
+            string tableName)
         {
             using (var command = connection.CreateCommand())
             {
@@ -144,35 +157,36 @@ namespace BotExchangeRateWinForms.Services
                 command.CommandText =
                     "SELECT TOP (1) name " +
                     "FROM sys.columns " +
-                    "WHERE object_id = OBJECT_ID(N'dbo.CHRNAME') " +
+                    "WHERE object_id = OBJECT_ID(@TABLE_NAME) " +
                     "AND name IN (N'CHRDS', N'CHRDSC') " +
                     "ORDER BY CASE WHEN name = N'CHRDS' THEN 0 ELSE 1 END;";
+                command.Parameters.AddWithValue("@TABLE_NAME", tableName);
 
                 var result = await command.ExecuteScalarAsync().ConfigureAwait(false);
                 var descriptionColumnName = result as string;
                 if (string.IsNullOrWhiteSpace(descriptionColumnName))
                 {
-                    return ChrnameSchema.Empty;
+                    return TableSchema.Empty;
                 }
 
-                return new ChrnameSchema(descriptionColumnName);
+                return new TableSchema(descriptionColumnName);
             }
         }
 
-        private static string BuildChrnameUpsertSql(ChrnameSchema chrnameSchema)
+        private static string BuildChrnameUpsertSql(TableSchema tableSchema)
         {
-            if (chrnameSchema != null && chrnameSchema.HasDescriptionColumn)
+            if (tableSchema != null && tableSchema.HasDescriptionColumn)
             {
                 return
                     "IF EXISTS (SELECT 1 FROM dbo.CHRNAME WITH (UPDLOCK, HOLDLOCK) WHERE CHRNAM = @CHRNAM) " +
                     "BEGIN " +
                     "UPDATE dbo.CHRNAME " +
-                    "SET " + chrnameSchema.DescriptionColumnName + " = @DESCRIPTION, FTIL = @FTIL, FTOL = @FTOL, CRDATE = @CRDATE " +
+                    "SET " + tableSchema.DescriptionColumnName + " = @DESCRIPTION, FTIL = @FTIL, FTOL = @FTOL, CRDATE = @CRDATE " +
                     "WHERE CHRNAM = @CHRNAM; " +
                     "END " +
                     "ELSE " +
                     "BEGIN " +
-                    "INSERT INTO dbo.CHRNAME (CHRNAM, " + chrnameSchema.DescriptionColumnName + ", FTIL, FTOL, CRDATE) " +
+                    "INSERT INTO dbo.CHRNAME (CHRNAM, " + tableSchema.DescriptionColumnName + ", FTIL, FTOL, CRDATE) " +
                     "VALUES (@CHRNAM, @DESCRIPTION, @FTIL, @FTOL, @CRDATE); " +
                     "END";
             }
@@ -194,6 +208,7 @@ namespace BotExchangeRateWinForms.Services
         private static async Task InsertHistoryAsync(
             SqlConnection connection,
             SqlTransaction transaction,
+            TableSchema tableSchema,
             CurrencyMap currencyMap,
             decimal? ftil,
             decimal? ftol,
@@ -204,21 +219,44 @@ namespace BotExchangeRateWinForms.Services
                 command.Transaction = transaction;
                 command.CommandType = CommandType.Text;
                 command.CommandTimeout = 30;
-                command.CommandText =
-                    "IF NOT EXISTS (" +
-                    "SELECT 1 FROM dbo.[CHRNAME-HISTORY] WITH (UPDLOCK, HOLDLOCK) " +
-                    "WHERE CHRNAM = @CHRNAM AND CRDATE = @CRDATE) " +
-                    "BEGIN " +
-                    "INSERT INTO dbo.[CHRNAME-HISTORY] (CHRNAM, FTIL, FTOL, CRDATE) " +
-                    "VALUES (@CHRNAM, @FTIL, @FTOL, @CRDATE); " +
-                    "END";
+                command.CommandText = BuildChrnameHistoryInsertSql(tableSchema);
 
                 command.Parameters.AddWithValue("@CHRNAM", currencyMap.Code);
                 command.Parameters.AddWithValue("@FTIL", (object)ftil ?? DBNull.Value);
                 command.Parameters.AddWithValue("@FTOL", (object)ftol ?? DBNull.Value);
                 command.Parameters.AddWithValue("@CRDATE", crdate);
+
+                if (tableSchema.HasDescriptionColumn)
+                {
+                    command.Parameters.AddWithValue("@DESCRIPTION", currencyMap.Name);
+                }
+
                 await command.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+        }
+
+        private static string BuildChrnameHistoryInsertSql(TableSchema tableSchema)
+        {
+            if (tableSchema != null && tableSchema.HasDescriptionColumn)
+            {
+                return
+                    "IF NOT EXISTS (" +
+                    "SELECT 1 FROM dbo.[CHRNAME-HISTORY] WITH (UPDLOCK, HOLDLOCK) " +
+                    "WHERE CHRNAM = @CHRNAM AND CRDATE = @CRDATE) " +
+                    "BEGIN " +
+                    "INSERT INTO dbo.[CHRNAME-HISTORY] (CHRNAM, " + tableSchema.DescriptionColumnName + ", FTIL, FTOL, CRDATE) " +
+                    "VALUES (@CHRNAM, @DESCRIPTION, @FTIL, @FTOL, @CRDATE); " +
+                    "END";
+            }
+
+            return
+                "IF NOT EXISTS (" +
+                "SELECT 1 FROM dbo.[CHRNAME-HISTORY] WITH (UPDLOCK, HOLDLOCK) " +
+                "WHERE CHRNAM = @CHRNAM AND CRDATE = @CRDATE) " +
+                "BEGIN " +
+                "INSERT INTO dbo.[CHRNAME-HISTORY] (CHRNAM, FTIL, FTOL, CRDATE) " +
+                "VALUES (@CHRNAM, @FTIL, @FTOL, @CRDATE); " +
+                "END";
         }
 
         private static void ResolveStoredRates(ExchangeRateRecord record, out decimal? ftil, out decimal? ftol)
@@ -318,20 +356,24 @@ namespace BotExchangeRateWinForms.Services
                 "IF OBJECT_ID(N'dbo.CHRNAME', N'U') IS NULL " +
                 "BEGIN " +
                 "CREATE TABLE dbo.CHRNAME (" +
-                "CHRNAM NVARCHAR(10) NOT NULL CONSTRAINT PK_CHRNAME PRIMARY KEY, " +
-                "CHRDS NVARCHAR(20) NOT NULL, " +
-                "FTIL DECIMAL(18, 6) NULL, " +
-                "FTOL DECIMAL(18, 6) NULL, " +
-                "CRDATE DATETIME2(3) NULL" +
+                "CHRNAM VARCHAR(4) NOT NULL CONSTRAINT PK_CHRNAME PRIMARY KEY, " +
+                "CHRDSC VARCHAR(10) NULL, " +
+                "FTIL DECIMAL(18, 4) NULL, " +
+                "FTOL DECIMAL(18, 4) NULL, " +
+                "CRDATE DATETIME NULL, " +
+                "[固定匯率] NUMERIC(18, 4) NULL, " +
+                "[鼎新] VARCHAR(10) NULL" +
                 "); " +
                 "END; " +
                 "IF OBJECT_ID(N'dbo.[CHRNAME-HISTORY]', N'U') IS NULL " +
                 "BEGIN " +
                 "CREATE TABLE dbo.[CHRNAME-HISTORY] (" +
-                "CHRNAM NVARCHAR(10) NOT NULL, " +
-                "FTIL DECIMAL(18, 6) NULL, " +
-                "FTOL DECIMAL(18, 6) NULL, " +
-                "CRDATE DATETIME2(3) NOT NULL" +
+                "CNO INT IDENTITY(1,1) NOT NULL, " +
+                "CHRNAM VARCHAR(4) NOT NULL, " +
+                "CHRDSC VARCHAR(10) NULL, " +
+                "FTIL DECIMAL(18, 4) NULL, " +
+                "FTOL DECIMAL(18, 4) NULL, " +
+                "CRDATE DATETIME NULL" +
                 "); " +
                 "END;";
         }
@@ -359,11 +401,11 @@ namespace BotExchangeRateWinForms.Services
             public string Name { get; private set; }
         }
 
-        private sealed class ChrnameSchema
+        private sealed class TableSchema
         {
-            public static readonly ChrnameSchema Empty = new ChrnameSchema(null);
+            public static readonly TableSchema Empty = new TableSchema(null);
 
-            public ChrnameSchema(string descriptionColumnName)
+            public TableSchema(string descriptionColumnName)
             {
                 DescriptionColumnName = descriptionColumnName;
             }
