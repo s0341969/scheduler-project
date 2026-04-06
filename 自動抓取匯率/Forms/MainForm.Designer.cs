@@ -7,6 +7,7 @@ namespace BotExchangeRateWinForms.Forms
         private System.Windows.Forms.TextBox txtSourceUrl;
         private System.Windows.Forms.Label lblConnectionString;
         private System.Windows.Forms.TextBox txtConnectionString;
+        private System.Windows.Forms.CheckBox chkWriteToDatabase;
         private System.Windows.Forms.Label lblInterval;
         private System.Windows.Forms.NumericUpDown numIntervalValue;
         private System.Windows.Forms.ComboBox cmbIntervalUnit;
@@ -47,6 +48,7 @@ namespace BotExchangeRateWinForms.Forms
             this.txtSourceUrl = new System.Windows.Forms.TextBox();
             this.lblConnectionString = new System.Windows.Forms.Label();
             this.txtConnectionString = new System.Windows.Forms.TextBox();
+            this.chkWriteToDatabase = new System.Windows.Forms.CheckBox();
             this.lblInterval = new System.Windows.Forms.Label();
             this.numIntervalValue = new System.Windows.Forms.NumericUpDown();
             this.cmbIntervalUnit = new System.Windows.Forms.ComboBox();
@@ -82,7 +84,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblSourceUrl.Name = "lblSourceUrl";
             this.lblSourceUrl.Size = new System.Drawing.Size(53, 12);
             this.lblSourceUrl.TabIndex = 0;
-            this.lblSourceUrl.Text = "來源網址";
+            this.lblSourceUrl.Text = "\u4f86\u6e90\u7db2\u5740";
             // 
             // txtSourceUrl
             // 
@@ -98,7 +100,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblConnectionString.Name = "lblConnectionString";
             this.lblConnectionString.Size = new System.Drawing.Size(83, 12);
             this.lblConnectionString.TabIndex = 2;
-            this.lblConnectionString.Text = "MSSQL 連線字串";
+            this.lblConnectionString.Text = "MSSQL \u9023\u7dda\u5b57\u4e32";
             // 
             // txtConnectionString
             // 
@@ -107,18 +109,28 @@ namespace BotExchangeRateWinForms.Forms
             this.txtConnectionString.Size = new System.Drawing.Size(664, 22);
             this.txtConnectionString.TabIndex = 3;
             // 
+            // chkWriteToDatabase
+            // 
+            this.chkWriteToDatabase.AutoSize = true;
+            this.chkWriteToDatabase.Location = new System.Drawing.Point(108, 98);
+            this.chkWriteToDatabase.Name = "chkWriteToDatabase";
+            this.chkWriteToDatabase.Size = new System.Drawing.Size(132, 16);
+            this.chkWriteToDatabase.TabIndex = 4;
+            this.chkWriteToDatabase.Text = "\u5beb\u5165 MSSQL \u8cc7\u6599\u5eab";
+            this.chkWriteToDatabase.UseVisualStyleBackColor = true;
+            // 
             // lblInterval
             // 
             this.lblInterval.AutoSize = true;
-            this.lblInterval.Location = new System.Drawing.Point(18, 105);
+            this.lblInterval.Location = new System.Drawing.Point(18, 131);
             this.lblInterval.Name = "lblInterval";
             this.lblInterval.Size = new System.Drawing.Size(53, 12);
-            this.lblInterval.TabIndex = 4;
-            this.lblInterval.Text = "抓取頻率";
+            this.lblInterval.TabIndex = 5;
+            this.lblInterval.Text = "\u6293\u53d6\u983b\u7387";
             // 
             // numIntervalValue
             // 
-            this.numIntervalValue.Location = new System.Drawing.Point(108, 101);
+            this.numIntervalValue.Location = new System.Drawing.Point(108, 127);
             this.numIntervalValue.Maximum = new decimal(new int[] {
             9999,
             0,
@@ -131,7 +143,7 @@ namespace BotExchangeRateWinForms.Forms
             0});
             this.numIntervalValue.Name = "numIntervalValue";
             this.numIntervalValue.Size = new System.Drawing.Size(82, 22);
-            this.numIntervalValue.TabIndex = 5;
+            this.numIntervalValue.TabIndex = 6;
             this.numIntervalValue.Value = new decimal(new int[] {
             30,
             0,
@@ -143,25 +155,25 @@ namespace BotExchangeRateWinForms.Forms
             this.cmbIntervalUnit.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbIntervalUnit.FormattingEnabled = true;
             this.cmbIntervalUnit.Items.AddRange(new object[] {
-            "分鐘",
-            "小時"});
-            this.cmbIntervalUnit.Location = new System.Drawing.Point(204, 101);
+            "\u5206\u9418",
+            "\u5c0f\u6642"});
+            this.cmbIntervalUnit.Location = new System.Drawing.Point(204, 127);
             this.cmbIntervalUnit.Name = "cmbIntervalUnit";
             this.cmbIntervalUnit.Size = new System.Drawing.Size(80, 20);
-            this.cmbIntervalUnit.TabIndex = 6;
+            this.cmbIntervalUnit.TabIndex = 7;
             // 
             // lblTimeout
             // 
             this.lblTimeout.AutoSize = true;
-            this.lblTimeout.Location = new System.Drawing.Point(320, 105);
+            this.lblTimeout.Location = new System.Drawing.Point(320, 131);
             this.lblTimeout.Name = "lblTimeout";
             this.lblTimeout.Size = new System.Drawing.Size(77, 12);
-            this.lblTimeout.TabIndex = 7;
-            this.lblTimeout.Text = "逾時秒數 (秒)";
+            this.lblTimeout.TabIndex = 8;
+            this.lblTimeout.Text = "\u903e\u6642\u79d2\u6578 (\u79d2)";
             // 
             // numTimeoutSeconds
             // 
-            this.numTimeoutSeconds.Location = new System.Drawing.Point(403, 101);
+            this.numTimeoutSeconds.Location = new System.Drawing.Point(403, 127);
             this.numTimeoutSeconds.Maximum = new decimal(new int[] {
             300,
             0,
@@ -174,7 +186,7 @@ namespace BotExchangeRateWinForms.Forms
             0});
             this.numTimeoutSeconds.Name = "numTimeoutSeconds";
             this.numTimeoutSeconds.Size = new System.Drawing.Size(82, 22);
-            this.numTimeoutSeconds.TabIndex = 8;
+            this.numTimeoutSeconds.TabIndex = 9;
             this.numTimeoutSeconds.Value = new decimal(new int[] {
             30,
             0,
@@ -183,62 +195,62 @@ namespace BotExchangeRateWinForms.Forms
             // 
             // btnSaveSettings
             // 
-            this.btnSaveSettings.Location = new System.Drawing.Point(20, 145);
+            this.btnSaveSettings.Location = new System.Drawing.Point(20, 171);
             this.btnSaveSettings.Name = "btnSaveSettings";
             this.btnSaveSettings.Size = new System.Drawing.Size(116, 32);
-            this.btnSaveSettings.TabIndex = 9;
-            this.btnSaveSettings.Text = "儲存設定";
+            this.btnSaveSettings.TabIndex = 10;
+            this.btnSaveSettings.Text = "\u5132\u5b58\u8a2d\u5b9a";
             this.btnSaveSettings.UseVisualStyleBackColor = true;
             this.btnSaveSettings.Click += new System.EventHandler(this.btnSaveSettings_Click);
             // 
             // btnInitializeDatabase
             // 
-            this.btnInitializeDatabase.Location = new System.Drawing.Point(152, 145);
+            this.btnInitializeDatabase.Location = new System.Drawing.Point(152, 171);
             this.btnInitializeDatabase.Name = "btnInitializeDatabase";
             this.btnInitializeDatabase.Size = new System.Drawing.Size(116, 32);
-            this.btnInitializeDatabase.TabIndex = 10;
-            this.btnInitializeDatabase.Text = "初始化資料庫";
+            this.btnInitializeDatabase.TabIndex = 11;
+            this.btnInitializeDatabase.Text = "\u521d\u59cb\u5316\u8cc7\u6599\u5eab";
             this.btnInitializeDatabase.UseVisualStyleBackColor = true;
             this.btnInitializeDatabase.Click += new System.EventHandler(this.btnInitializeDatabase_Click);
             // 
             // btnRunNow
             // 
-            this.btnRunNow.Location = new System.Drawing.Point(284, 145);
+            this.btnRunNow.Location = new System.Drawing.Point(284, 171);
             this.btnRunNow.Name = "btnRunNow";
             this.btnRunNow.Size = new System.Drawing.Size(116, 32);
-            this.btnRunNow.TabIndex = 11;
-            this.btnRunNow.Text = "立即抓取一次";
+            this.btnRunNow.TabIndex = 12;
+            this.btnRunNow.Text = "\u7acb\u5373\u6293\u53d6\u4e00\u6b21";
             this.btnRunNow.UseVisualStyleBackColor = true;
             this.btnRunNow.Click += new System.EventHandler(this.btnRunNow_Click);
             // 
             // btnStartTimer
             // 
-            this.btnStartTimer.Location = new System.Drawing.Point(416, 145);
+            this.btnStartTimer.Location = new System.Drawing.Point(416, 171);
             this.btnStartTimer.Name = "btnStartTimer";
             this.btnStartTimer.Size = new System.Drawing.Size(116, 32);
-            this.btnStartTimer.TabIndex = 12;
-            this.btnStartTimer.Text = "啟動 Timer";
+            this.btnStartTimer.TabIndex = 13;
+            this.btnStartTimer.Text = "\u555f\u52d5 Timer";
             this.btnStartTimer.UseVisualStyleBackColor = true;
             this.btnStartTimer.Click += new System.EventHandler(this.btnStartTimer_Click);
             // 
             // btnStopTimer
             // 
-            this.btnStopTimer.Location = new System.Drawing.Point(548, 145);
+            this.btnStopTimer.Location = new System.Drawing.Point(548, 171);
             this.btnStopTimer.Name = "btnStopTimer";
             this.btnStopTimer.Size = new System.Drawing.Size(116, 32);
-            this.btnStopTimer.TabIndex = 13;
-            this.btnStopTimer.Text = "停止 Timer";
+            this.btnStopTimer.TabIndex = 14;
+            this.btnStopTimer.Text = "\u505c\u6b62 Timer";
             this.btnStopTimer.UseVisualStyleBackColor = true;
             this.btnStopTimer.Click += new System.EventHandler(this.btnStopTimer_Click);
             // 
             // txtLog
             // 
-            this.txtLog.Location = new System.Drawing.Point(20, 360);
+            this.txtLog.Location = new System.Drawing.Point(20, 386);
             this.txtLog.Multiline = true;
             this.txtLog.Name = "txtLog";
             this.txtLog.ReadOnly = true;
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLog.Size = new System.Drawing.Size(796, 214);
+            this.txtLog.Size = new System.Drawing.Size(796, 188);
             this.txtLog.TabIndex = 14;
             // 
             // grpSettings
@@ -247,6 +259,7 @@ namespace BotExchangeRateWinForms.Forms
             this.grpSettings.Controls.Add(this.txtSourceUrl);
             this.grpSettings.Controls.Add(this.lblConnectionString);
             this.grpSettings.Controls.Add(this.txtConnectionString);
+            this.grpSettings.Controls.Add(this.chkWriteToDatabase);
             this.grpSettings.Controls.Add(this.lblInterval);
             this.grpSettings.Controls.Add(this.numIntervalValue);
             this.grpSettings.Controls.Add(this.cmbIntervalUnit);
@@ -259,10 +272,10 @@ namespace BotExchangeRateWinForms.Forms
             this.grpSettings.Controls.Add(this.btnStopTimer);
             this.grpSettings.Location = new System.Drawing.Point(20, 18);
             this.grpSettings.Name = "grpSettings";
-            this.grpSettings.Size = new System.Drawing.Size(796, 197);
+            this.grpSettings.Size = new System.Drawing.Size(796, 223);
             this.grpSettings.TabIndex = 15;
             this.grpSettings.TabStop = false;
-            this.grpSettings.Text = "設定與控制";
+            this.grpSettings.Text = "\u8a2d\u5b9a\u8207\u63a7\u5236";
             // 
             // grpStatus
             // 
@@ -274,12 +287,12 @@ namespace BotExchangeRateWinForms.Forms
             this.grpStatus.Controls.Add(this.lblNextRunValue);
             this.grpStatus.Controls.Add(this.lblLastRun);
             this.grpStatus.Controls.Add(this.lblLastRunValue);
-            this.grpStatus.Location = new System.Drawing.Point(20, 228);
+            this.grpStatus.Location = new System.Drawing.Point(20, 254);
             this.grpStatus.Name = "grpStatus";
             this.grpStatus.Size = new System.Drawing.Size(796, 114);
             this.grpStatus.TabIndex = 16;
             this.grpStatus.TabStop = false;
-            this.grpStatus.Text = "執行狀態";
+            this.grpStatus.Text = "\u57f7\u884c\u72c0\u614b";
             // 
             // lblStatus
             // 
@@ -288,7 +301,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Size = new System.Drawing.Size(53, 12);
             this.lblStatus.TabIndex = 0;
-            this.lblStatus.Text = "目前狀態";
+            this.lblStatus.Text = "\u76ee\u524d\u72c0\u614b";
             // 
             // lblStatusValue
             // 
@@ -306,7 +319,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblTimerEnabled.Name = "lblTimerEnabled";
             this.lblTimerEnabled.Size = new System.Drawing.Size(59, 12);
             this.lblTimerEnabled.TabIndex = 2;
-            this.lblTimerEnabled.Text = "Timer 狀態";
+            this.lblTimerEnabled.Text = "Timer \u72c0\u614b";
             // 
             // lblTimerEnabledValue
             // 
@@ -324,7 +337,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblNextRun.Name = "lblNextRun";
             this.lblNextRun.Size = new System.Drawing.Size(53, 12);
             this.lblNextRun.TabIndex = 4;
-            this.lblNextRun.Text = "下次執行";
+            this.lblNextRun.Text = "\u4e0b\u6b21\u57f7\u884c";
             // 
             // lblNextRunValue
             // 
@@ -342,7 +355,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblLastRun.Name = "lblLastRun";
             this.lblLastRun.Size = new System.Drawing.Size(53, 12);
             this.lblLastRun.TabIndex = 6;
-            this.lblLastRun.Text = "上次成功";
+            this.lblLastRun.Text = "\u4e0a\u6b21\u6210\u529f";
             // 
             // lblLastRunValue
             // 
@@ -368,7 +381,7 @@ namespace BotExchangeRateWinForms.Forms
             this.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "臺灣銀行匯率自動抓取";
+            this.Text = "\u81fa\u7063\u9280\u884c\u532f\u7387\u81ea\u52d5\u6293\u53d6";
             this.Load += new System.EventHandler(this.MainForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.numIntervalValue)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numTimeoutSeconds)).EndInit();

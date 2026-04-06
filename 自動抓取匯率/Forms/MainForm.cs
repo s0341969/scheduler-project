@@ -175,7 +175,8 @@ namespace BotExchangeRateWinForms.Forms
                 PollIntervalValue = Decimal.ToInt32(numIntervalValue.Value),
                 PollIntervalUnit = cmbIntervalUnit.SelectedItem == null ? "\u5206\u9418" : cmbIntervalUnit.SelectedItem.ToString(),
                 RequestTimeoutSeconds = Decimal.ToInt32(numTimeoutSeconds.Value),
-                SqlConnectionString = txtConnectionString.Text.Trim()
+                SqlConnectionString = txtConnectionString.Text.Trim(),
+                WriteToDatabase = chkWriteToDatabase.Checked
             };
         }
 
@@ -185,6 +186,7 @@ namespace BotExchangeRateWinForms.Forms
             txtConnectionString.Text = settings.SqlConnectionString;
             numIntervalValue.Value = settings.PollIntervalValue;
             numTimeoutSeconds.Value = settings.RequestTimeoutSeconds;
+            chkWriteToDatabase.Checked = settings.WriteToDatabase;
 
             var intervalUnit = string.IsNullOrWhiteSpace(settings.PollIntervalUnit) ? "\u5206\u9418" : settings.PollIntervalUnit;
             if (cmbIntervalUnit.Items.Contains(intervalUnit))
@@ -248,6 +250,7 @@ namespace BotExchangeRateWinForms.Forms
             numTimeoutSeconds.Enabled = enabled;
             txtSourceUrl.Enabled = enabled;
             txtConnectionString.Enabled = enabled;
+            chkWriteToDatabase.Enabled = enabled;
             UseWaitCursor = !enabled;
         }
 
