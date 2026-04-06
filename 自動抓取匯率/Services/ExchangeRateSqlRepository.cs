@@ -81,7 +81,12 @@ namespace BotExchangeRateWinForms.Services
                         decimal? ftol;
                         ResolveStoredRates(record, out ftil, out ftol);
 
-                        if (writeChrname)
+                        var currentSnapshot = await LoadCurrentSnapshotAsync(connection, transaction, currencyMap.Code).ConfigureAwait(false);
+                        var latestHistorySnapshot = await LoadLatestHistorySnapshotAsync(connection, transaction, currencyMap.Code).ConfigureAwait(false);
+                        var shouldWriteChrname = writeChrname && NeedsWrite(currentSnapshot, ftil, ftol);
+                        var shouldWriteChrnameHistory = writeChrnameHistory && NeedsWrite(latestHistorySnapshot, ftil, ftol);
+
+                        if (shouldWriteChrname)
                         {
                             await UpsertCurrentAsync(
                                 connection,
@@ -93,7 +98,7 @@ namespace BotExchangeRateWinForms.Services
                                 record.SourceUpdatedAt).ConfigureAwait(false);
                         }
 
-                        if (writeChrnameHistory)
+                        if (shouldWriteChrnameHistory)
                         {
                             await InsertHistoryAsync(
                                 connection,
@@ -105,7 +110,14 @@ namespace BotExchangeRateWinForms.Services
                                 record.SourceUpdatedAt).ConfigureAwait(false);
                         }
 
-                        savedRows++;
+                        if (shouldWriteChrname || shouldWriteChrnameHistory)
+                        {
+                            savedRows++;
+                        }
+                        else
+                        {
+                            skippedRows++;
+                        }
                     }
 
                     transaction.Commit();
@@ -171,6 +183,104 @@ namespace BotExchangeRateWinForms.Services
 
                 return new TableSchema(descriptionColumnName);
             }
+        }
+
+        private static async Task<RateSnapshot> LoadCurrentSnapshotAsync(
+            SqlConnection connection,
+            SqlTransaction transaction,
+            string chrnam)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandType = CommandType.Text;
+                command.CommandTimeout = 30;
+                command.CommandText =
+                    "SELECT TOP (1) FTIL, FTOL " +
+                    "FROM dbo.CHRNAME WITH (UPDLOCK, HOLDLOCK) " +
+                    "WHERE CHRNAM = @CHRNAM;";
+                command.Parameters.AddWithValue("@CHRNAM", chrnam);
+
+                using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
+                {
+                    if (!await reader.ReadAsync().ConfigureAwait(false))
+                    {
+                        return RateSnapshot.Empty;
+                    }
+
+                    return new RateSnapshot(
+                        ReadNullableDecimal(reader, 0),
+                        ReadNullableDecimal(reader, 1),
+                        true);
+                }
+            }
+        }
+
+        private static async Task<RateSnapshot> LoadLatestHistorySnapshotAsync(
+            SqlConnection connection,
+            SqlTransaction transaction,
+            string chrnam)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandType = CommandType.Text;
+                command.CommandTimeout = 30;
+                command.CommandText =
+                    "SELECT TOP (1) FTIL, FTOL " +
+                    "FROM dbo.[CHRNAME-HISTORY] WITH (UPDLOCK, HOLDLOCK) " +
+                    "WHERE CHRNAM = @CHRNAM " +
+                    "ORDER BY CRDATE DESC;";
+                command.Parameters.AddWithValue("@CHRNAM", chrnam);
+
+                using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
+                {
+                    if (!await reader.ReadAsync().ConfigureAwait(false))
+                    {
+                        return RateSnapshot.Empty;
+                    }
+
+                    return new RateSnapshot(
+                        ReadNullableDecimal(reader, 0),
+                        ReadNullableDecimal(reader, 1),
+                        true);
+                }
+            }
+        }
+
+        private static bool NeedsWrite(RateSnapshot snapshot, decimal? newFtil, decimal? newFtol)
+        {
+            if (snapshot == null || !snapshot.Exists)
+            {
+                return true;
+            }
+
+            return !AreRatesEqual(snapshot.Ftil, newFtil) || !AreRatesEqual(snapshot.Ftol, newFtol);
+        }
+
+        private static bool AreRatesEqual(decimal? left, decimal? right)
+        {
+            if (!left.HasValue && !right.HasValue)
+            {
+                return true;
+            }
+
+            if (left.HasValue != right.HasValue)
+            {
+                return false;
+            }
+
+            return left.Value == right.Value;
+        }
+
+        private static decimal? ReadNullableDecimal(SqlDataReader reader, int ordinal)
+        {
+            if (reader.IsDBNull(ordinal))
+            {
+                return null;
+            }
+
+            return reader.GetDecimal(ordinal);
         }
 
         private static string BuildChrnameUpsertSql(TableSchema tableSchema)
@@ -416,6 +526,24 @@ namespace BotExchangeRateWinForms.Services
             {
                 get { return !string.IsNullOrWhiteSpace(DescriptionColumnName); }
             }
+        }
+
+        private sealed class RateSnapshot
+        {
+            public static readonly RateSnapshot Empty = new RateSnapshot(null, null, false);
+
+            public RateSnapshot(decimal? ftil, decimal? ftol, bool exists)
+            {
+                Ftil = ftil;
+                Ftol = ftol;
+                Exists = exists;
+            }
+
+            public decimal? Ftil { get; private set; }
+
+            public decimal? Ftol { get; private set; }
+
+            public bool Exists { get; private set; }
         }
     }
 }
