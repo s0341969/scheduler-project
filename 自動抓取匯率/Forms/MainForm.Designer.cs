@@ -29,6 +29,10 @@ namespace BotExchangeRateWinForms.Forms
         private System.Windows.Forms.Label lblNextRunValue;
         private System.Windows.Forms.Label lblLastRun;
         private System.Windows.Forms.Label lblLastRunValue;
+        private System.Windows.Forms.GroupBox grpRates;
+        private System.Windows.Forms.DataGridView dgvRates;
+        private System.Windows.Forms.Label lblResultCount;
+        private System.Windows.Forms.Label lblResultCountValue;
         private System.Windows.Forms.Timer pollTimer;
 
         protected override void Dispose(bool disposing)
@@ -70,11 +74,17 @@ namespace BotExchangeRateWinForms.Forms
             this.lblNextRunValue = new System.Windows.Forms.Label();
             this.lblLastRun = new System.Windows.Forms.Label();
             this.lblLastRunValue = new System.Windows.Forms.Label();
+            this.grpRates = new System.Windows.Forms.GroupBox();
+            this.dgvRates = new System.Windows.Forms.DataGridView();
+            this.lblResultCount = new System.Windows.Forms.Label();
+            this.lblResultCountValue = new System.Windows.Forms.Label();
             this.pollTimer = new System.Windows.Forms.Timer(this.components);
             ((System.ComponentModel.ISupportInitialize)(this.numIntervalValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numTimeoutSeconds)).BeginInit();
             this.grpSettings.SuspendLayout();
             this.grpStatus.SuspendLayout();
+            this.grpRates.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvRates)).BeginInit();
             this.SuspendLayout();
             // 
             // lblSourceUrl
@@ -245,13 +255,13 @@ namespace BotExchangeRateWinForms.Forms
             // 
             // txtLog
             // 
-            this.txtLog.Location = new System.Drawing.Point(20, 386);
+            this.txtLog.Location = new System.Drawing.Point(20, 648);
             this.txtLog.Multiline = true;
             this.txtLog.Name = "txtLog";
             this.txtLog.ReadOnly = true;
             this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.txtLog.Size = new System.Drawing.Size(796, 188);
-            this.txtLog.TabIndex = 14;
+            this.txtLog.Size = new System.Drawing.Size(960, 130);
+            this.txtLog.TabIndex = 17;
             // 
             // grpSettings
             // 
@@ -272,7 +282,7 @@ namespace BotExchangeRateWinForms.Forms
             this.grpSettings.Controls.Add(this.btnStopTimer);
             this.grpSettings.Location = new System.Drawing.Point(20, 18);
             this.grpSettings.Name = "grpSettings";
-            this.grpSettings.Size = new System.Drawing.Size(796, 223);
+            this.grpSettings.Size = new System.Drawing.Size(960, 223);
             this.grpSettings.TabIndex = 15;
             this.grpSettings.TabStop = false;
             this.grpSettings.Text = "\u8a2d\u5b9a\u8207\u63a7\u5236";
@@ -289,7 +299,7 @@ namespace BotExchangeRateWinForms.Forms
             this.grpStatus.Controls.Add(this.lblLastRunValue);
             this.grpStatus.Location = new System.Drawing.Point(20, 254);
             this.grpStatus.Name = "grpStatus";
-            this.grpStatus.Size = new System.Drawing.Size(796, 114);
+            this.grpStatus.Size = new System.Drawing.Size(960, 96);
             this.grpStatus.TabIndex = 16;
             this.grpStatus.TabStop = false;
             this.grpStatus.Text = "\u57f7\u884c\u72c0\u614b";
@@ -333,7 +343,7 @@ namespace BotExchangeRateWinForms.Forms
             // lblNextRun
             // 
             this.lblNextRun.AutoSize = true;
-            this.lblNextRun.Location = new System.Drawing.Point(410, 29);
+            this.lblNextRun.Location = new System.Drawing.Point(440, 29);
             this.lblNextRun.Name = "lblNextRun";
             this.lblNextRun.Size = new System.Drawing.Size(53, 12);
             this.lblNextRun.TabIndex = 4;
@@ -342,7 +352,7 @@ namespace BotExchangeRateWinForms.Forms
             // lblNextRunValue
             // 
             this.lblNextRunValue.AutoSize = true;
-            this.lblNextRunValue.Location = new System.Drawing.Point(498, 29);
+            this.lblNextRunValue.Location = new System.Drawing.Point(528, 29);
             this.lblNextRunValue.Name = "lblNextRunValue";
             this.lblNextRunValue.Size = new System.Drawing.Size(9, 12);
             this.lblNextRunValue.TabIndex = 5;
@@ -351,7 +361,7 @@ namespace BotExchangeRateWinForms.Forms
             // lblLastRun
             // 
             this.lblLastRun.AutoSize = true;
-            this.lblLastRun.Location = new System.Drawing.Point(410, 57);
+            this.lblLastRun.Location = new System.Drawing.Point(440, 57);
             this.lblLastRun.Name = "lblLastRun";
             this.lblLastRun.Size = new System.Drawing.Size(53, 12);
             this.lblLastRun.TabIndex = 6;
@@ -360,11 +370,49 @@ namespace BotExchangeRateWinForms.Forms
             // lblLastRunValue
             // 
             this.lblLastRunValue.AutoSize = true;
-            this.lblLastRunValue.Location = new System.Drawing.Point(498, 57);
+            this.lblLastRunValue.Location = new System.Drawing.Point(528, 57);
             this.lblLastRunValue.Name = "lblLastRunValue";
             this.lblLastRunValue.Size = new System.Drawing.Size(9, 12);
             this.lblLastRunValue.TabIndex = 7;
             this.lblLastRunValue.Text = "-";
+            // 
+            // grpRates
+            // 
+            this.grpRates.Controls.Add(this.lblResultCount);
+            this.grpRates.Controls.Add(this.lblResultCountValue);
+            this.grpRates.Controls.Add(this.dgvRates);
+            this.grpRates.Location = new System.Drawing.Point(20, 363);
+            this.grpRates.Name = "grpRates";
+            this.grpRates.Size = new System.Drawing.Size(960, 268);
+            this.grpRates.TabIndex = 18;
+            this.grpRates.TabStop = false;
+            this.grpRates.Text = "\u6700\u65b0\u6293\u53d6\u7d50\u679c";
+            // 
+            // dgvRates
+            // 
+            this.dgvRates.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvRates.Location = new System.Drawing.Point(20, 47);
+            this.dgvRates.Name = "dgvRates";
+            this.dgvRates.Size = new System.Drawing.Size(920, 201);
+            this.dgvRates.TabIndex = 0;
+            // 
+            // lblResultCount
+            // 
+            this.lblResultCount.AutoSize = true;
+            this.lblResultCount.Location = new System.Drawing.Point(20, 24);
+            this.lblResultCount.Name = "lblResultCount";
+            this.lblResultCount.Size = new System.Drawing.Size(53, 12);
+            this.lblResultCount.TabIndex = 1;
+            this.lblResultCount.Text = "\u8cc7\u6599\u7b46\u6578";
+            // 
+            // lblResultCountValue
+            // 
+            this.lblResultCountValue.AutoSize = true;
+            this.lblResultCountValue.Location = new System.Drawing.Point(108, 24);
+            this.lblResultCountValue.Name = "lblResultCountValue";
+            this.lblResultCountValue.Size = new System.Drawing.Size(9, 12);
+            this.lblResultCountValue.TabIndex = 2;
+            this.lblResultCountValue.Text = "0";
             // 
             // pollTimer
             // 
@@ -374,10 +422,11 @@ namespace BotExchangeRateWinForms.Forms
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(838, 595);
+            this.ClientSize = new System.Drawing.Size(1004, 797);
+            this.Controls.Add(this.grpRates);
+            this.Controls.Add(this.txtLog);
             this.Controls.Add(this.grpStatus);
             this.Controls.Add(this.grpSettings);
-            this.Controls.Add(this.txtLog);
             this.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
@@ -389,6 +438,9 @@ namespace BotExchangeRateWinForms.Forms
             this.grpSettings.PerformLayout();
             this.grpStatus.ResumeLayout(false);
             this.grpStatus.PerformLayout();
+            this.grpRates.ResumeLayout(false);
+            this.grpRates.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dgvRates)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
         }

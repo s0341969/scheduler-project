@@ -1,5 +1,5 @@
 using System;
-using System.Threading.Tasks;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using BotExchangeRateWinForms.Models;
 using BotExchangeRateWinForms.Services;
@@ -11,6 +11,7 @@ namespace BotExchangeRateWinForms.Forms
         private readonly UserSettingsService _settingsService;
         private readonly ExchangeRateSqlRepository _repository;
         private readonly ExchangeRateJobRunner _jobRunner;
+        private readonly BindingSource _rateBindingSource;
         private UserSettings _settings;
         private DateTime? _lastSuccessfulRunTime;
 
@@ -21,6 +22,9 @@ namespace BotExchangeRateWinForms.Forms
             _settingsService = new UserSettingsService();
             _repository = new ExchangeRateSqlRepository();
             _jobRunner = new ExchangeRateJobRunner(new BotExchangeRateScraper(), _repository);
+            _rateBindingSource = new BindingSource();
+
+            InitializeRateGrid();
         }
 
         private void MainForm_Load(object sender, EventArgs e)
@@ -29,6 +33,7 @@ namespace BotExchangeRateWinForms.Forms
             {
                 _settings = _settingsService.Load();
                 ApplySettingsToUi(_settings);
+                BindRatesToGrid(null);
                 AppendLog("\u7a0b\u5f0f\u5df2\u555f\u52d5\u3002");
                 UpdateTimerStatus();
             }
@@ -104,7 +109,7 @@ namespace BotExchangeRateWinForms.Forms
             await ExecuteJobAsync("Timer \u81ea\u52d5\u57f7\u884c");
         }
 
-        private async Task ExecuteJobAsync(string triggerSource)
+        private async System.Threading.Tasks.Task ExecuteJobAsync(string triggerSource)
         {
             await RunWithUiLockAsync(async delegate
             {
@@ -118,6 +123,8 @@ namespace BotExchangeRateWinForms.Forms
                 else if (result.IsSuccess)
                 {
                     _lastSuccessfulRunTime = DateTime.Now;
+                    BindRatesToGrid(result.Records);
+
                     var sourceUpdatedAtText = result.SourceUpdatedAt.HasValue
                         ? result.SourceUpdatedAt.Value.ToString("yyyy/MM/dd HH:mm")
                         : "\u672a\u77e5";
@@ -126,7 +133,9 @@ namespace BotExchangeRateWinForms.Forms
                         triggerSource,
                         result.Message,
                         sourceUpdatedAtText));
-                    lblStatusValue.Text = "\u6700\u8fd1\u4e00\u6b21\u57f7\u884c\u6210\u529f";
+                    lblStatusValue.Text = string.Format(
+                        "\u6700\u8fd1\u4e00\u6b21\u57f7\u884c\u6210\u529f\uff08{0} \u7b46\uff09",
+                        result.TotalRows);
                     lblLastRunValue.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
                 }
                 else
@@ -139,7 +148,7 @@ namespace BotExchangeRateWinForms.Forms
             });
         }
 
-        private async Task RunWithUiLockAsync(Func<Task> action)
+        private async System.Threading.Tasks.Task RunWithUiLockAsync(Func<System.Threading.Tasks.Task> action)
         {
             ToggleControls(false);
             try
@@ -236,6 +245,62 @@ namespace BotExchangeRateWinForms.Forms
             {
                 lblLastRunValue.Text = "-";
             }
+        }
+
+        private void InitializeRateGrid()
+        {
+            dgvRates.AutoGenerateColumns = false;
+            dgvRates.ReadOnly = true;
+            dgvRates.AllowUserToAddRows = false;
+            dgvRates.AllowUserToDeleteRows = false;
+            dgvRates.AllowUserToResizeRows = false;
+            dgvRates.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvRates.MultiSelect = false;
+            dgvRates.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvRates.RowHeadersVisible = false;
+
+            dgvRates.Columns.Clear();
+            dgvRates.Columns.Add(CreateTextColumn("CurrencyCode", "\u5e63\u5225\u4ee3\u78bc", 80));
+            dgvRates.Columns.Add(CreateTextColumn("CurrencyName", "\u5e63\u5225\u540d\u7a31", 120));
+            dgvRates.Columns.Add(CreateNumericColumn("CashBuy", "\u73fe\u91d1\u8cb7\u5165", 95));
+            dgvRates.Columns.Add(CreateNumericColumn("CashSell", "\u73fe\u91d1\u8ce3\u51fa", 95));
+            dgvRates.Columns.Add(CreateNumericColumn("SpotBuy", "\u5373\u671f\u8cb7\u5165", 95));
+            dgvRates.Columns.Add(CreateNumericColumn("SpotSell", "\u5373\u671f\u8ce3\u51fa", 95));
+            dgvRates.Columns.Add(CreateDateTimeColumn("SourceRateDate", "\u639b\u724c\u65e5\u671f", "yyyy/MM/dd", 95));
+            dgvRates.Columns.Add(CreateDateTimeColumn("SourceUpdatedAt", "\u66f4\u65b0\u6642\u9593", "yyyy/MM/dd HH:mm", 130));
+            dgvRates.DataSource = _rateBindingSource;
+        }
+
+        private void BindRatesToGrid(IList<ExchangeRateRecord> records)
+        {
+            _rateBindingSource.DataSource = records ?? new List<ExchangeRateRecord>();
+            lblResultCountValue.Text = _rateBindingSource.Count.ToString();
+        }
+
+        private static DataGridViewTextBoxColumn CreateTextColumn(string propertyName, string headerText, int minimumWidth)
+        {
+            return new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = propertyName,
+                HeaderText = headerText,
+                MinimumWidth = minimumWidth,
+                SortMode = DataGridViewColumnSortMode.Automatic
+            };
+        }
+
+        private static DataGridViewTextBoxColumn CreateNumericColumn(string propertyName, string headerText, int minimumWidth)
+        {
+            var column = CreateTextColumn(propertyName, headerText, minimumWidth);
+            column.DefaultCellStyle.Format = "N4";
+            column.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+            return column;
+        }
+
+        private static DataGridViewTextBoxColumn CreateDateTimeColumn(string propertyName, string headerText, string format, int minimumWidth)
+        {
+            var column = CreateTextColumn(propertyName, headerText, minimumWidth);
+            column.DefaultCellStyle.Format = format;
+            return column;
         }
 
         private void ToggleControls(bool enabled)

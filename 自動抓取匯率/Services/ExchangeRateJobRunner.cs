@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BotExchangeRateWinForms.Models;
@@ -32,19 +33,21 @@ namespace BotExchangeRateWinForms.Services
             try
             {
                 var scrapeResult = await _scraper.ScrapeAsync(settings).ConfigureAwait(false);
+                var records = new List<ExchangeRateRecord>(scrapeResult.Records);
 
                 if (!settings.WriteToDatabase)
                 {
                     return new JobExecutionResult
                     {
                         IsSuccess = true,
-                        TotalRows = scrapeResult.Records.Count,
+                        TotalRows = records.Count,
                         InsertedRows = 0,
                         DuplicateRows = 0,
                         SourceUpdatedAt = scrapeResult.SourceUpdatedAt,
+                        Records = records,
                         Message = string.Format(
                             "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u76ee\u524d\u70ba\u300c\u50c5\u6293\u53d6\u4e0d\u5beb\u5165\u8cc7\u6599\u5eab\u300d\u6a21\u5f0f\u3002",
-                            scrapeResult.Records.Count)
+                            records.Count)
                     };
                 }
 
@@ -54,13 +57,14 @@ namespace BotExchangeRateWinForms.Services
                 return new JobExecutionResult
                 {
                     IsSuccess = true,
-                    TotalRows = scrapeResult.Records.Count,
+                    TotalRows = records.Count,
                     InsertedRows = dbResult.Item1,
                     DuplicateRows = dbResult.Item2,
                     SourceUpdatedAt = scrapeResult.SourceUpdatedAt,
+                    Records = records,
                     Message = string.Format(
                         "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u65b0\u589e {1} \u7b46\uff0c\u91cd\u8907 {2} \u7b46\u3002",
-                        scrapeResult.Records.Count,
+                        records.Count,
                         dbResult.Item1,
                         dbResult.Item2)
                 };
