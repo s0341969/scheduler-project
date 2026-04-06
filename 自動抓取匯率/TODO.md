@@ -17,3 +17,4 @@
 - 加入代理伺服器設定。
 - 顯示每種幣別最近一次成功寫入時間。
 - 若 `CHRNAME` 或 `CHRNAME-HISTORY` 實際 schema 與目前假設不同，補上正式 DB 欄位驗證與型別調整。
+- 取得正式資料庫可登入帳號後，實際比對 `TEST.dbo.CHRNAME` 與 `TEST.dbo.[CHRNAME-HISTORY]` 欄位定義。

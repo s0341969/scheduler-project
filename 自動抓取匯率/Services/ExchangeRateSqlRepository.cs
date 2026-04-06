@@ -59,6 +59,9 @@ namespace BotExchangeRateWinForms.Services
                 await connection.OpenAsync().ConfigureAwait(false);
                 using (var transaction = connection.BeginTransaction(IsolationLevel.Serializable))
                 {
+                    var chrnameSchema = writeChrname
+                        ? await LoadChrnameSchemaAsync(connection, transaction).ConfigureAwait(false)
+                        : ChrnameSchema.Empty;
                     var savedRows = 0;
                     var skippedRows = 0;
 
@@ -77,7 +80,14 @@ namespace BotExchangeRateWinForms.Services
 
                         if (writeChrname)
                         {
-                            await UpsertCurrentAsync(connection, transaction, currencyMap, ftil, ftol, record.SourceUpdatedAt).ConfigureAwait(false);
+                            await UpsertCurrentAsync(
+                                connection,
+                                transaction,
+                                chrnameSchema,
+                                currencyMap,
+                                ftil,
+                                ftol,
+                                record.SourceUpdatedAt).ConfigureAwait(false);
                         }
 
                         if (writeChrnameHistory)
@@ -97,6 +107,7 @@ namespace BotExchangeRateWinForms.Services
         private static async Task UpsertCurrentAsync(
             SqlConnection connection,
             SqlTransaction transaction,
+            ChrnameSchema chrnameSchema,
             CurrencyMap currencyMap,
             decimal? ftil,
             decimal? ftol,
@@ -107,26 +118,77 @@ namespace BotExchangeRateWinForms.Services
                 command.Transaction = transaction;
                 command.CommandType = CommandType.Text;
                 command.CommandTimeout = 30;
+                command.CommandText = BuildChrnameUpsertSql(chrnameSchema);
+
+                command.Parameters.AddWithValue("@CHRNAM", currencyMap.Code);
+                command.Parameters.AddWithValue("@FTIL", (object)ftil ?? DBNull.Value);
+                command.Parameters.AddWithValue("@FTOL", (object)ftol ?? DBNull.Value);
+                command.Parameters.AddWithValue("@CRDATE", crdate);
+
+                if (chrnameSchema.HasDescriptionColumn)
+                {
+                    command.Parameters.AddWithValue("@DESCRIPTION", currencyMap.Name);
+                }
+
+                await command.ExecuteNonQueryAsync().ConfigureAwait(false);
+            }
+        }
+
+        private static async Task<ChrnameSchema> LoadChrnameSchemaAsync(SqlConnection connection, SqlTransaction transaction)
+        {
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandType = CommandType.Text;
+                command.CommandTimeout = 30;
                 command.CommandText =
+                    "SELECT TOP (1) name " +
+                    "FROM sys.columns " +
+                    "WHERE object_id = OBJECT_ID(N'dbo.CHRNAME') " +
+                    "AND name IN (N'CHRDS', N'CHRDSC') " +
+                    "ORDER BY CASE WHEN name = N'CHRDS' THEN 0 ELSE 1 END;";
+
+                var result = await command.ExecuteScalarAsync().ConfigureAwait(false);
+                var descriptionColumnName = result as string;
+                if (string.IsNullOrWhiteSpace(descriptionColumnName))
+                {
+                    return ChrnameSchema.Empty;
+                }
+
+                return new ChrnameSchema(descriptionColumnName);
+            }
+        }
+
+        private static string BuildChrnameUpsertSql(ChrnameSchema chrnameSchema)
+        {
+            if (chrnameSchema != null && chrnameSchema.HasDescriptionColumn)
+            {
+                return
                     "IF EXISTS (SELECT 1 FROM dbo.CHRNAME WITH (UPDLOCK, HOLDLOCK) WHERE CHRNAM = @CHRNAM) " +
                     "BEGIN " +
                     "UPDATE dbo.CHRNAME " +
-                    "SET CHRDS = @CHRDS, FTIL = @FTIL, FTOL = @FTOL, CRDATE = @CRDATE " +
+                    "SET " + chrnameSchema.DescriptionColumnName + " = @DESCRIPTION, FTIL = @FTIL, FTOL = @FTOL, CRDATE = @CRDATE " +
                     "WHERE CHRNAM = @CHRNAM; " +
                     "END " +
                     "ELSE " +
                     "BEGIN " +
-                    "INSERT INTO dbo.CHRNAME (CHRNAM, CHRDS, FTIL, FTOL, CRDATE) " +
-                    "VALUES (@CHRNAM, @CHRDS, @FTIL, @FTOL, @CRDATE); " +
+                    "INSERT INTO dbo.CHRNAME (CHRNAM, " + chrnameSchema.DescriptionColumnName + ", FTIL, FTOL, CRDATE) " +
+                    "VALUES (@CHRNAM, @DESCRIPTION, @FTIL, @FTOL, @CRDATE); " +
                     "END";
-
-                command.Parameters.AddWithValue("@CHRNAM", currencyMap.Code);
-                command.Parameters.AddWithValue("@CHRDS", currencyMap.Name);
-                command.Parameters.AddWithValue("@FTIL", (object)ftil ?? DBNull.Value);
-                command.Parameters.AddWithValue("@FTOL", (object)ftol ?? DBNull.Value);
-                command.Parameters.AddWithValue("@CRDATE", crdate);
-                await command.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+
+            return
+                "IF EXISTS (SELECT 1 FROM dbo.CHRNAME WITH (UPDLOCK, HOLDLOCK) WHERE CHRNAM = @CHRNAM) " +
+                "BEGIN " +
+                "UPDATE dbo.CHRNAME " +
+                "SET FTIL = @FTIL, FTOL = @FTOL, CRDATE = @CRDATE " +
+                "WHERE CHRNAM = @CHRNAM; " +
+                "END " +
+                "ELSE " +
+                "BEGIN " +
+                "INSERT INTO dbo.CHRNAME (CHRNAM, FTIL, FTOL, CRDATE) " +
+                "VALUES (@CHRNAM, @FTIL, @FTOL, @CRDATE); " +
+                "END";
         }
 
         private static async Task InsertHistoryAsync(
@@ -295,6 +357,23 @@ namespace BotExchangeRateWinForms.Services
             public string Code { get; private set; }
 
             public string Name { get; private set; }
+        }
+
+        private sealed class ChrnameSchema
+        {
+            public static readonly ChrnameSchema Empty = new ChrnameSchema(null);
+
+            public ChrnameSchema(string descriptionColumnName)
+            {
+                DescriptionColumnName = descriptionColumnName;
+            }
+
+            public string DescriptionColumnName { get; private set; }
+
+            public bool HasDescriptionColumn
+            {
+                get { return !string.IsNullOrWhiteSpace(DescriptionColumnName); }
+            }
         }
     }
 }
