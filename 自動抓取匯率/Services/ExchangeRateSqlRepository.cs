@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Data;
 using System.Data.SqlClient;
 using System.Threading.Tasks;
@@ -30,7 +30,7 @@ namespace BotExchangeRateWinForms.Services
             }
 
             throw new InvalidOperationException(
-                string.Format("\u5c1a\u672a\u8a2d\u5b9a MSSQL \u9023\u7dda\u5b57\u4e32\u3002\u8acb\u5728\u756b\u9762\u8f38\u5165\uff0c\u6216\u8a2d\u5b9a\u74b0\u5883\u8b8a\u6578 {0}\u3002", EnvironmentVariableName));
+                string.Format("尚未設定 MSSQL 連線字串。請在畫面輸入，或設定環境變數 {0}。", EnvironmentVariableName));
         }
 
         /// <summary>
@@ -416,7 +416,7 @@ namespace BotExchangeRateWinForms.Services
         /// </summary>
         private static void ResolveStoredRates(ExchangeRateRecord record, out decimal? ftil, out decimal? ftol)
         {
-            var isCny = Contains(record.CurrencyCode, "CNY") || Contains(record.CurrencyName, "\u4eba\u6c11\u5e63");
+            var isCny = Contains(record.CurrencyCode, "CNY") || Contains(record.CurrencyName, "人民幣");
             if (isCny)
             {
                 ftil = record.CashBuy;
@@ -440,67 +440,67 @@ namespace BotExchangeRateWinForms.Services
 
             if (Contains(sourceText, "USD"))
             {
-                currencyMap = new CurrencyMap("US", "\u7f8e\u91d1");
+                currencyMap = new CurrencyMap("US", "美金");
                 return true;
             }
 
             if (Contains(sourceText, "JPY"))
             {
-                currencyMap = new CurrencyMap("JP", "\u65e5\u5e63");
+                currencyMap = new CurrencyMap("JP", "日幣");
                 return true;
             }
 
             if (Contains(sourceText, "THB"))
             {
-                currencyMap = new CurrencyMap("TA", "\u6cf0\u5e63");
+                currencyMap = new CurrencyMap("TA", "泰幣");
                 return true;
             }
 
             if (Contains(sourceText, "CNY"))
             {
-                currencyMap = new CurrencyMap("RMB", "\u4eba\u6c11\u5e63");
+                currencyMap = new CurrencyMap("RMB", "人民幣");
                 return true;
             }
 
             if (Contains(sourceText, "CHF"))
             {
-                currencyMap = new CurrencyMap("CHF", "\u6cd5\u90ce");
+                currencyMap = new CurrencyMap("CHF", "法郎");
                 return true;
             }
 
             if (Contains(sourceText, "EUR"))
             {
-                currencyMap = new CurrencyMap("EUR", "\u6b50\u5143");
+                currencyMap = new CurrencyMap("EUR", "歐元");
                 return true;
             }
 
             if (Contains(sourceText, "GBP"))
             {
-                currencyMap = new CurrencyMap("GBP", "\u82f1\u78c5");
+                currencyMap = new CurrencyMap("GBP", "英磅");
                 return true;
             }
 
             if (Contains(sourceText, "MA") || Contains(sourceText, "MYR"))
             {
-                currencyMap = new CurrencyMap("MA", "\u99ac\u5e63");
+                currencyMap = new CurrencyMap("MA", "馬幣");
                 return true;
             }
 
             if (Contains(sourceText, "NT$") || Contains(sourceText, "TWD"))
             {
-                currencyMap = new CurrencyMap("NT$", "\u53f0\u5e63");
+                currencyMap = new CurrencyMap("NT$", "台幣");
                 return true;
             }
 
             if (Contains(sourceText, "SGD"))
             {
-                currencyMap = new CurrencyMap("SGD", "\u65b0\u5e63");
+                currencyMap = new CurrencyMap("SGD", "新幣");
                 return true;
             }
 
             if (Contains(sourceText, "AUD"))
             {
-                currencyMap = new CurrencyMap("AUD", "\u6fb3\u5e63");
+                currencyMap = new CurrencyMap("AUD", "澳幣");
                 return true;
             }
 

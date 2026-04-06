@@ -1,4 +1,4 @@
-namespace BotExchangeRateWinForms.Models
+﻿namespace BotExchangeRateWinForms.Models
 {
     /// <summary>
     /// 保存使用者在畫面上可調整的所有設定值。
@@ -54,7 +54,7 @@ namespace BotExchangeRateWinForms.Models
             {
                 SourceUrl = "https://rate.bot.com.tw/xrt?Lang=zh-TW",
                 PollIntervalValue = 30,
-                PollIntervalUnit = "\u5206\u9418",
+                PollIntervalUnit = "分鐘",
                 RequestTimeoutSeconds = 30,
                 SqlConnectionString = string.Empty,
                 WriteToDatabase = false,

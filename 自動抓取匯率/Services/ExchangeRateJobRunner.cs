@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -35,7 +35,7 @@ namespace BotExchangeRateWinForms.Services
                 return new JobExecutionResult
                 {
                     IsSkipped = true,
-                    Message = "\u4e0a\u4e00\u8f2a\u6293\u53d6\u5c1a\u672a\u5b8c\u6210\uff0c\u5df2\u7565\u904e\u672c\u6b21\u57f7\u884c\u3002"
+                    Message = "上一輪抓取尚未完成，已略過本次執行。"
                 };
             }
 
@@ -55,7 +55,7 @@ namespace BotExchangeRateWinForms.Services
                         SourceUpdatedAt = scrapeResult.SourceUpdatedAt,
                         Records = records,
                         Message = string.Format(
-                            "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u76ee\u524d\u70ba\u300c\u50c5\u6293\u53d6\u4e0d\u5beb\u5165\u8cc7\u6599\u5eab\u300d\u6a21\u5f0f\u3002",
+                            "抓取成功，共 {0} 筆，目前為「僅抓取不寫入資料庫」模式。",
                             records.Count)
                     };
                 }
@@ -68,7 +68,7 @@ namespace BotExchangeRateWinForms.Services
                     settings.WriteChrnameHistory).ConfigureAwait(false);
 
                 var writeTargetText = settings.WriteChrname && settings.WriteChrnameHistory
-                    ? "CHRNAME \u8207 CHRNAME-HISTORY"
+                    ? "CHRNAME 與 CHRNAME-HISTORY"
                     : settings.WriteChrname
                         ? "CHRNAME"
                         : "CHRNAME-HISTORY";
@@ -82,7 +82,7 @@ namespace BotExchangeRateWinForms.Services
                     SourceUpdatedAt = scrapeResult.SourceUpdatedAt,
                     Records = records,
                     Message = string.Format(
-                        "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u5df2\u540c\u6b65 {1} {2} \u7b46\uff0c\u7565\u904e {3} \u7b46\u3002",
+                        "抓取成功，共 {0} 筆，已同步 {1} {2} 筆，略過 {3} 筆。",
                         records.Count,
                         writeTargetText,
                         dbResult.Item1,

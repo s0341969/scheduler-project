@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Net;
@@ -18,14 +18,14 @@ namespace BotExchangeRateWinForms.Services
         /// 擷取頁面中的最新掛牌時間。
         /// </summary>
         private static readonly Regex UpdatedAtRegex = new Regex(
-            "\\u724c\\u50f9\\u6700\\u65b0\\u639b\\u724c\\u6642\\u9593\\s*[:\\uFF1A]\\s*(?<value>\\d{4}/\\d{2}/\\d{2}\\s+\\d{2}:\\d{2})",
+            "牌價最新掛牌時間\\s*[:：]\\s*(?<value>\\d{4}/\\d{2}/\\d{2}\\s+\\d{2}:\\d{2})",
             RegexOptions.Compiled);
 
         /// <summary>
         /// 擷取頁面中的掛牌日期。
         /// </summary>
         private static readonly Regex RateDateRegex = new Regex(
-            "(?<value>\\d{4}/\\d{2}/\\d{2})\\s*\\u672c\\u884c\\s*.*?\\u724c\\u544a\\u532f\\u7387",
+            "(?<value>\\d{4}/\\d{2}/\\d{2})\\s*本行\\s*.*?牌告匯率",
             RegexOptions.Compiled);
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace BotExchangeRateWinForms.Services
 
             if (string.IsNullOrWhiteSpace(settings.SourceUrl))
             {
-                throw new InvalidOperationException("\u5c1a\u672a\u8a2d\u5b9a\u4f86\u6e90\u7db2\u5740\u3002");
+                throw new InvalidOperationException("尚未設定來源網址。");
             }
 
             string html;
@@ -79,7 +79,7 @@ namespace BotExchangeRateWinForms.Services
 
             if (string.IsNullOrWhiteSpace(html))
             {
-                throw new InvalidOperationException("\u4f86\u6e90\u9801\u9762\u6c92\u6709\u56de\u50b3\u5167\u5bb9\u3002");
+                throw new InvalidOperationException("來源頁面沒有回傳內容。");
             }
 
             return Parse(html, settings.SourceUrl);
@@ -91,7 +91,7 @@ namespace BotExchangeRateWinForms.Services
         internal ScrapeResult Parse(string html, string sourceUrl)
         {
             var plainText = NormalizeWhitespace(RemoveHtmlTags(html));
-            var updatedAt = ParseDateTime(UpdatedAtRegex, plainText, "\u627e\u4e0d\u5230\u300e\u724c\u50f9\u6700\u65b0\u639b\u724c\u6642\u9593\u300f\u3002");
+            var updatedAt = ParseDateTime(UpdatedAtRegex, plainText, "找不到『牌價最新掛牌時間』。");
             var rateDate = ParseDate(RateDateRegex, plainText, updatedAt.Date);
 
             var result = new ScrapeResult
@@ -151,7 +151,7 @@ namespace BotExchangeRateWinForms.Services
 
             if (result.Records.Count == 0)
             {
-                throw new InvalidOperationException("\u89e3\u6790\u5b8c\u6210\uff0c\u4f46\u6c92\u6709\u627e\u5230\u4efb\u4f55\u532f\u7387\u8cc7\u6599\u3002\u53ef\u80fd\u662f\u9801\u9762\u7d50\u69cb\u5df2\u8b8a\u66f4\u3002");
+                throw new InvalidOperationException("解析完成，但沒有找到任何匯率資料。可能是頁面結構已變更。");
             }
 
             return result;
@@ -193,7 +193,7 @@ namespace BotExchangeRateWinForms.Services
                 DateTimeStyles.None,
                 out parsedValue))
             {
-                throw new InvalidOperationException("\u7121\u6cd5\u89e3\u6790\u724c\u50f9\u66f4\u65b0\u6642\u9593\u3002");
+                throw new InvalidOperationException("無法解析牌價更新時間。");
             }
 
             return parsedValue;
@@ -285,7 +285,7 @@ namespace BotExchangeRateWinForms.Services
             decimal parsedValue;
             if (!decimal.TryParse(value, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out parsedValue))
             {
-                throw new InvalidOperationException(string.Format("\u7121\u6cd5\u89e3\u6790\u532f\u7387\u6578\u503c\uff1a{0}", value));
+                throw new InvalidOperationException(string.Format("無法解析匯率數值：{0}", value));
             }
 
             return parsedValue;

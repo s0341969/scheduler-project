@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Windows.Forms;
 using BotExchangeRateWinForms.Models;
@@ -43,7 +43,7 @@ namespace BotExchangeRateWinForms.Forms
                 _settings = _settingsService.Load();
                 ApplySettingsToUi(_settings);
                 BindRatesToGrid(null);
-                AppendLog("\u7a0b\u5f0f\u5df2\u555f\u52d5\u3002");
+                AppendLog("程式已啟動。");
                 UpdateTimerStatus();
             }
             catch (Exception ex)
@@ -60,12 +60,12 @@ namespace BotExchangeRateWinForms.Forms
             try
             {
                 SaveSettingsFromUi();
-                AppendLog("\u8a2d\u5b9a\u5df2\u5132\u5b58\u3002");
+                AppendLog("設定已儲存。");
 
                 if (pollTimer.Enabled)
                 {
                     ConfigureTimer();
-                    AppendLog("Timer \u9593\u9694\u5df2\u91cd\u65b0\u5957\u7528\u3002");
+                    AppendLog("Timer 間隔已重新套用。");
                 }
             }
             catch (Exception ex)
@@ -84,8 +84,8 @@ namespace BotExchangeRateWinForms.Forms
                 SaveSettingsFromUi();
                 var connectionString = _repository.ResolveConnectionString(_settings);
                 await _repository.InitializeDatabaseAsync(connectionString).ConfigureAwait(true);
-                AppendLog("\u8cc7\u6599\u8868\u521d\u59cb\u5316\u5b8c\u6210\u3002");
-                lblStatusValue.Text = "\u8cc7\u6599\u8868\u521d\u59cb\u5316\u5b8c\u6210";
+                AppendLog("資料表初始化完成。");
+                lblStatusValue.Text = "資料表初始化完成";
             });
         }
 
@@ -94,7 +94,7 @@ namespace BotExchangeRateWinForms.Forms
         /// </summary>
         private async void btnRunNow_Click(object sender, EventArgs e)
         {
-            await ExecuteJobAsync("\u624b\u52d5\u57f7\u884c");
+            await ExecuteJobAsync("手動執行");
         }
 
         /// <summary>
@@ -107,8 +107,8 @@ namespace BotExchangeRateWinForms.Forms
                 SaveSettingsFromUi();
                 ConfigureTimer();
                 pollTimer.Start();
-                AppendLog("\u81ea\u52d5\u6293\u53d6\u5df2\u555f\u52d5\u3002");
-                lblStatusValue.Text = "Timer \u57f7\u884c\u4e2d";
+                AppendLog("自動抓取已啟動。");
+                lblStatusValue.Text = "Timer 執行中";
                 UpdateTimerStatus();
             }
             catch (Exception ex)
@@ -123,8 +123,8 @@ namespace BotExchangeRateWinForms.Forms
         private void btnStopTimer_Click(object sender, EventArgs e)
         {
             pollTimer.Stop();
-            AppendLog("\u81ea\u52d5\u6293\u53d6\u5df2\u505c\u6b62\u3002");
-            lblStatusValue.Text = "Timer \u5df2\u505c\u6b62";
+            AppendLog("自動抓取已停止。");
+            lblStatusValue.Text = "Timer 已停止";
             UpdateTimerStatus();
         }
 
@@ -133,7 +133,7 @@ namespace BotExchangeRateWinForms.Forms
         /// </summary>
         private async void pollTimer_Tick(object sender, EventArgs e)
         {
-            await ExecuteJobAsync("Timer \u81ea\u52d5\u57f7\u884c");
+            await ExecuteJobAsync("Timer 自動執行");
         }
 
         /// <summary>
@@ -147,8 +147,8 @@ namespace BotExchangeRateWinForms.Forms
                 var result = await _jobRunner.ExecuteAsync(_settings).ConfigureAwait(true);
                 if (result.IsSkipped)
                 {
-                    AppendLog(string.Format("{0}\uff1a{1}", triggerSource, result.Message));
-                    lblStatusValue.Text = "\u7565\u904e";
+                    AppendLog(string.Format("{0}：{1}", triggerSource, result.Message));
+                    lblStatusValue.Text = "略過";
                 }
                 else if (result.IsSuccess)
                 {
@@ -157,21 +157,21 @@ namespace BotExchangeRateWinForms.Forms
 
                     var sourceUpdatedAtText = result.SourceUpdatedAt.HasValue
                         ? result.SourceUpdatedAt.Value.ToString("yyyy/MM/dd HH:mm")
-                        : "\u672a\u77e5";
+                        : "未知";
                     AppendLog(string.Format(
-                        "{0}\uff1a{1} \u4f86\u6e90\u639b\u724c\u6642\u9593 {2}",
+                        "{0}：{1} 來源掛牌時間 {2}",
                         triggerSource,
                         result.Message,
                         sourceUpdatedAtText));
                     lblStatusValue.Text = string.Format(
-                        "\u6700\u8fd1\u4e00\u6b21\u57f7\u884c\u6210\u529f\uff08{0} \u7b46\uff09",
+                        "最近一次執行成功（{0} 筆）",
                         result.TotalRows);
                     lblLastRunValue.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss");
                 }
                 else
                 {
-                    AppendLog(string.Format("{0}\uff1a\u5931\u6557\uff0c{1}", triggerSource, result.Message));
-                    lblStatusValue.Text = "\u57f7\u884c\u5931\u6557";
+                    AppendLog(string.Format("{0}：失敗，{1}", triggerSource, result.Message));
+                    lblStatusValue.Text = "執行失敗";
                 }
 
                 UpdateTimerStatus();
@@ -214,14 +214,14 @@ namespace BotExchangeRateWinForms.Forms
         {
             if (numIntervalValue.Value <= 0)
             {
-                throw new InvalidOperationException("\u6293\u53d6\u983b\u7387\u5fc5\u9808\u5927\u65bc 0\u3002");
+                throw new InvalidOperationException("抓取頻率必須大於 0。");
             }
 
             return new UserSettings
             {
                 SourceUrl = txtSourceUrl.Text.Trim(),
                 PollIntervalValue = Decimal.ToInt32(numIntervalValue.Value),
-                PollIntervalUnit = cmbIntervalUnit.SelectedItem == null ? "\u5206\u9418" : cmbIntervalUnit.SelectedItem.ToString(),
+                PollIntervalUnit = cmbIntervalUnit.SelectedItem == null ? "分鐘" : cmbIntervalUnit.SelectedItem.ToString(),
                 RequestTimeoutSeconds = Decimal.ToInt32(numTimeoutSeconds.Value),
                 SqlConnectionString = txtConnectionString.Text.Trim(),
                 WriteToDatabase = chkWriteChrname.Checked || chkWriteChrnameHistory.Checked,
@@ -242,7 +242,7 @@ namespace BotExchangeRateWinForms.Forms
             chkWriteChrname.Checked = settings.WriteChrname;
             chkWriteChrnameHistory.Checked = settings.WriteChrnameHistory;
 
-            var intervalUnit = string.IsNullOrWhiteSpace(settings.PollIntervalUnit) ? "\u5206\u9418" : settings.PollIntervalUnit;
+            var intervalUnit = string.IsNullOrWhiteSpace(settings.PollIntervalUnit) ? "分鐘" : settings.PollIntervalUnit;
             if (cmbIntervalUnit.Items.Contains(intervalUnit))
             {
                 cmbIntervalUnit.SelectedItem = intervalUnit;
@@ -259,14 +259,14 @@ namespace BotExchangeRateWinForms.Forms
         private void ConfigureTimer()
         {
             var settings = BuildSettingsFromUi();
-            var interval = settings.PollIntervalUnit == "\u5c0f\u6642"
+            var interval = settings.PollIntervalUnit == "小時"
                 ? TimeSpan.FromHours(settings.PollIntervalValue)
                 : TimeSpan.FromMinutes(settings.PollIntervalValue);
 
             var intervalMilliseconds = Math.Max(1000.0, interval.TotalMilliseconds);
             if (intervalMilliseconds > int.MaxValue)
             {
-                throw new InvalidOperationException("Timer \u9593\u9694\u904e\u5927\uff0c\u8acb\u964d\u4f4e\u8a2d\u5b9a\u503c\u3002");
+                throw new InvalidOperationException("Timer 間隔過大，請降低設定值。");
             }
 
             pollTimer.Interval = (int)intervalMilliseconds;
@@ -277,7 +277,7 @@ namespace BotExchangeRateWinForms.Forms
         /// </summary>
         private void UpdateTimerStatus()
         {
-            lblTimerEnabledValue.Text = pollTimer.Enabled ? "\u555f\u7528\u4e2d" : "\u672a\u555f\u7528";
+            lblTimerEnabledValue.Text = pollTimer.Enabled ? "啟用中" : "未啟用";
 
             if (pollTimer.Enabled)
             {
@@ -314,12 +314,12 @@ namespace BotExchangeRateWinForms.Forms
             dgvRates.RowHeadersVisible = false;
 
             dgvRates.Columns.Clear();
-            dgvRates.Columns.Add(CreateTextColumn("CurrencyCode", "\u5e63\u5225\u4ee3\u78bc", 80));
-            dgvRates.Columns.Add(CreateTextColumn("CurrencyName", "\u5e63\u5225\u540d\u7a31", 120));
-            dgvRates.Columns.Add(CreateNumericColumn("CashBuy", "\u73fe\u91d1\u672c\u884c\u8cb7\u5165", 120));
-            dgvRates.Columns.Add(CreateNumericColumn("CashSell", "\u73fe\u91d1\u672c\u884c\u8ce3\u51fa", 120));
-            dgvRates.Columns.Add(CreateDateTimeColumn("SourceRateDate", "\u639b\u724c\u65e5\u671f", "yyyy/MM/dd", 95));
-            dgvRates.Columns.Add(CreateDateTimeColumn("SourceUpdatedAt", "\u66f4\u65b0\u6642\u9593", "yyyy/MM/dd HH:mm", 130));
+            dgvRates.Columns.Add(CreateTextColumn("CurrencyCode", "幣別代碼", 80));
+            dgvRates.Columns.Add(CreateTextColumn("CurrencyName", "幣別名稱", 120));
+            dgvRates.Columns.Add(CreateNumericColumn("CashBuy", "現金本行買入", 120));
+            dgvRates.Columns.Add(CreateNumericColumn("CashSell", "現金本行賣出", 120));
+            dgvRates.Columns.Add(CreateDateTimeColumn("SourceRateDate", "掛牌日期", "yyyy/MM/dd", 95));
+            dgvRates.Columns.Add(CreateDateTimeColumn("SourceUpdatedAt", "更新時間", "yyyy/MM/dd HH:mm", 130));
             dgvRates.DataSource = _rateBindingSource;
         }
 
@@ -400,9 +400,9 @@ namespace BotExchangeRateWinForms.Forms
         /// </summary>
         private void HandleUiException(Exception ex)
         {
-            lblStatusValue.Text = "\u64cd\u4f5c\u5931\u6557";
-            AppendLog(string.Format("\u932f\u8aa4\uff1a{0}", ex.Message));
-            MessageBox.Show(this, ex.Message, "\u57f7\u884c\u5931\u6557", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            lblStatusValue.Text = "操作失敗";
+            AppendLog(string.Format("錯誤：{0}", ex.Message));
+            MessageBox.Show(this, ex.Message, "執行失敗", MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
     }
 }

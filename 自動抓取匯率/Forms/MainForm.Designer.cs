@@ -1,4 +1,4 @@
-namespace BotExchangeRateWinForms.Forms
+﻿namespace BotExchangeRateWinForms.Forms
 {
     /// <summary>
     /// 主畫面的 Designer 區塊，集中定義控制項與版面配置。
@@ -108,7 +108,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblSourceUrl.Name = "lblSourceUrl";
             this.lblSourceUrl.Size = new System.Drawing.Size(53, 12);
             this.lblSourceUrl.TabIndex = 0;
-            this.lblSourceUrl.Text = "\u4f86\u6e90\u7db2\u5740";
+            this.lblSourceUrl.Text = "來源網址";
             // 
             // txtSourceUrl
             // 
@@ -124,7 +124,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblConnectionString.Name = "lblConnectionString";
             this.lblConnectionString.Size = new System.Drawing.Size(83, 12);
             this.lblConnectionString.TabIndex = 2;
-            this.lblConnectionString.Text = "MSSQL \u9023\u7dda\u5b57\u4e32";
+            this.lblConnectionString.Text = "MSSQL 連線字串";
             // 
             // txtConnectionString
             // 
@@ -140,7 +140,7 @@ namespace BotExchangeRateWinForms.Forms
             this.chkWriteChrname.Name = "chkWriteChrname";
             this.chkWriteChrname.Size = new System.Drawing.Size(104, 16);
             this.chkWriteChrname.TabIndex = 4;
-            this.chkWriteChrname.Text = "\u5beb\u5165 CHRNAME";
+            this.chkWriteChrname.Text = "寫入 CHRNAME";
             this.chkWriteChrname.UseVisualStyleBackColor = true;
             // 
             // chkWriteChrnameHistory
@@ -150,7 +150,7 @@ namespace BotExchangeRateWinForms.Forms
             this.chkWriteChrnameHistory.Name = "chkWriteChrnameHistory";
             this.chkWriteChrnameHistory.Size = new System.Drawing.Size(148, 16);
             this.chkWriteChrnameHistory.TabIndex = 5;
-            this.chkWriteChrnameHistory.Text = "\u5beb\u5165 CHRNAME-HISTORY";
+            this.chkWriteChrnameHistory.Text = "寫入 CHRNAME-HISTORY";
             this.chkWriteChrnameHistory.UseVisualStyleBackColor = true;
             // 
             // lblInterval
@@ -160,7 +160,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblInterval.Name = "lblInterval";
             this.lblInterval.Size = new System.Drawing.Size(53, 12);
             this.lblInterval.TabIndex = 6;
-            this.lblInterval.Text = "\u6293\u53d6\u983b\u7387";
+            this.lblInterval.Text = "抓取頻率";
             // 
             // numIntervalValue
             // 
@@ -189,8 +189,8 @@ namespace BotExchangeRateWinForms.Forms
             this.cmbIntervalUnit.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbIntervalUnit.FormattingEnabled = true;
             this.cmbIntervalUnit.Items.AddRange(new object[] {
-            "\u5206\u9418",
-            "\u5c0f\u6642"});
+            "分鐘",
+            "小時"});
             this.cmbIntervalUnit.Location = new System.Drawing.Point(204, 127);
             this.cmbIntervalUnit.Name = "cmbIntervalUnit";
             this.cmbIntervalUnit.Size = new System.Drawing.Size(80, 20);
@@ -203,7 +203,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblTimeout.Name = "lblTimeout";
             this.lblTimeout.Size = new System.Drawing.Size(77, 12);
             this.lblTimeout.TabIndex = 9;
-            this.lblTimeout.Text = "\u903e\u6642\u79d2\u6578 (\u79d2)";
+            this.lblTimeout.Text = "逾時秒數 (秒)";
             // 
             // numTimeoutSeconds
             // 
@@ -233,7 +233,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnSaveSettings.Name = "btnSaveSettings";
             this.btnSaveSettings.Size = new System.Drawing.Size(116, 32);
             this.btnSaveSettings.TabIndex = 11;
-            this.btnSaveSettings.Text = "\u5132\u5b58\u8a2d\u5b9a";
+            this.btnSaveSettings.Text = "儲存設定";
             this.btnSaveSettings.UseVisualStyleBackColor = true;
             this.btnSaveSettings.Click += new System.EventHandler(this.btnSaveSettings_Click);
             // 
@@ -243,7 +243,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnInitializeDatabase.Name = "btnInitializeDatabase";
             this.btnInitializeDatabase.Size = new System.Drawing.Size(116, 32);
             this.btnInitializeDatabase.TabIndex = 12;
-            this.btnInitializeDatabase.Text = "\u521d\u59cb\u5316\u8cc7\u6599\u5eab";
+            this.btnInitializeDatabase.Text = "初始化資料庫";
             this.btnInitializeDatabase.UseVisualStyleBackColor = true;
             this.btnInitializeDatabase.Click += new System.EventHandler(this.btnInitializeDatabase_Click);
             // 
@@ -253,7 +253,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnRunNow.Name = "btnRunNow";
             this.btnRunNow.Size = new System.Drawing.Size(116, 32);
             this.btnRunNow.TabIndex = 13;
-            this.btnRunNow.Text = "\u7acb\u5373\u6293\u53d6\u4e00\u6b21";
+            this.btnRunNow.Text = "立即抓取一次";
             this.btnRunNow.UseVisualStyleBackColor = true;
             this.btnRunNow.Click += new System.EventHandler(this.btnRunNow_Click);
             // 
@@ -263,7 +263,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnStartTimer.Name = "btnStartTimer";
             this.btnStartTimer.Size = new System.Drawing.Size(116, 32);
             this.btnStartTimer.TabIndex = 14;
-            this.btnStartTimer.Text = "\u555f\u52d5 Timer";
+            this.btnStartTimer.Text = "啟動 Timer";
             this.btnStartTimer.UseVisualStyleBackColor = true;
             this.btnStartTimer.Click += new System.EventHandler(this.btnStartTimer_Click);
             // 
@@ -273,7 +273,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnStopTimer.Name = "btnStopTimer";
             this.btnStopTimer.Size = new System.Drawing.Size(116, 32);
             this.btnStopTimer.TabIndex = 15;
-            this.btnStopTimer.Text = "\u505c\u6b62 Timer";
+            this.btnStopTimer.Text = "停止 Timer";
             this.btnStopTimer.UseVisualStyleBackColor = true;
             this.btnStopTimer.Click += new System.EventHandler(this.btnStopTimer_Click);
             // 
@@ -310,7 +310,7 @@ namespace BotExchangeRateWinForms.Forms
             this.grpSettings.Size = new System.Drawing.Size(960, 223);
             this.grpSettings.TabIndex = 15;
             this.grpSettings.TabStop = false;
-            this.grpSettings.Text = "\u8a2d\u5b9a\u8207\u63a7\u5236";
+            this.grpSettings.Text = "設定與控制";
             // 
             // grpStatus
             // 
@@ -327,7 +327,7 @@ namespace BotExchangeRateWinForms.Forms
             this.grpStatus.Size = new System.Drawing.Size(960, 96);
             this.grpStatus.TabIndex = 16;
             this.grpStatus.TabStop = false;
-            this.grpStatus.Text = "\u57f7\u884c\u72c0\u614b";
+            this.grpStatus.Text = "執行狀態";
             // 
             // lblStatus
             // 
@@ -336,7 +336,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblStatus.Name = "lblStatus";
             this.lblStatus.Size = new System.Drawing.Size(53, 12);
             this.lblStatus.TabIndex = 0;
-            this.lblStatus.Text = "\u76ee\u524d\u72c0\u614b";
+            this.lblStatus.Text = "目前狀態";
             // 
             // lblStatusValue
             // 
@@ -354,7 +354,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblTimerEnabled.Name = "lblTimerEnabled";
             this.lblTimerEnabled.Size = new System.Drawing.Size(59, 12);
             this.lblTimerEnabled.TabIndex = 2;
-            this.lblTimerEnabled.Text = "Timer \u72c0\u614b";
+            this.lblTimerEnabled.Text = "Timer 狀態";
             // 
             // lblTimerEnabledValue
             // 
@@ -372,7 +372,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblNextRun.Name = "lblNextRun";
             this.lblNextRun.Size = new System.Drawing.Size(53, 12);
             this.lblNextRun.TabIndex = 4;
-            this.lblNextRun.Text = "\u4e0b\u6b21\u57f7\u884c";
+            this.lblNextRun.Text = "下次執行";
             // 
             // lblNextRunValue
             // 
@@ -390,7 +390,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblLastRun.Name = "lblLastRun";
             this.lblLastRun.Size = new System.Drawing.Size(53, 12);
             this.lblLastRun.TabIndex = 6;
-            this.lblLastRun.Text = "\u4e0a\u6b21\u6210\u529f";
+            this.lblLastRun.Text = "上次成功";
             // 
             // lblLastRunValue
             // 
@@ -411,7 +411,7 @@ namespace BotExchangeRateWinForms.Forms
             this.grpRates.Size = new System.Drawing.Size(960, 268);
             this.grpRates.TabIndex = 18;
             this.grpRates.TabStop = false;
-            this.grpRates.Text = "\u6700\u65b0\u6293\u53d6\u7d50\u679c";
+            this.grpRates.Text = "最新抓取結果";
             // 
             // dgvRates
             // 
@@ -428,7 +428,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblResultCount.Name = "lblResultCount";
             this.lblResultCount.Size = new System.Drawing.Size(53, 12);
             this.lblResultCount.TabIndex = 1;
-            this.lblResultCount.Text = "\u8cc7\u6599\u7b46\u6578";
+            this.lblResultCount.Text = "資料筆數";
             // 
             // lblResultCountValue
             // 
@@ -455,7 +455,7 @@ namespace BotExchangeRateWinForms.Forms
             this.Font = new System.Drawing.Font("Microsoft JhengHei UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(136)));
             this.Name = "MainForm";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "\u81fa\u7063\u9280\u884c\u532f\u7387\u81ea\u52d5\u6293\u53d6";
+            this.Text = "臺灣銀行匯率自動抓取";
             this.Load += new System.EventHandler(this.MainForm_Load);
             ((System.ComponentModel.ISupportInitialize)(this.numIntervalValue)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numTimeoutSeconds)).EndInit();
