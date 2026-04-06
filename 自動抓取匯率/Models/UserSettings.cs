@@ -14,6 +14,10 @@ namespace BotExchangeRateWinForms.Models
 
         public bool WriteToDatabase { get; set; }
 
+        public bool WriteChrname { get; set; }
+
+        public bool WriteChrnameHistory { get; set; }
+
         public static UserSettings CreateDefault()
         {
             return new UserSettings
@@ -23,7 +27,9 @@ namespace BotExchangeRateWinForms.Models
                 PollIntervalUnit = "\u5206\u9418",
                 RequestTimeoutSeconds = 30,
                 SqlConnectionString = string.Empty,
-                WriteToDatabase = false
+                WriteToDatabase = false,
+                WriteChrname = false,
+                WriteChrnameHistory = false
             };
         }
     }

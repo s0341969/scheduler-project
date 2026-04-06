@@ -11,9 +11,9 @@
 3. 畫面顯示只保留「現金匯率」兩個欄位：
    - `本行買入`
    - `本行賣出`
-4. 寫入資料庫時，會同時處理：
-   - `dbo.CHRNAME`
-   - `dbo.[CHRNAME-HISTORY]`
+4. 寫入資料庫時，可分開控制：
+   - `寫入 CHRNAME`
+   - `寫入 CHRNAME-HISTORY`
 5. 寫入 `FTIL / FTOL` 的規則依你提供的舊邏輯：
    - `CNY`：使用現金買入 / 現金賣出
    - 其他幣別：使用即期買入 / 即期賣出
@@ -26,11 +26,12 @@
    - `TWD -> NT$`
 7. 畫面可設定：
    - MSSQL 連線字串
-   - 是否寫入資料庫
+   - 是否寫入 `CHRNAME`
+   - 是否寫入 `CHRNAME-HISTORY`
    - 抓取頻率數值
    - 抓取頻率單位（分鐘 / 小時）
    - HTTP 逾時秒數
-8. 「寫入 MSSQL 資料庫」預設為未勾選。未勾選時，程式只抓取資料並顯示結果，不會連線或寫入 MSSQL。
+8. 兩個寫入選項預設都未勾選。未勾選時，程式只抓取資料並顯示結果，不會連線或寫入 MSSQL。
 9. 每次抓取成功後，畫面下方的 `DataGridView` 會顯示最新匯率資料，包含幣別、現金本行買入、現金本行賣出、掛牌日期與更新時間。
 10. 連線字串若未在畫面填寫，會自動 fallback 讀取環境變數 `BOT_RATE_DB_CONN`。
 11. Timer 觸發時若上一輪尚未完成，會自動略過，避免重疊執行。
@@ -61,8 +62,11 @@
 
 1. 用 Visual Studio 2015 開啟 [BotExchangeRateWinForms.csproj](C:\codex_pg\自動抓取匯率\BotExchangeRateWinForms.csproj)。
 2. 編譯後啟動程式。
-3. 若只想先測試抓取，保持「寫入 MSSQL 資料庫」未勾選即可。
-4. 若要寫入資料庫，在畫面輸入 MSSQL 連線字串，或先設定環境變數 `BOT_RATE_DB_CONN`，並勾選「寫入 MSSQL 資料庫」。
+3. 若只想先測試抓取，保持 `寫入 CHRNAME` 與 `寫入 CHRNAME-HISTORY` 都未勾選即可。
+4. 若要寫入資料庫，在畫面輸入 MSSQL 連線字串，並依需求勾選：
+   - 只更新主檔：勾 `寫入 CHRNAME`
+   - 只寫歷史檔：勾 `寫入 CHRNAME-HISTORY`
+   - 兩者都寫：兩個都勾
 5. 先按「初始化資料庫」建立 `CHRNAME` 與 `CHRNAME-HISTORY`。
 6. 設定抓取頻率，例如：
    - `30` + `分鐘`

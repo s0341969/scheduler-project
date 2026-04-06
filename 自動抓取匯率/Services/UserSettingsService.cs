@@ -31,7 +31,18 @@ namespace BotExchangeRateWinForms.Services
                 {
                     var serializer = new XmlSerializer(typeof(UserSettings));
                     var settings = serializer.Deserialize(stream) as UserSettings;
-                    return settings ?? UserSettings.CreateDefault();
+                    if (settings == null)
+                    {
+                        return UserSettings.CreateDefault();
+                    }
+
+                    if (settings.WriteToDatabase && !settings.WriteChrname && !settings.WriteChrnameHistory)
+                    {
+                        settings.WriteChrname = true;
+                        settings.WriteChrnameHistory = true;
+                    }
+
+                    return settings;
                 }
             }
             catch

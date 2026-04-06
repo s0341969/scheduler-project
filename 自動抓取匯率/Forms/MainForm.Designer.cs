@@ -7,7 +7,8 @@ namespace BotExchangeRateWinForms.Forms
         private System.Windows.Forms.TextBox txtSourceUrl;
         private System.Windows.Forms.Label lblConnectionString;
         private System.Windows.Forms.TextBox txtConnectionString;
-        private System.Windows.Forms.CheckBox chkWriteToDatabase;
+        private System.Windows.Forms.CheckBox chkWriteChrname;
+        private System.Windows.Forms.CheckBox chkWriteChrnameHistory;
         private System.Windows.Forms.Label lblInterval;
         private System.Windows.Forms.NumericUpDown numIntervalValue;
         private System.Windows.Forms.ComboBox cmbIntervalUnit;
@@ -52,7 +53,8 @@ namespace BotExchangeRateWinForms.Forms
             this.txtSourceUrl = new System.Windows.Forms.TextBox();
             this.lblConnectionString = new System.Windows.Forms.Label();
             this.txtConnectionString = new System.Windows.Forms.TextBox();
-            this.chkWriteToDatabase = new System.Windows.Forms.CheckBox();
+            this.chkWriteChrname = new System.Windows.Forms.CheckBox();
+            this.chkWriteChrnameHistory = new System.Windows.Forms.CheckBox();
             this.lblInterval = new System.Windows.Forms.Label();
             this.numIntervalValue = new System.Windows.Forms.NumericUpDown();
             this.cmbIntervalUnit = new System.Windows.Forms.ComboBox();
@@ -119,15 +121,25 @@ namespace BotExchangeRateWinForms.Forms
             this.txtConnectionString.Size = new System.Drawing.Size(664, 22);
             this.txtConnectionString.TabIndex = 3;
             // 
-            // chkWriteToDatabase
+            // chkWriteChrname
             // 
-            this.chkWriteToDatabase.AutoSize = true;
-            this.chkWriteToDatabase.Location = new System.Drawing.Point(108, 98);
-            this.chkWriteToDatabase.Name = "chkWriteToDatabase";
-            this.chkWriteToDatabase.Size = new System.Drawing.Size(132, 16);
-            this.chkWriteToDatabase.TabIndex = 4;
-            this.chkWriteToDatabase.Text = "\u5beb\u5165 MSSQL \u8cc7\u6599\u5eab";
-            this.chkWriteToDatabase.UseVisualStyleBackColor = true;
+            this.chkWriteChrname.AutoSize = true;
+            this.chkWriteChrname.Location = new System.Drawing.Point(108, 98);
+            this.chkWriteChrname.Name = "chkWriteChrname";
+            this.chkWriteChrname.Size = new System.Drawing.Size(104, 16);
+            this.chkWriteChrname.TabIndex = 4;
+            this.chkWriteChrname.Text = "\u5beb\u5165 CHRNAME";
+            this.chkWriteChrname.UseVisualStyleBackColor = true;
+            // 
+            // chkWriteChrnameHistory
+            // 
+            this.chkWriteChrnameHistory.AutoSize = true;
+            this.chkWriteChrnameHistory.Location = new System.Drawing.Point(238, 98);
+            this.chkWriteChrnameHistory.Name = "chkWriteChrnameHistory";
+            this.chkWriteChrnameHistory.Size = new System.Drawing.Size(148, 16);
+            this.chkWriteChrnameHistory.TabIndex = 5;
+            this.chkWriteChrnameHistory.Text = "\u5beb\u5165 CHRNAME-HISTORY";
+            this.chkWriteChrnameHistory.UseVisualStyleBackColor = true;
             // 
             // lblInterval
             // 
@@ -135,7 +147,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblInterval.Location = new System.Drawing.Point(18, 131);
             this.lblInterval.Name = "lblInterval";
             this.lblInterval.Size = new System.Drawing.Size(53, 12);
-            this.lblInterval.TabIndex = 5;
+            this.lblInterval.TabIndex = 6;
             this.lblInterval.Text = "\u6293\u53d6\u983b\u7387";
             // 
             // numIntervalValue
@@ -153,7 +165,7 @@ namespace BotExchangeRateWinForms.Forms
             0});
             this.numIntervalValue.Name = "numIntervalValue";
             this.numIntervalValue.Size = new System.Drawing.Size(82, 22);
-            this.numIntervalValue.TabIndex = 6;
+            this.numIntervalValue.TabIndex = 7;
             this.numIntervalValue.Value = new decimal(new int[] {
             30,
             0,
@@ -170,7 +182,7 @@ namespace BotExchangeRateWinForms.Forms
             this.cmbIntervalUnit.Location = new System.Drawing.Point(204, 127);
             this.cmbIntervalUnit.Name = "cmbIntervalUnit";
             this.cmbIntervalUnit.Size = new System.Drawing.Size(80, 20);
-            this.cmbIntervalUnit.TabIndex = 7;
+            this.cmbIntervalUnit.TabIndex = 8;
             // 
             // lblTimeout
             // 
@@ -178,7 +190,7 @@ namespace BotExchangeRateWinForms.Forms
             this.lblTimeout.Location = new System.Drawing.Point(320, 131);
             this.lblTimeout.Name = "lblTimeout";
             this.lblTimeout.Size = new System.Drawing.Size(77, 12);
-            this.lblTimeout.TabIndex = 8;
+            this.lblTimeout.TabIndex = 9;
             this.lblTimeout.Text = "\u903e\u6642\u79d2\u6578 (\u79d2)";
             // 
             // numTimeoutSeconds
@@ -196,7 +208,7 @@ namespace BotExchangeRateWinForms.Forms
             0});
             this.numTimeoutSeconds.Name = "numTimeoutSeconds";
             this.numTimeoutSeconds.Size = new System.Drawing.Size(82, 22);
-            this.numTimeoutSeconds.TabIndex = 9;
+            this.numTimeoutSeconds.TabIndex = 10;
             this.numTimeoutSeconds.Value = new decimal(new int[] {
             30,
             0,
@@ -208,7 +220,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnSaveSettings.Location = new System.Drawing.Point(20, 171);
             this.btnSaveSettings.Name = "btnSaveSettings";
             this.btnSaveSettings.Size = new System.Drawing.Size(116, 32);
-            this.btnSaveSettings.TabIndex = 10;
+            this.btnSaveSettings.TabIndex = 11;
             this.btnSaveSettings.Text = "\u5132\u5b58\u8a2d\u5b9a";
             this.btnSaveSettings.UseVisualStyleBackColor = true;
             this.btnSaveSettings.Click += new System.EventHandler(this.btnSaveSettings_Click);
@@ -218,7 +230,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnInitializeDatabase.Location = new System.Drawing.Point(152, 171);
             this.btnInitializeDatabase.Name = "btnInitializeDatabase";
             this.btnInitializeDatabase.Size = new System.Drawing.Size(116, 32);
-            this.btnInitializeDatabase.TabIndex = 11;
+            this.btnInitializeDatabase.TabIndex = 12;
             this.btnInitializeDatabase.Text = "\u521d\u59cb\u5316\u8cc7\u6599\u5eab";
             this.btnInitializeDatabase.UseVisualStyleBackColor = true;
             this.btnInitializeDatabase.Click += new System.EventHandler(this.btnInitializeDatabase_Click);
@@ -228,7 +240,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnRunNow.Location = new System.Drawing.Point(284, 171);
             this.btnRunNow.Name = "btnRunNow";
             this.btnRunNow.Size = new System.Drawing.Size(116, 32);
-            this.btnRunNow.TabIndex = 12;
+            this.btnRunNow.TabIndex = 13;
             this.btnRunNow.Text = "\u7acb\u5373\u6293\u53d6\u4e00\u6b21";
             this.btnRunNow.UseVisualStyleBackColor = true;
             this.btnRunNow.Click += new System.EventHandler(this.btnRunNow_Click);
@@ -238,7 +250,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnStartTimer.Location = new System.Drawing.Point(416, 171);
             this.btnStartTimer.Name = "btnStartTimer";
             this.btnStartTimer.Size = new System.Drawing.Size(116, 32);
-            this.btnStartTimer.TabIndex = 13;
+            this.btnStartTimer.TabIndex = 14;
             this.btnStartTimer.Text = "\u555f\u52d5 Timer";
             this.btnStartTimer.UseVisualStyleBackColor = true;
             this.btnStartTimer.Click += new System.EventHandler(this.btnStartTimer_Click);
@@ -248,7 +260,7 @@ namespace BotExchangeRateWinForms.Forms
             this.btnStopTimer.Location = new System.Drawing.Point(548, 171);
             this.btnStopTimer.Name = "btnStopTimer";
             this.btnStopTimer.Size = new System.Drawing.Size(116, 32);
-            this.btnStopTimer.TabIndex = 14;
+            this.btnStopTimer.TabIndex = 15;
             this.btnStopTimer.Text = "\u505c\u6b62 Timer";
             this.btnStopTimer.UseVisualStyleBackColor = true;
             this.btnStopTimer.Click += new System.EventHandler(this.btnStopTimer_Click);
@@ -269,7 +281,8 @@ namespace BotExchangeRateWinForms.Forms
             this.grpSettings.Controls.Add(this.txtSourceUrl);
             this.grpSettings.Controls.Add(this.lblConnectionString);
             this.grpSettings.Controls.Add(this.txtConnectionString);
-            this.grpSettings.Controls.Add(this.chkWriteToDatabase);
+            this.grpSettings.Controls.Add(this.chkWriteChrnameHistory);
+            this.grpSettings.Controls.Add(this.chkWriteChrname);
             this.grpSettings.Controls.Add(this.lblInterval);
             this.grpSettings.Controls.Add(this.numIntervalValue);
             this.grpSettings.Controls.Add(this.cmbIntervalUnit);

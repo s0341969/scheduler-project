@@ -47,7 +47,7 @@ namespace BotExchangeRateWinForms.Services
             }
         }
 
-        public async Task<Tuple<int, int>> SaveAsync(string connectionString, ScrapeResult result)
+        public async Task<Tuple<int, int>> SaveAsync(string connectionString, ScrapeResult result, bool writeChrname, bool writeChrnameHistory)
         {
             if (result == null)
             {
@@ -75,8 +75,16 @@ namespace BotExchangeRateWinForms.Services
                         decimal? ftol;
                         ResolveStoredRates(record, out ftil, out ftol);
 
-                        await UpsertCurrentAsync(connection, transaction, currencyMap, ftil, ftol, record.SourceUpdatedAt).ConfigureAwait(false);
-                        await InsertHistoryAsync(connection, transaction, currencyMap, ftil, ftol, record.SourceUpdatedAt).ConfigureAwait(false);
+                        if (writeChrname)
+                        {
+                            await UpsertCurrentAsync(connection, transaction, currencyMap, ftil, ftol, record.SourceUpdatedAt).ConfigureAwait(false);
+                        }
+
+                        if (writeChrnameHistory)
+                        {
+                            await InsertHistoryAsync(connection, transaction, currencyMap, ftil, ftol, record.SourceUpdatedAt).ConfigureAwait(false);
+                        }
+
                         savedRows++;
                     }
 

@@ -35,7 +35,7 @@ namespace BotExchangeRateWinForms.Services
                 var scrapeResult = await _scraper.ScrapeAsync(settings).ConfigureAwait(false);
                 var records = new List<ExchangeRateRecord>(scrapeResult.Records);
 
-                if (!settings.WriteToDatabase)
+                if (!settings.WriteChrname && !settings.WriteChrnameHistory)
                 {
                     return new JobExecutionResult
                     {
@@ -52,7 +52,17 @@ namespace BotExchangeRateWinForms.Services
                 }
 
                 var connectionString = _repository.ResolveConnectionString(settings);
-                var dbResult = await _repository.SaveAsync(connectionString, scrapeResult).ConfigureAwait(false);
+                var dbResult = await _repository.SaveAsync(
+                    connectionString,
+                    scrapeResult,
+                    settings.WriteChrname,
+                    settings.WriteChrnameHistory).ConfigureAwait(false);
+
+                var writeTargetText = settings.WriteChrname && settings.WriteChrnameHistory
+                    ? "CHRNAME \u8207 CHRNAME-HISTORY"
+                    : settings.WriteChrname
+                        ? "CHRNAME"
+                        : "CHRNAME-HISTORY";
 
                 return new JobExecutionResult
                 {
@@ -63,8 +73,9 @@ namespace BotExchangeRateWinForms.Services
                     SourceUpdatedAt = scrapeResult.SourceUpdatedAt,
                     Records = records,
                     Message = string.Format(
-                        "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u5df2\u540c\u6b65 CHRNAME \u8207 CHRNAME-HISTORY {1} \u7b46\uff0c\u7565\u904e {2} \u7b46\u3002",
+                        "\u6293\u53d6\u6210\u529f\uff0c\u5171 {0} \u7b46\uff0c\u5df2\u540c\u6b65 {1} {2} \u7b46\uff0c\u7565\u904e {3} \u7b46\u3002",
                         records.Count,
+                        writeTargetText,
                         dbResult.Item1,
                         dbResult.Item2)
                 };
