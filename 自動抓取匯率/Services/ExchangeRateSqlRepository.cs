@@ -222,7 +222,7 @@ namespace BotExchangeRateWinForms.Services
                 return true;
             }
 
-            if (Contains(sourceText, "MYR") || Contains(sourceText, "MA"))
+            if (Contains(sourceText, "MA") || Contains(sourceText, "MYR"))
             {
                 currencyMap = new CurrencyMap("MA", "\u99ac\u5e63");
                 return true;

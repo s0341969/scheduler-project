@@ -17,13 +17,18 @@
 5. 寫入 `FTIL / FTOL` 的規則依你提供的舊邏輯：
    - `CNY`：使用現金買入 / 現金賣出
    - 其他幣別：使用即期買入 / 即期賣出
-6. `CHRNAM` 會依既有規則轉換，例如：
+6. `CHRNAM` 依你提供的 legacy 規則轉換：
    - `USD -> US`
    - `JPY -> JP`
    - `THB -> TA`
    - `CNY -> RMB`
-   - `MYR -> MA`
-   - `TWD -> NT$`
+   - `CHF -> CHF`
+   - `EUR -> EUR`
+   - `GBP -> GBP`
+   - `MA -> MA`
+   - `NT$ -> NT$`
+   - `SGD -> SGD`
+   - `AUD -> AUD`
 7. 畫面可設定：
    - MSSQL 連線字串
    - 是否寫入 `CHRNAME`
