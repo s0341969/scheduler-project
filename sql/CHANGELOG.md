@@ -1,4 +1,17 @@
 # Changelog
+## 2026-04-06 第九輪優化：CMM 段 set-based/索引調整（TEST）
+
+- 目標：直接縮短 AfterDlytimeOPhase -> AfterCMMSchedule。
+- 變更（產生ORDE3剩餘製程.sql）：
+  - CMM 工作快照新增 LINE，模具線分派改讀快照欄位（不再回查 ORDE3）。
+  - 定機分派改 OUTER APPLY TOP 1（同圖號/製程僅取一筆機台）。
+  - 未定機分配改單次 CASE 更新（取代 3 段 UPDATE）。
+  - 補強 CMM temp index，並改為安全鍵長版本（避免索引鍵過長警告風險）。
+- % 分段結果（_perf_run_2026-04-03_005153_stage9_cmm_opt.log）：
+  - AfterDlytimeOPhase -> AfterCMMSchedule: 19227ms -> 14222ms（-5005ms, -26.0%）
+  - BeforeCommit: 321848ms -> 320850ms（-998ms）
+- 安全索引版補跑（_perf_run_2026-04-06_110524_stage9_cmm_opt_safeidx.log）：
+  - wall-clock 約 415.7s；本次輸出未帶 PERF 行。
 ## 2026-04-03 第八輪定位：CMM/LQ 細分里程碑（TEST）
 
 - 目的：把 `AfterOutsourcePhase -> BeforeHMSection` 再切細，確認實際卡點。
@@ -322,6 +335,7 @@
 
 - 直接修改 [產生ORDE3剩餘製程.sql]。
 - 實際套用：XACT_ABORT、@INPART 正規化、ORDDTP 範圍收斂、#SOPNAME/#指派時間 索引、WKNO/DEPTNO 決定性更新、DLYTIME_O 歸零。
+
 
 
 

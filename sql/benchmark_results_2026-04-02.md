@@ -72,4 +72,22 @@
 對應 log：`_perf_run_2026-04-03_000928_stage8_cmm_lq_split.log`
 
 結論：本區段瓶頸已定位在 CMM 排程，LQ/HM 前銜接不是主要耗時來源。
+## 第九輪優化 % 單次（CMM 段優化）
+
+| 指標 | ms |
+|---|---:|
+| TOTAL_MS（BeforeCommit） | 320,850 |
+| AfterDlytimeOPhase -> AfterCMMSchedule | 14,222 |
+| AfterCMMSchedule -> AfterLQSchedule | 125 |
+| AfterLQSchedule -> BeforeHMSection | 0 |
+
+對照第八輪（AfterDlytimeOPhase -> AfterCMMSchedule = 19,227 ms）：改善 -5,005 ms（-26.0%）。
+
+對應 log：_perf_run_2026-04-03_005153_stage9_cmm_opt.log
+
+## 第九輪安全索引版補跑（無 PERF 行）
+
+- log：_perf_run_2026-04-06_110524_stage9_cmm_opt_safeidx.log
+- wall-clock：415.7 s（工具量測）
+- 備註：本次輸出未帶 [PERF] 里程碑行，後續需再補跑可比對樣本。
 

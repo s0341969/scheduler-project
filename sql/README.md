@@ -1,4 +1,16 @@
 # 專案說明
+## 2026-04-06 第九輪優化：CMM 排程段（不改商規）
+
+- 調整 產生ORDE3剩餘製程.sql 的 CMM 區段（AfterDlytimeOPhase -> AfterCMMSchedule）：
+  - 減少重複掃描：模具線判斷改用已快照的 LINE 欄位，移除一次 ORDE3 回查。
+  - 定機配機改為 OUTER APPLY TOP 1（固定機台資料先取單筆，避免多對多重覆寫）。
+  - CMM 餘量機台分配由 3 次 UPDATE 改為單次 CASE 更新。
+  - 補上 CMM 暫存表索引（並改成安全鍵長版本，避免索引鍵過長風險）。
+- TEST % 單次分段（_perf_run_2026-04-03_005153_stage9_cmm_opt.log）：
+  - AfterDlytimeOPhase -> AfterCMMSchedule: 14222 ms（前版 19227 ms，改善 -5005 ms，約 -26.0%）
+  - BeforeCommit: 320850 ms（前版 321848 ms，改善 -998 ms）
+- 安全索引版補跑（_perf_run_2026-04-06_110524_stage9_cmm_opt_safeidx.log）：
+  - wall-clock 約 415.7 s（本次 log 未輸出 PERF 行，僅保留完成時間）
 ## 2026-04-03 第八輪定位：`AfterOutsourcePhase -> BeforeHMSection` 再細分（CMM/LQ）
 
 - 已在 `產生ORDE3剩餘製程.sql` 新增 `%` 條件下的里程碑：
@@ -326,5 +338,6 @@
 - 判讀：
   - HM 指派本身不是瓶頸。
   - 主要耗時位於 HM 前段（同區段含 CMM/LQ 等排程流程），下一輪應切細該段。
+
 
 
