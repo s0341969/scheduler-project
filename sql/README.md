@@ -377,3 +377,26 @@ dotnet run --project .\agent\SqlMaintenanceAgent.App\SqlMaintenanceAgent.App.csp
 
 
 
+
+## 2026-04-07 第十~十二輪：CMM 區段定位與等價重排（TEST）
+
+- 問題背景：
+  - % 全量仍約 5 分多，AfterOutsourcePhase -> BeforeHMSection 約 20~25 秒。
+- 先做定位（不改邏輯）：
+  - 新增 CMM 子里程碑：AfterCMMOldFetch、AfterCMMSortSplit、AfterCMMMinSeqBuild。
+- 定位結果（2026-04-07，@INPART='%'）：
+  - AfterCMMOldFetch 約 19.8s
+  - AfterCMMSortSplit 約  ~0.02s
+  - AfterCMMMinSeqBuild 約  ~0.02s
+  - 結論：CMM 主要耗時集中在「初次抓取三表資料」。
+- 第十二輪等價重排：
+  - 將 CMM 初次抓取改為兩段：
+    - 先 ORDDE4_剩餘製程明細_直式_D + ORDE3 篩選到 #TEMP1_CMM工作_AC
+    - 再以 #TEMP1_CMM工作_AC + ORDDE4_剩餘製程明細_D 組成 #TEMP1_CMM工作_OLD
+  - 新增 #TEMP1_CMM工作_AC(INPART, ORDSQ2) 聚集索引。
+- 實測（TEST，部署後連跑 2 次）：
+  - Run1：BeforeCommit=327187ms、AfterCMMOldFetch=17199ms
+  - Run2：BeforeCommit=327127ms、AfterCMMOldFetch=16277ms
+- 與上一版（同日定位版）比較：
+  - AfterCMMOldFetch 約 19854ms -> 16~17s（改善約 2.6~3.6s）
+  - BeforeCommit 約 341625ms -> 3271xxms（改善約 14.5s）

@@ -360,3 +360,21 @@
 
 
 
+
+## 2026-04-07 11:45 CMM 子段定位 + AC 等價重排（TEST）
+
+- 修改 產生ORDE3剩餘製程.sql：
+  - CMM 新增里程碑：
+    - AfterCMMOldFetch
+    - AfterCMMSortSplit
+    - AfterCMMMinSeqBuild
+  - CMM 抓取邏輯改為兩段等價重排：
+    - #TEMP1_CMM工作_AC（直式_D + ORDE3 先篩）
+    - #TEMP1_CMM工作_OLD（再 join 剩餘製程明細_D）
+  - 新增索引：IX_TMP_CMM_AC_MAIN ON #TEMP1_CMM工作_AC(INPART,ORDSQ2)。
+- TEST % 實測（部署後）
+  - Run1：BeforeCommit=327187ms；AfterCMMOldFetch=17199ms
+  - Run2：BeforeCommit=327127ms；AfterCMMOldFetch=16277ms
+- 結論：
+  - CMM 熱點由 AfterCMMOldFetch 主導，重排後穩定下降約 2.6~3.6s。
+  - 全流程 BeforeCommit 較同日定位版下降約 14.5s。

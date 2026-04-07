@@ -58,3 +58,7 @@
 - [x] 針對 CMM 排程段再加里程碑（建表/排序/回寫）並先做第一輪優化（2026-04-06，CMM 段約 -5 秒）。
 - [ ] 補跑第九輪 % 3 次（同時保留 PERF 行）並與第八輪比平均/P95，確認 CMM 優化在離峰是否穩定。
 
+
+- [x] 完成 CMM 子段細拆（AfterCMMOldFetch/AfterCMMSortSplit/AfterCMMMinSeqBuild）並定位熱點在初次抓取（2026-04-07）。
+- [x] 完成 CMM 初次抓取 AC 兩段等價重排（2026-04-07，TEST 兩次 % BeforeCommit 約 327.1s）。
+- [ ] 下一輪針對 AfterDlytimeCore（目前約 79s）與 AfterSummaryInsert（目前約 75s）再切更細里程碑，先鎖前兩大 SQL。
