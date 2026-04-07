@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using BotExchangeRateWinForms.Models;
+using GonGinLibrary;
 
 namespace BotExchangeRateWinForms.Services
 {
@@ -60,7 +61,10 @@ namespace BotExchangeRateWinForms.Services
                     };
                 }
 
-                var connectionString = _repository.ResolveConnectionString(settings);
+                var connectionString = GonGinVariable.SqlConnectString;
+
+
+                    //_repository.ResolveConnectionString(settings);
                 var dbResult = await _repository.SaveAsync(
                     connectionString,
                     scrapeResult,

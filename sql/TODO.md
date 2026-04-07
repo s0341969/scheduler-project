@@ -62,3 +62,11 @@
 - [x] 完成 CMM 子段細拆（AfterCMMOldFetch/AfterCMMSortSplit/AfterCMMMinSeqBuild）並定位熱點在初次抓取（2026-04-07）。
 - [x] 完成 CMM 初次抓取 AC 兩段等價重排（2026-04-07，TEST 兩次 % BeforeCommit 約 327.1s）。
 - [ ] 下一輪針對 AfterDlytimeCore（目前約 79s）與 AfterSummaryInsert（目前約 75s）再切更細里程碑，先鎖前兩大 SQL。
+
+- [x] 已確認 AfterDlytimeCore 非主瓶頸（約 0.7s），主瓶頸轉移到 MaterialProcFlow 與 SummaryMainInsert（2026-04-07）。
+- [x] 已完成 SummaryMainInsert 第一輪快照化（TOT3/在站製程序/昨日報工）並觀測到主段降秒（2026-04-07）。
+- [ ] 下一輪聚焦 AfterSummaryMainInsert 內大型字串 FOR XML 區塊（全部製程明細含DLYTIME(_不含設計)）做可逆式拆分快照。
+
+- [x] 合併 CUS工時=100 重複更新為單次 set-based 更新（2026-04-07，第十輪）。
+- [ ] 待 DB 連線恢復後補跑 % 3 次（含 BeforeAssemblyWeldRollup 與 BeforeCommit）確認第十輪是否穩定降秒。
+- [ ] 針對第十輪執行期間發生的 deadlock（1205）補抓 deadlock graph，評估是否需在該段加索引或調整更新順序。

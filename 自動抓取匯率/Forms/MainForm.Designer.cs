@@ -11,8 +11,6 @@
         private System.ComponentModel.IContainer components = null;
         private System.Windows.Forms.Label lblSourceUrl;
         private System.Windows.Forms.TextBox txtSourceUrl;
-        private System.Windows.Forms.Label lblConnectionString;
-        private System.Windows.Forms.TextBox txtConnectionString;
         private System.Windows.Forms.CheckBox chkWriteChrname;
         private System.Windows.Forms.CheckBox chkWriteChrnameHistory;
         private System.Windows.Forms.Label lblInterval;
@@ -63,8 +61,6 @@
             this.components = new System.ComponentModel.Container();
             this.lblSourceUrl = new System.Windows.Forms.Label();
             this.txtSourceUrl = new System.Windows.Forms.TextBox();
-            this.lblConnectionString = new System.Windows.Forms.Label();
-            this.txtConnectionString = new System.Windows.Forms.TextBox();
             this.chkWriteChrname = new System.Windows.Forms.CheckBox();
             this.chkWriteChrnameHistory = new System.Windows.Forms.CheckBox();
             this.lblInterval = new System.Windows.Forms.Label();
@@ -89,10 +85,12 @@
             this.lblLastRun = new System.Windows.Forms.Label();
             this.lblLastRunValue = new System.Windows.Forms.Label();
             this.grpRates = new System.Windows.Forms.GroupBox();
-            this.dgvRates = new System.Windows.Forms.DataGridView();
             this.lblResultCount = new System.Windows.Forms.Label();
             this.lblResultCountValue = new System.Windows.Forms.Label();
+            this.dgvRates = new System.Windows.Forms.DataGridView();
             this.pollTimer = new System.Windows.Forms.Timer(this.components);
+            this.lblConnectionString = new System.Windows.Forms.Label();
+            this.txtConnectionString = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.numIntervalValue)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numTimeoutSeconds)).BeginInit();
             this.grpSettings.SuspendLayout();
@@ -106,7 +104,7 @@
             this.lblSourceUrl.AutoSize = true;
             this.lblSourceUrl.Location = new System.Drawing.Point(18, 32);
             this.lblSourceUrl.Name = "lblSourceUrl";
-            this.lblSourceUrl.Size = new System.Drawing.Size(53, 12);
+            this.lblSourceUrl.Size = new System.Drawing.Size(55, 15);
             this.lblSourceUrl.TabIndex = 0;
             this.lblSourceUrl.Text = "來源網址";
             // 
@@ -114,31 +112,18 @@
             // 
             this.txtSourceUrl.Location = new System.Drawing.Point(108, 28);
             this.txtSourceUrl.Name = "txtSourceUrl";
-            this.txtSourceUrl.Size = new System.Drawing.Size(664, 22);
+            this.txtSourceUrl.Size = new System.Drawing.Size(664, 23);
             this.txtSourceUrl.TabIndex = 1;
-            // 
-            // lblConnectionString
-            // 
-            this.lblConnectionString.AutoSize = true;
-            this.lblConnectionString.Location = new System.Drawing.Point(18, 68);
-            this.lblConnectionString.Name = "lblConnectionString";
-            this.lblConnectionString.Size = new System.Drawing.Size(83, 12);
-            this.lblConnectionString.TabIndex = 2;
-            this.lblConnectionString.Text = "MSSQL 連線字串";
-            // 
-            // txtConnectionString
-            // 
-            this.txtConnectionString.Location = new System.Drawing.Point(108, 64);
-            this.txtConnectionString.Name = "txtConnectionString";
-            this.txtConnectionString.Size = new System.Drawing.Size(664, 22);
-            this.txtConnectionString.TabIndex = 3;
+            this.txtSourceUrl.Text = "https://rate.bot.com.tw/xrt?Lang=zh-tw&redirect=true";
             // 
             // chkWriteChrname
             // 
             this.chkWriteChrname.AutoSize = true;
+            this.chkWriteChrname.Checked = true;
+            this.chkWriteChrname.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkWriteChrname.Location = new System.Drawing.Point(108, 98);
             this.chkWriteChrname.Name = "chkWriteChrname";
-            this.chkWriteChrname.Size = new System.Drawing.Size(104, 16);
+            this.chkWriteChrname.Size = new System.Drawing.Size(115, 19);
             this.chkWriteChrname.TabIndex = 4;
             this.chkWriteChrname.Text = "寫入 CHRNAME";
             this.chkWriteChrname.UseVisualStyleBackColor = true;
@@ -146,9 +131,11 @@
             // chkWriteChrnameHistory
             // 
             this.chkWriteChrnameHistory.AutoSize = true;
+            this.chkWriteChrnameHistory.Checked = true;
+            this.chkWriteChrnameHistory.CheckState = System.Windows.Forms.CheckState.Checked;
             this.chkWriteChrnameHistory.Location = new System.Drawing.Point(238, 98);
             this.chkWriteChrnameHistory.Name = "chkWriteChrnameHistory";
-            this.chkWriteChrnameHistory.Size = new System.Drawing.Size(148, 16);
+            this.chkWriteChrnameHistory.Size = new System.Drawing.Size(171, 19);
             this.chkWriteChrnameHistory.TabIndex = 5;
             this.chkWriteChrnameHistory.Text = "寫入 CHRNAME-HISTORY";
             this.chkWriteChrnameHistory.UseVisualStyleBackColor = true;
@@ -158,7 +145,7 @@
             this.lblInterval.AutoSize = true;
             this.lblInterval.Location = new System.Drawing.Point(18, 131);
             this.lblInterval.Name = "lblInterval";
-            this.lblInterval.Size = new System.Drawing.Size(53, 12);
+            this.lblInterval.Size = new System.Drawing.Size(55, 15);
             this.lblInterval.TabIndex = 6;
             this.lblInterval.Text = "抓取頻率";
             // 
@@ -176,7 +163,7 @@
             0,
             0});
             this.numIntervalValue.Name = "numIntervalValue";
-            this.numIntervalValue.Size = new System.Drawing.Size(82, 22);
+            this.numIntervalValue.Size = new System.Drawing.Size(82, 23);
             this.numIntervalValue.TabIndex = 7;
             this.numIntervalValue.Value = new decimal(new int[] {
             30,
@@ -193,7 +180,7 @@
             "小時"});
             this.cmbIntervalUnit.Location = new System.Drawing.Point(204, 127);
             this.cmbIntervalUnit.Name = "cmbIntervalUnit";
-            this.cmbIntervalUnit.Size = new System.Drawing.Size(80, 20);
+            this.cmbIntervalUnit.Size = new System.Drawing.Size(80, 23);
             this.cmbIntervalUnit.TabIndex = 8;
             // 
             // lblTimeout
@@ -201,7 +188,7 @@
             this.lblTimeout.AutoSize = true;
             this.lblTimeout.Location = new System.Drawing.Point(320, 131);
             this.lblTimeout.Name = "lblTimeout";
-            this.lblTimeout.Size = new System.Drawing.Size(77, 12);
+            this.lblTimeout.Size = new System.Drawing.Size(78, 15);
             this.lblTimeout.TabIndex = 9;
             this.lblTimeout.Text = "逾時秒數 (秒)";
             // 
@@ -219,7 +206,7 @@
             0,
             0});
             this.numTimeoutSeconds.Name = "numTimeoutSeconds";
-            this.numTimeoutSeconds.Size = new System.Drawing.Size(82, 22);
+            this.numTimeoutSeconds.Size = new System.Drawing.Size(82, 23);
             this.numTimeoutSeconds.TabIndex = 10;
             this.numTimeoutSeconds.Value = new decimal(new int[] {
             30,
@@ -334,7 +321,7 @@
             this.lblStatus.AutoSize = true;
             this.lblStatus.Location = new System.Drawing.Point(20, 29);
             this.lblStatus.Name = "lblStatus";
-            this.lblStatus.Size = new System.Drawing.Size(53, 12);
+            this.lblStatus.Size = new System.Drawing.Size(55, 15);
             this.lblStatus.TabIndex = 0;
             this.lblStatus.Text = "目前狀態";
             // 
@@ -343,7 +330,7 @@
             this.lblStatusValue.AutoSize = true;
             this.lblStatusValue.Location = new System.Drawing.Point(108, 29);
             this.lblStatusValue.Name = "lblStatusValue";
-            this.lblStatusValue.Size = new System.Drawing.Size(9, 12);
+            this.lblStatusValue.Size = new System.Drawing.Size(12, 15);
             this.lblStatusValue.TabIndex = 1;
             this.lblStatusValue.Text = "-";
             // 
@@ -352,7 +339,7 @@
             this.lblTimerEnabled.AutoSize = true;
             this.lblTimerEnabled.Location = new System.Drawing.Point(20, 57);
             this.lblTimerEnabled.Name = "lblTimerEnabled";
-            this.lblTimerEnabled.Size = new System.Drawing.Size(59, 12);
+            this.lblTimerEnabled.Size = new System.Drawing.Size(66, 15);
             this.lblTimerEnabled.TabIndex = 2;
             this.lblTimerEnabled.Text = "Timer 狀態";
             // 
@@ -361,7 +348,7 @@
             this.lblTimerEnabledValue.AutoSize = true;
             this.lblTimerEnabledValue.Location = new System.Drawing.Point(108, 57);
             this.lblTimerEnabledValue.Name = "lblTimerEnabledValue";
-            this.lblTimerEnabledValue.Size = new System.Drawing.Size(9, 12);
+            this.lblTimerEnabledValue.Size = new System.Drawing.Size(12, 15);
             this.lblTimerEnabledValue.TabIndex = 3;
             this.lblTimerEnabledValue.Text = "-";
             // 
@@ -370,7 +357,7 @@
             this.lblNextRun.AutoSize = true;
             this.lblNextRun.Location = new System.Drawing.Point(440, 29);
             this.lblNextRun.Name = "lblNextRun";
-            this.lblNextRun.Size = new System.Drawing.Size(53, 12);
+            this.lblNextRun.Size = new System.Drawing.Size(55, 15);
             this.lblNextRun.TabIndex = 4;
             this.lblNextRun.Text = "下次執行";
             // 
@@ -379,7 +366,7 @@
             this.lblNextRunValue.AutoSize = true;
             this.lblNextRunValue.Location = new System.Drawing.Point(528, 29);
             this.lblNextRunValue.Name = "lblNextRunValue";
-            this.lblNextRunValue.Size = new System.Drawing.Size(9, 12);
+            this.lblNextRunValue.Size = new System.Drawing.Size(12, 15);
             this.lblNextRunValue.TabIndex = 5;
             this.lblNextRunValue.Text = "-";
             // 
@@ -388,7 +375,7 @@
             this.lblLastRun.AutoSize = true;
             this.lblLastRun.Location = new System.Drawing.Point(440, 57);
             this.lblLastRun.Name = "lblLastRun";
-            this.lblLastRun.Size = new System.Drawing.Size(53, 12);
+            this.lblLastRun.Size = new System.Drawing.Size(55, 15);
             this.lblLastRun.TabIndex = 6;
             this.lblLastRun.Text = "上次成功";
             // 
@@ -397,7 +384,7 @@
             this.lblLastRunValue.AutoSize = true;
             this.lblLastRunValue.Location = new System.Drawing.Point(528, 57);
             this.lblLastRunValue.Name = "lblLastRunValue";
-            this.lblLastRunValue.Size = new System.Drawing.Size(9, 12);
+            this.lblLastRunValue.Size = new System.Drawing.Size(12, 15);
             this.lblLastRunValue.TabIndex = 7;
             this.lblLastRunValue.Text = "-";
             // 
@@ -413,20 +400,12 @@
             this.grpRates.TabStop = false;
             this.grpRates.Text = "最新抓取結果";
             // 
-            // dgvRates
-            // 
-            this.dgvRates.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            this.dgvRates.Location = new System.Drawing.Point(20, 47);
-            this.dgvRates.Name = "dgvRates";
-            this.dgvRates.Size = new System.Drawing.Size(920, 201);
-            this.dgvRates.TabIndex = 0;
-            // 
             // lblResultCount
             // 
             this.lblResultCount.AutoSize = true;
             this.lblResultCount.Location = new System.Drawing.Point(20, 24);
             this.lblResultCount.Name = "lblResultCount";
-            this.lblResultCount.Size = new System.Drawing.Size(53, 12);
+            this.lblResultCount.Size = new System.Drawing.Size(55, 15);
             this.lblResultCount.TabIndex = 1;
             this.lblResultCount.Text = "資料筆數";
             // 
@@ -435,17 +414,44 @@
             this.lblResultCountValue.AutoSize = true;
             this.lblResultCountValue.Location = new System.Drawing.Point(108, 24);
             this.lblResultCountValue.Name = "lblResultCountValue";
-            this.lblResultCountValue.Size = new System.Drawing.Size(9, 12);
+            this.lblResultCountValue.Size = new System.Drawing.Size(14, 15);
             this.lblResultCountValue.TabIndex = 2;
             this.lblResultCountValue.Text = "0";
+            // 
+            // dgvRates
+            // 
+            this.dgvRates.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dgvRates.Location = new System.Drawing.Point(20, 47);
+            this.dgvRates.Name = "dgvRates";
+            this.dgvRates.Size = new System.Drawing.Size(920, 201);
+            this.dgvRates.TabIndex = 0;
             // 
             // pollTimer
             // 
             this.pollTimer.Tick += new System.EventHandler(this.pollTimer_Tick);
             // 
+            // lblConnectionString
+            // 
+            this.lblConnectionString.AutoSize = true;
+            this.lblConnectionString.Enabled = false;
+            this.lblConnectionString.Location = new System.Drawing.Point(749, 180);
+            this.lblConnectionString.Name = "lblConnectionString";
+            this.lblConnectionString.Size = new System.Drawing.Size(100, 15);
+            this.lblConnectionString.TabIndex = 2;
+            this.lblConnectionString.Text = "MSSQL 連線字串";
+            this.lblConnectionString.Visible = false;
+            // 
+            // txtConnectionString
+            // 
+            this.txtConnectionString.Location = new System.Drawing.Point(855, 177);
+            this.txtConnectionString.Name = "txtConnectionString";
+            this.txtConnectionString.Size = new System.Drawing.Size(85, 23);
+            this.txtConnectionString.TabIndex = 3;
+            this.txtConnectionString.Visible = false;
+            // 
             // MainForm
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1004, 797);
             this.Controls.Add(this.grpRates);
@@ -468,6 +474,10 @@
             ((System.ComponentModel.ISupportInitialize)(this.dgvRates)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
+
         }
+
+        private System.Windows.Forms.Label lblConnectionString;
+        private System.Windows.Forms.TextBox txtConnectionString;
     }
 }

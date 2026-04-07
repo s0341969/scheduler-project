@@ -1,4 +1,13 @@
 # Changelog
+## 2026-04-07 第十輪優化：CUS工時重複更新區段整併（TEST）
+
+- 修改 產生ORDE3剩餘製程.sql：將 CUS工時=100 的多段重複 UPDATE ORDDE4_剩餘製程明細_D（相同 Join、不同條件）整併為單一 UPDATE ... WHERE (條件 OR ...)。
+- 目的：降低 AfterSummaryMainInsert -> BeforeAssemblyWeldRollup 區段對 ORDDE4_剩餘製程明細_D 的重複掃描與寫入成本。
+- 部署：已部署至 10.1.1.76 / TEST。
+- % 實測：
+  - Run1 在 AfterDlytimeOPhase total=299294ms 後遭遇 deadlock (1205)，未完成到 BeforeCommit。
+  - 同次里程碑：AfterSummaryMainInsert total=206478ms (delta 53449ms)、BeforeAssemblyWeldRollup total=254579ms (delta 48101ms)。
+- 補充：後續重跑遇到連線層 SSL/Encryption 錯誤，需待連線恢復後補齊完整成功樣本。
 ## 2026-04-06 新增 SQL 維運 AI Agent（.NET 8 + LM Studio）
 
 - 新增 `agent/SqlMaintenanceAgent.sln`，含兩個專案：
@@ -378,3 +387,25 @@
 - 結論：
   - CMM 熱點由 AfterCMMOldFetch 主導，重排後穩定下降約 2.6~3.6s。
   - 全流程 BeforeCommit 較同日定位版下降約 14.5s。
+
+## 2026-04-07 17:10 DLYTIME/summary 熱點重定位與主寫入快照化（TEST）
+
+- 修改 產生ORDE3剩餘製程.sql：
+  - 新增里程碑：
+    - AfterMaterialProcFlow
+    - AfterDlytimeEBridge
+    - AfterSummaryPrep
+    - AfterSummaryMainInsert
+  - MaterialProcFlow 補索引：
+    - IX_TMP_IV1_MAIN
+    - IX_TMP_INPART_MAIN
+    - IX_TMP_IV2_MAIN
+    - IX_TMP_IV3_INPART
+  - SummaryMainInsert 改為快照 join：
+    - #TOT3_彙總
+    - #TEMP3_在站製程序_彙總
+    - #PRODTM_昨日報工_彙總
+- TEST % 實測：
+  - AfterSummaryMainInsert 約由 69s 降到 61s。
+  - BeforeCommit 最佳觀測值：304094ms。
+

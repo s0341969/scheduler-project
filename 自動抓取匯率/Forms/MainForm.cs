@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Windows.Forms;
 using BotExchangeRateWinForms.Models;
 using BotExchangeRateWinForms.Services;
+using GonGinLibrary;
 
 namespace BotExchangeRateWinForms.Forms
 {
@@ -31,6 +32,10 @@ namespace BotExchangeRateWinForms.Forms
             _rateBindingSource = new BindingSource();
 
             InitializeRateGrid();
+
+            this.Text += "_" + GonGinVariable.SectionName;
+            
+            //btnStartTimer_Click(null, null);
         }
 
         /// <summary>
@@ -40,11 +45,15 @@ namespace BotExchangeRateWinForms.Forms
         {
             try
             {
+                txtSourceUrl.Text = "https://rate.bot.com.tw/xrt?Lang=zh-tw&redirect=true";
+
                 _settings = _settingsService.Load();
                 ApplySettingsToUi(_settings);
                 BindRatesToGrid(null);
                 AppendLog("程式已啟動。");
                 UpdateTimerStatus();
+
+                btnStartTimer_Click(sender, e);
             }
             catch (Exception ex)
             {
@@ -82,7 +91,9 @@ namespace BotExchangeRateWinForms.Forms
             await RunWithUiLockAsync(async delegate
             {
                 SaveSettingsFromUi();
-                var connectionString = _repository.ResolveConnectionString(_settings);
+                var connectionString = GonGinVariable.SqlConnectString;
+
+                //_repository.ResolveConnectionString(_settings);
                 await _repository.InitializeDatabaseAsync(connectionString).ConfigureAwait(true);
                 AppendLog("資料表初始化完成。");
                 lblStatusValue.Text = "資料表初始化完成";
@@ -223,7 +234,7 @@ namespace BotExchangeRateWinForms.Forms
                 PollIntervalValue = Decimal.ToInt32(numIntervalValue.Value),
                 PollIntervalUnit = cmbIntervalUnit.SelectedItem == null ? "分鐘" : cmbIntervalUnit.SelectedItem.ToString(),
                 RequestTimeoutSeconds = Decimal.ToInt32(numTimeoutSeconds.Value),
-                SqlConnectionString = txtConnectionString.Text.Trim(),
+                //SqlConnectionString = txtConnectionString.Text.Trim(),
                 WriteToDatabase = chkWriteChrname.Checked || chkWriteChrnameHistory.Checked,
                 WriteChrname = chkWriteChrname.Checked,
                 WriteChrnameHistory = chkWriteChrnameHistory.Checked
@@ -236,7 +247,7 @@ namespace BotExchangeRateWinForms.Forms
         private void ApplySettingsToUi(UserSettings settings)
         {
             txtSourceUrl.Text = settings.SourceUrl;
-            txtConnectionString.Text = settings.SqlConnectionString;
+            //txtConnectionString.Text = settings.SqlConnectionString;
             numIntervalValue.Value = settings.PollIntervalValue;
             numTimeoutSeconds.Value = settings.RequestTimeoutSeconds;
             chkWriteChrname.Checked = settings.WriteChrname;
@@ -381,7 +392,7 @@ namespace BotExchangeRateWinForms.Forms
             cmbIntervalUnit.Enabled = enabled;
             numTimeoutSeconds.Enabled = enabled;
             txtSourceUrl.Enabled = enabled;
-            txtConnectionString.Enabled = enabled;
+            //txtConnectionString.Enabled = enabled;
             chkWriteChrname.Enabled = enabled;
             chkWriteChrnameHistory.Enabled = enabled;
             UseWaitCursor = !enabled;

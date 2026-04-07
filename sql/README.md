@@ -1,4 +1,9 @@
 # 專案說明
+## 2026-04-07 CUS工時模組重構（進行中）
+
+- 已將 產生ORDE3剩餘製程.sql 中 CUS工時=100 的重複更新群（多段同表同 Join）整併為單一 set-based 更新，保留原條件集合。
+- 主要目標：縮短 % 全量時 AfterSummaryMainInsert -> BeforeAssemblyWeldRollup 熱段。
+- 已部署到 TEST；首輪 % 實測中途遭遇 deadlock（1205），目前已記錄到里程碑但尚缺完整成功樣本，待連線恢復後補跑 1~3 次確認穩定性。
 ## 2026-04-06 新增 SQL 維運 AI Agent（.NET 8 + LM Studio）
 
 - 新增獨立子專案：`agent/SqlMaintenanceAgent.sln`（additive，不影響既有 SQL 優化流程）。
@@ -400,3 +405,24 @@ dotnet run --project .\agent\SqlMaintenanceAgent.App\SqlMaintenanceAgent.App.csp
 - 與上一版（同日定位版）比較：
   - AfterCMMOldFetch 約 19854ms -> 16~17s（改善約 2.6~3.6s）
   - BeforeCommit 約 341625ms -> 3271xxms（改善約 14.5s）
+
+## 2026-04-07 第十四~十八輪：DLYTIME / Summary 主寫入再定位與優化（TEST）
+
+- 新定位結果：
+  - AfterDlytimeCore 已降到約  .7s，不再是主瓶頸。
+  - 新大頭改為：
+    - AfterMaterialProcFlow（約 55~69s）
+    - AfterSummaryMainInsert（約 61~69s）
+- 針對 MaterialProcFlow：
+  - 補 temp index：#IV1/#INPART/#IV2/#IV3。
+  - 觀察到 AfterMaterialProcFlow 約由 ~109s 降到 ~101~105s（小幅改善）。
+- 針對 SummaryMainInsert：
+  - 新增一次性快照：
+    - #TOT3_彙總（製造數/材料費/QC註記）
+    - #TEMP3_在站製程序_彙總
+    - #PRODTM_昨日報工_彙總
+  - 將主寫入段中高頻 scalar 子查詢改為 join 快照值。
+- % 實測（同版本連跑）重點：
+  - AfterSummaryMainInsert: ~69.2s -> ~61.3s
+  - BeforeCommit: 最佳觀測到 304094ms（約 5分04秒）
+
