@@ -1,5 +1,15 @@
 # TODO
 
+- [x] 新增 `agent/SqlMaintenanceAgent.sln` 與 `SqlMaintenanceAgent.App`（.NET 8 CLI REPL）。
+- [x] 新增 `SqlGuard`（唯讀阻擋、危險關鍵字阻擋、無 WHERE UPDATE/DELETE 阻擋）。
+- [x] 新增 `LlmClient`（LM Studio API + retry/timeout）。
+- [x] 新增 `SqlExecutor`（讀取查詢 + 寫入交易回滾）。
+- [x] 新增 `AuditLogger`（jsonl 稽核追蹤）。
+- [x] 新增 `SqlMaintenanceAgent.Tests` 測試 runner（SqlGuard/LlmClient/SqlExecutor 取消案例）。
+- [ ] 下一步：加入 schema-aware prompt（自動讀取資料表/欄位）降低 SQL 幻覺風險。
+- [ ] 下一步：加入 tool calling（例如查表結構、先估影響筆數再執行）。
+- [ ] 下一步：補齊 TEST 整合測試腳本（含 `--allow-write` 人工確認流程）。
+
 - [x] 針對 `INSERT INTO ORDDE4_剩餘製程明細_D` 建立 `#TEMP3` 字串欄位預彙總表（避免同一 INPART 重複 FOR XML 子查詢）。
 - [x] 修補 `#TEMP3_字串彙總` 接入後的 SQL 錯誤：兩段 `INSERT INTO ORDDE4_剩餘製程明細_D` 改 `SELECT #製卡明細.*`、`ORDER BY #製卡明細.INPART`，避免 `INPART` 模稜兩可與欄位數不符。
 
@@ -27,7 +37,7 @@
 - [ ] 把大量 `FROM A,B WHERE` 舊式 Join 逐步改為 ANSI JOIN（降低誤連接風險）。
 - [ ] 對正式表建立與檢核必要索引（含維護成本評估）。
 - [ ] 導入基準測試：同一批 INPART 比較修正前後執行時間與結果筆數。
-- [ ] 補齊專案 `.sln/.csproj` 或指定 build 專案路徑，讓 `dotnet build` 可通過。
+- [x] 補齊專案 `.sln/.csproj` 或指定 build 專案路徑，讓 `dotnet build` 可通過（2026-04-06 新增 `agent/SqlMaintenanceAgent.sln`）。
 - [ ] 以 SSMS 開啟 [產生ORDE3剩餘製程.sql] 做一次中文欄位名稱完整性檢查，確認無編碼破壞。
 - [ ] 在 TEST 實測本體檔版本 產生ORDE3剩餘製程.sql 與修補腳本版輸出差異。
 - [ ] 在 TEST 針對本次新增索引（#QA1/#TEMP2/#RST）比對執行計畫與實際耗時，確認收益與無回歸。

@@ -1,4 +1,40 @@
 # 專案說明
+## 2026-04-06 新增 SQL 維運 AI Agent（.NET 8 + LM Studio）
+
+- 新增獨立子專案：`agent/SqlMaintenanceAgent.sln`（additive，不影響既有 SQL 優化流程）。
+- Agent 功能定位：
+  - `ask "<需求>"`：產生建議 SQL + 風險評估（不執行）。
+  - `plan "<需求>"`：輸出執行計畫與影響評估（不執行）。
+  - `explain "<SQL>"`：解釋 SQL 邏輯、風險、執行前檢查項目。
+  - `run "<SQL>"`：通過 SQL Guard 後才可執行；寫入語句需 `--allow-write` + 手動輸入 `YES`。
+- 安全策略（預設生效）：
+  - `ReadOnly=true`，阻擋所有寫入語句。
+  - 阻擋高風險語句：`xp_cmdshell`、`sp_oacreate`、`openrowset`、`bulk insert` 等。
+  - 阻擋無 `WHERE` 的 `UPDATE/DELETE`。
+  - 寫入路徑使用資料庫交易，失敗即回滾。
+- 設定來源：`appsettings.json` + 環境變數覆寫。
+  - `SQL_AGENT_LLM_BASE_URL`
+  - `SQL_AGENT_LLM_API_KEY`
+  - `SQL_AGENT_LLM_MODEL`
+  - `SQL_AGENT_DB_PROVIDER`
+  - `SQL_AGENT_DB_CONNECTION_STRING`
+  - `SQL_AGENT_READ_ONLY`
+  - `SQL_AGENT_AUDIT_DIR`
+- 稽核紀錄：
+  - 每次 `ask/plan/explain/run` 皆寫入 `agent/logs/audit-YYYYMMDD.jsonl`。
+
+### Agent 啟動方式
+
+```powershell
+dotnet run --project .\agent\SqlMaintenanceAgent.App\SqlMaintenanceAgent.App.csproj
+```
+
+若要允許寫入（仍需二次確認 `YES`）：
+
+```powershell
+dotnet run --project .\agent\SqlMaintenanceAgent.App\SqlMaintenanceAgent.App.csproj -- --allow-write
+```
+
 ## 2026-04-06 第九輪優化：CMM 排程段（不改商規）
 
 - 調整 產生ORDE3剩餘製程.sql 的 CMM 區段（AfterDlytimeOPhase -> AfterCMMSchedule）：

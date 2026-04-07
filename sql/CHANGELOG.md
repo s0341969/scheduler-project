@@ -1,4 +1,23 @@
 # Changelog
+## 2026-04-06 新增 SQL 維運 AI Agent（.NET 8 + LM Studio）
+
+- 新增 `agent/SqlMaintenanceAgent.sln`，含兩個專案：
+  - `SqlMaintenanceAgent.App`：CLI REPL 主程式。
+  - `SqlMaintenanceAgent.Tests`：可執行測試 runner（不依賴外部測試套件）。
+- 新增主模組：
+  - `CliHost`（`ask/plan/explain/run/exit`）
+  - `LlmClient`（LM Studio `/v1/chat/completions`、重試、逾時）
+  - `PromptPolicy`（JSON 回覆格式與安全提示）
+  - `SqlGuard`（語句分類、危險關鍵字、無 WHERE 更新/刪除阻擋）
+  - `SqlExecutor`（讀取查詢、寫入交易 + 失敗回滾）
+  - `AuditLogger`（jsonl 稽核紀錄 + SQL hash）
+- 新增設定檔：`agent/SqlMaintenanceAgent.App/appsettings.json`
+  - 支援環境變數覆寫 LLM/DB/安全模式/稽核路徑。
+- 安全預設：
+  - `ReadOnly=true`
+  - 寫入語句需 `--allow-write` 且輸入 `YES` 才執行。
+  - 阻擋 `xp_cmdshell/sp_oacreate/openrowset/bulk insert` 與無 `WHERE` 更新/刪除。
+
 ## 2026-04-06 第九輪優化：CMM 段 set-based/索引調整（TEST）
 
 - 目標：直接縮短 AfterDlytimeOPhase -> AfterCMMSchedule。
