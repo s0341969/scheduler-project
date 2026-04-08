@@ -1,0 +1,38 @@
+===== RUN 2026-04-07 23:29:52 =====
+ START total=0ms delta=0ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterTemp3Build total=18306ms delta=18306ms
+ BeforeVerticalInsert total=39723ms delta=21417ms
+ AfterVerticalInsert1 total=45226ms delta=5503ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterVerticalInsert2 total=45820ms delta=594ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterMaterialProcFlow total=109853ms delta=64033ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterDlytimeEBridge total=119326ms delta=9473ms
+ AfterDlytimeCore total=120030ms delta=704ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ BeforeSummaryInsert total=147525ms delta=27495ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterSummaryPrep total=153029ms delta=5504ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterSummaryMainInsert total=206478ms delta=53449ms
+ AfterSummaryInsert total=206478ms delta=0ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ BeforeAssemblyWeldRollup total=254579ms delta=48101ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterAssemblyWeldRollup total=260018ms delta=5439ms
+ BeforeMissingPartsPhase total=260987ms delta=969ms
+ AfterMissingPartsPhase total=262112ms delta=1125ms
+ BeforeOutsourcePhase total=262112ms delta=0ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ BeforeWeldStatusStringPhase total=274028ms delta=11916ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterWeldStatusStringPhase total=283593ms delta=9565ms
+ AfterOutsourcePhase total=296292ms delta=12699ms
+ AfterDlytimeOPhase total=299294ms delta=3002ms
+訊息 1205, 層級 13, 狀態 52, 伺服器 dbserver76, 程序 dbo.產生ORDE3剩餘製程, 行 6087
+交易 (處理序識別碼 1269) 在 鎖定 資源上被另一個處理序鎖死並已被選擇作為死結的犧牲者。請重新執行該交易。
+===== RUN 2026-04-07 23:35:18 =====

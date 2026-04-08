@@ -1,26 +1,32 @@
 {
   "format": 1,
   "restore": {
-    "C:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj": {}
+    "G:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj": {}
   },
   "projects": {
-    "C:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj": {
+    "G:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj",
+        "projectUniqueName": "G:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj",
         "projectName": "SchedulerConfigProvider",
-        "projectPath": "C:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj",
-        "packagesPath": "C:\\Users\\USER\\.nuget\\packages\\",
-        "outputPath": "C:\\codex_pg\\SchedulerConfigProvider\\obj\\",
+        "projectPath": "G:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj",
+        "packagesPath": "C:\\Users\\TECHUP\\.nuget\\packages\\",
+        "outputPath": "G:\\codex_pg\\SchedulerConfigProvider\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\USER\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\TECHUP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
         ],
         "sources": {
-          "https://api.nuget.org/v3/index.json": {}
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://www.nuget.org/api/v2/": {}
         },
         "frameworks": {
           "net8.0": {
@@ -37,7 +43,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net8.0": {
@@ -58,34 +65,40 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.418/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.311/PortableRuntimeIdentifierGraph.json"
         }
       }
     },
-    "C:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj": {
+    "G:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj",
+        "projectUniqueName": "G:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj",
         "projectName": "SchedulerDragDrop",
-        "projectPath": "C:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj",
-        "packagesPath": "C:\\Users\\USER\\.nuget\\packages\\",
-        "outputPath": "C:\\codex_pg\\SchedulerDragDrop\\obj\\",
+        "projectPath": "G:\\codex_pg\\SchedulerDragDrop\\SchedulerDragDrop.csproj",
+        "packagesPath": "C:\\Users\\TECHUP\\.nuget\\packages\\",
+        "outputPath": "G:\\codex_pg\\SchedulerDragDrop\\obj\\",
         "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
         "configFilePaths": [
-          "C:\\Users\\USER\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\TECHUP\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net8.0-windows"
         ],
         "sources": {
-          "https://api.nuget.org/v3/index.json": {}
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://www.nuget.org/api/v2/": {}
         },
         "frameworks": {
           "net8.0-windows7.0": {
             "targetAlias": "net8.0-windows",
             "projectReferences": {
-              "C:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj": {
-                "projectPath": "C:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj"
+              "G:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj": {
+                "projectPath": "G:\\codex_pg\\SchedulerConfigProvider\\SchedulerConfigProvider.csproj"
               }
             }
           }
@@ -99,7 +112,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "9.0.300"
       },
       "frameworks": {
         "net8.0-windows7.0": {
@@ -133,7 +147,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.418/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\9.0.311/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

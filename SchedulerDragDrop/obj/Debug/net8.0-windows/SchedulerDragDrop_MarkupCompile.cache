@@ -4,16 +4,16 @@
 winexe
 C#
 .cs
-C:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\
+G:\codex_pg\SchedulerDragDrop\obj\Debug\net8.0-windows\
 SchedulerDragDrop
 none
 false
-TRACE;DEBUG;NET;NET8_0;NETCOREAPP
-C:\codex_pg\SchedulerDragDrop\App.xaml
+TRACE;DEBUG;NET;NET8_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
+G:\codex_pg\SchedulerDragDrop\App.xaml
 3-148479944
 
 8-2085484216
-216-1021212545
+216-2121018379
 MainWindow.xaml;ProcessGroupSelectionDialog.xaml;ShiftToDateTimeDialog.xaml;
 
 False

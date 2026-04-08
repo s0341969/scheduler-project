@@ -1,0 +1,10 @@
+===== RUN 2026-04-07 16:02:19 =====
+ START total=0ms delta=0ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterTemp3Build total=27105ms delta=27105ms
+ BeforeVerticalInsert total=48786ms delta=21681ms
+ AfterVerticalInsert1 total=54818ms delta=6032ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterVerticalInsert2 total=55365ms delta=547ms
+訊息 1205, 層級 13, 狀態 52, 伺服器 dbserver76, 程序 dbo.產生ORDE3剩餘製程, 行 1862
+交易 (處理序識別碼 1246) 在 鎖定 資源上被另一個處理序鎖死並已被選擇作為死結的犧牲者。請重新執行該交易。

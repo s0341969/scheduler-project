@@ -1,0 +1,13 @@
+===== RUN 2026-04-07 16:04:29 =====
+ START total=0ms delta=0ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterTemp3Build total=11831ms delta=11831ms
+ BeforeVerticalInsert total=32947ms delta=21116ms
+ AfterVerticalInsert1 total=38170ms delta=5223ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+ AfterVerticalInsert2 total=38888ms delta=718ms
+警告: 彙總或其他 SET 作業已刪除 Null 值。
+訊息 5074, 層級 16, 狀態 1, 伺服器 dbserver76, 程序 dbo.產生ORDE3剩餘製程, 行 2730
+索引 'IX_TMP_IV3_INPART' 與 資料行 '日期' 相依。
+訊息 4922, 層級 16, 狀態 9, 伺服器 dbserver76, 程序 dbo.產生ORDE3剩餘製程, 行 2730
+ALTER TABLE DROP COLUMN 日期 失敗，因為有一個或多個物件存取此 資料行。
