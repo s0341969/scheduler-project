@@ -74,3 +74,7 @@
 - [x] 移除 #設計TEMP1 建表查詢不必要排序（2026-04-08，第十一輪；BeforeCommit=298524ms）。
 - [ ] 針對 AfterCMMDesignTempBuild 仍約 16.9s，下一輪檢查 指派時間 路徑是否可先快照/索引化。
 - [ ] 補跑 % 2 次確認第十一輪 298524ms 是否穩定，並記錄平均與 P95。
+
+- [x] 正式表輸出段改為 TRUNCATE TABLE 優先、失敗 fallback DELETE（2026-04-08，第十二輪；AfterPublishTableLoad=2578ms）。
+- [ ] 下一輪回到 AfterCMMDesignTempBuild，檢查 指派時間 是否可再縮欄位或改成更小快照。
+- [ ] 補跑 % 2 次比較第十一輪 298524ms 與第十二輪 305631ms，確認哪版平均/P95 較佳。

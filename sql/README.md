@@ -1,4 +1,18 @@
 # 專案說明
+## 2026-04-08 正式表輸出段清空策略優化
+
+- 已將正式表 ORDDE4_剩餘製程明細 與 ORDDE4_剩餘製程明細_直式 的全表清空改為：TRUNCATE TABLE 優先，失敗時 fallback DELETE。
+- 保留原本的正式表重新載入與索引重建流程，不更動輸出資料結構。
+- 新增 final txn 細分里程碑：
+  - BeforePublishIndexDrop
+  - AfterPublishIndexDrop
+  - AfterPublishTableLoad
+  - AfterPublishIndexRebuild
+- TEST % 實測（_perf_run_2026-04-08_0154_stage31_publish_truncate.log）：
+  - AfterPublishTableLoad delta=2578ms（前版約 21553ms）
+  - AfterPublishIndexRebuild delta=1735ms
+  - BeforeCommit total=305631ms
+- 結果：正式表輸出段大幅下降，整體維持約 5 分 5.6 秒。
 ## 2026-04-08 CMM 設計段排序移除優化
 
 - 已將 #設計TEMP1 的 SELECT INTO 後置 ORDER BY C.Applier, 可用工時 移除，保留既有商規與 ROW_NUMBER() OVER (PARTITION BY C.Applier ORDER BY C.Applier, 可用工時) 排序語意。
@@ -434,5 +448,6 @@ dotnet run --project .\agent\SqlMaintenanceAgent.App\SqlMaintenanceAgent.App.csp
 - % 實測（同版本連跑）重點：
   - AfterSummaryMainInsert: ~69.2s -> ~61.3s
   - BeforeCommit: 最佳觀測到 304094ms（約 5分04秒）
+
 
 

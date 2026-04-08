@@ -1,4 +1,23 @@
 # Changelog
+## 2026-04-08 第十二輪優化：正式表輸出段改為 TRUNCATE 優先（TEST）
+
+- 修改 產生ORDE3剩餘製程.sql：
+  - ORDDE4_剩餘製程明細 載入前改為 TRUNCATE TABLE 優先，失敗時 fallback DELETE。
+  - ORDDE4_剩餘製程明細_直式 載入前改為 TRUNCATE TABLE 優先，失敗時 fallback DELETE。
+- 新增/整理 final txn 里程碑：
+  - BeforePublishIndexDrop
+  - AfterPublishIndexDrop
+  - AfterPublishTableLoad
+  - AfterPublishIndexRebuild
+- TEST % 實測（_perf_run_2026-04-08_0154_stage31_publish_truncate.log）：
+  - BeforePublishIndexDrop total=301286ms
+  - AfterPublishIndexDrop total=301318ms（delta 32ms）
+  - AfterPublishTableLoad total=303896ms（delta 2578ms）
+  - AfterPublishIndexRebuild total=305631ms（delta 1735ms）
+  - BeforeCommit total=305631ms
+- 結論：
+  - 正式表回寫段由約 21.6s 降到約 2.6s。
+  - 目前 % 全量主要熱點已回到 CMM 設計段建表（AfterCMMDesignTempBuild 仍約 13~17s）。
 ## 2026-04-08 第十一輪優化：CMM 設計段建表移除不必要排序（TEST）
 
 - 修改 產生ORDE3剩餘製程.sql：移除 #設計TEMP1 建表查詢的 ORDER BY C.Applier,可用工時。
@@ -426,5 +445,6 @@
 - TEST % 實測：
   - AfterSummaryMainInsert 約由 69s 降到 61s。
   - BeforeCommit 最佳觀測值：304094ms。
+
 
 
