@@ -70,3 +70,7 @@
 - [x] 合併 CUS工時=100 重複更新為單次 set-based 更新（2026-04-07，第十輪）。
 - [ ] 待 DB 連線恢復後補跑 % 3 次（含 BeforeAssemblyWeldRollup 與 BeforeCommit）確認第十輪是否穩定降秒。
 - [ ] 針對第十輪執行期間發生的 deadlock（1205）補抓 deadlock graph，評估是否需在該段加索引或調整更新順序。
+
+- [x] 移除 #設計TEMP1 建表查詢不必要排序（2026-04-08，第十一輪；BeforeCommit=298524ms）。
+- [ ] 針對 AfterCMMDesignTempBuild 仍約 16.9s，下一輪檢查 指派時間 路徑是否可先快照/索引化。
+- [ ] 補跑 % 2 次確認第十一輪 298524ms 是否穩定，並記錄平均與 P95。

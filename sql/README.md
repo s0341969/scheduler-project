@@ -1,4 +1,13 @@
 # 專案說明
+## 2026-04-08 CMM 設計段排序移除優化
+
+- 已將 #設計TEMP1 的 SELECT INTO 後置 ORDER BY C.Applier, 可用工時 移除，保留既有商規與 ROW_NUMBER() OVER (PARTITION BY C.Applier ORDER BY C.Applier, 可用工時) 排序語意。
+- 目的：降低 AfterDlytimeOPhase -> AfterCMMDesignTempBuild 建表成本。
+- TEST % 實測（_perf_run_2026-04-08_0051_stage28_design_temp_no_sort.log）：
+  - AfterCMMDesignTempBuild total=287475ms（delta 16855ms）
+  - AfterCMMDesignAssign delta=15ms
+  - BeforeCommit total=298524ms
+- 結果：整體已降到約 4 分 58.5 秒，首次穩定進入 300 秒內區間。
 ## 2026-04-07 CUS工時模組重構（進行中）
 
 - 已將 產生ORDE3剩餘製程.sql 中 CUS工時=100 的重複更新群（多段同表同 Join）整併為單一 set-based 更新，保留原條件集合。
@@ -425,4 +434,5 @@ dotnet run --project .\agent\SqlMaintenanceAgent.App\SqlMaintenanceAgent.App.csp
 - % 實測（同版本連跑）重點：
   - AfterSummaryMainInsert: ~69.2s -> ~61.3s
   - BeforeCommit: 最佳觀測到 304094ms（約 5分04秒）
+
 

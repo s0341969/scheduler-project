@@ -1,4 +1,22 @@
 # Changelog
+## 2026-04-08 第十一輪優化：CMM 設計段建表移除不必要排序（TEST）
+
+- 修改 產生ORDE3剩餘製程.sql：移除 #設計TEMP1 建表查詢的 ORDER BY C.Applier,可用工時。
+- 保留：ROW_NUMBER() OVER (PARTITION BY C.Applier ORDER BY C.Applier,可用工時)，因此分派順序商規不變。
+- 新增/保留 CMM 細分里程碑：
+  - AfterCMMDesignTempBuild
+  - AfterCMMDesignAssign
+  - AfterCMMDeleteDispatch
+  - AfterCMMResetRows
+  - BeforeCMMPrep
+- TEST % 實測（_perf_run_2026-04-08_0051_stage28_design_temp_no_sort.log）：
+  - AfterDlytimeOPhase total=270620ms
+  - AfterCMMDesignTempBuild total=287475ms（delta 16855ms）
+  - AfterCMMDesignAssign total=287490ms（delta 15ms）
+  - BeforeCommit total=298524ms
+- 結論：
+  - 相較前一版 BeforeCommit ≈ 312869ms，改善約 -14345ms。
+  - % 全量首次壓進 300s 以內。
 ## 2026-04-07 第十輪優化：CUS工時重複更新區段整併（TEST）
 
 - 修改 產生ORDE3剩餘製程.sql：將 CUS工時=100 的多段重複 UPDATE ORDDE4_剩餘製程明細_D（相同 Join、不同條件）整併為單一 UPDATE ... WHERE (條件 OR ...)。
@@ -408,4 +426,5 @@
 - TEST % 實測：
   - AfterSummaryMainInsert 約由 69s 降到 61s。
   - BeforeCommit 最佳觀測值：304094ms。
+
 
