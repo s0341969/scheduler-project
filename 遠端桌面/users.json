@@ -1,0 +1,15 @@
+﻿[
+  {
+    "Id": "e19d2a1e-73bd-41ed-9afb-48820daa388e",
+    "UserName": "admin",
+    "DisplayName": "Administrator",
+    "Role": "Administrator",
+    "IsEnabled": true,
+    "PasswordHash": "WMUPccrLvXmWbFTHZnNRM5CzI0SRYz3cULPsVDVlxEo=",
+    "PasswordSalt": "qj6A/WlThNlOjuFC/tHokw==",
+    "PasswordIterations": 100000,
+    "CreatedAt": "2026-04-11T14:17:55.6641906+00:00",
+    "UpdatedAt": "2026-04-17T03:21:29.8147565+00:00",
+    "LastLoginAt": "2026-04-17T03:21:29.8142756+00:00"
+  }
+]
