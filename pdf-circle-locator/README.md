@@ -101,6 +101,21 @@ Windows 若想直接雙擊測試，可使用：
 
 `run_pdf_circle_locator.bat` 為了避免 Windows `cmd.exe` 的批次檔編碼問題，訊息文字固定使用 ASCII 英文；偵測輸出與程式本體不受此限制。
 
+若要批次產生 `1` 到 `100` 的模板庫，可執行：
+
+```powershell
+C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe .\tools\generate_number_template_library.py
+```
+
+預設會輸出到：
+
+- `templates/numbers-001-100/1.png`
+- `templates/numbers-001-100/2.png`
+- ...
+- `templates/numbers-001-100/100.png`
+
+使用這組模板庫時，請把 `--template-dir` 指向該資料夾。
+
 ## 測試
 
 本專案為 Python 專案，未包含 `.sln` 或 `.csproj`，因此不適用 `dotnet build`。
@@ -179,6 +194,7 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 - `circle_locator/`: 核心套件與 CLI
 - `templates/`: 你的圓圈範本庫
 - `tools/`: 產生測試 PDF 與範本的工具
+- `tools/generate_number_template_library.py`: 批次產生 `1` 到 `100` 的圓圈數字模板
 - `run_pdf_circle_locator.bat`: Windows 雙擊測試入口
 - `run_pdf_circle_locator_fast.bat`: Windows 快速模式入口，預設啟用 `--fast-mode --no-preview`
 - `tests/`: 基本自動化測試
