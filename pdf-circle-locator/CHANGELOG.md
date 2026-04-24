@@ -2,6 +2,7 @@
 
 ## 2026-04-25
 
+- 新增 `--fast-mode` 與 `--fast-probe-dpi`，先用低 DPI 預檢頁面是否存在圓圈候選，沒有候選的頁面直接跳過完整偵測。
 - 將 `run_pdf_circle_locator.bat` 的提示訊息改為 ASCII 英文，避免 `cmd.exe` 讀取批次檔時發生中文編碼錯亂而無法執行。
 
 ## 2026-04-24

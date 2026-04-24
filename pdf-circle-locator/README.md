@@ -13,6 +13,7 @@
 - 匯出 `JSON` 與 `CSV`
 - 輸出每頁標註預覽圖，方便人工複核
 - 預覽圖會在已偵測圓圈旁額外畫出彩色提示圈，方便快速確認哪些圈已被抓到
+- 支援 `--fast-mode`，先用低 DPI 預檢頁面是否有圓圈候選，沒有則直接跳過
 
 ## 輸出欄位
 
@@ -62,6 +63,12 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m circle_locator.cli .\your-file.pdf --template-dir .\templates --template-threshold 0.78
 ```
 
+速度優先模式：
+
+```powershell
+C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m circle_locator.cli .\your-file.pdf --fast-mode --fast-probe-dpi 96 --no-preview
+```
+
 安裝成命令列工具後也可直接執行：
 
 ```powershell
@@ -108,8 +115,17 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 4. 若該圓內沒有可用文字 span，使用 `RapidOCR` 對圈內區域做 OCR。
 5. 若提供 `templates` 目錄，會先額外使用範本比對產生高可信候選。
    若範本檔名已提供數字提示，系統不會再對該候選重複執行 OCR。
-6. 將像素座標回推成 PDF point 座標。
-7. 輸出結構化紀錄與標註預覽圖。
+6. 若啟用 `--fast-mode`，會先以較低 DPI 掃描每頁是否存在圓圈候選；沒有候選的頁面直接跳過完整辨識。
+7. 將像素座標回推成 PDF point 座標。
+8. 輸出結構化紀錄與標註預覽圖。
+
+## 提速建議
+
+- 優先使用 `--fast-mode`，先跳過沒有圓圈的頁面。
+- 大型 PDF 可搭配 `--no-preview`，避免額外輸出 PNG。
+- 若文件圓圈尺寸固定，請縮小 `--min-radius-pt` 與 `--max-radius-pt` 範圍。
+- 若模板不是必要條件，先不要帶 `--template-dir`。
+- `--fast-probe-dpi` 建議先用 `96`；若有漏檢，再提高到 `120` 或 `144`。
 
 ## 範本庫格式
 

@@ -90,6 +90,27 @@ def test_preview_badge_geometry_places_colored_marker_next_to_circle() -> None:
     assert badge_radius >= 8.0
 
 
+def test_fast_probe_detects_circle_candidates_on_sample_page() -> None:
+    document = fitz.open()
+    page = document.new_page(width=200, height=200)
+    page.draw_circle((100, 100), 20, color=(0, 0, 0), width=1.2)
+
+    detector = NumberedCircleDetector(fast_mode=True)
+
+    assert detector._page_has_circle_candidates(page) is True
+    document.close()
+
+
+def test_fast_probe_skips_blank_page() -> None:
+    document = fitz.open()
+    page = document.new_page(width=200, height=200)
+
+    detector = NumberedCircleDetector(fast_mode=True)
+
+    assert detector._page_has_circle_candidates(page) is False
+    document.close()
+
+
 def test_sample_pdf_generation_and_open() -> None:
     document = fitz.open()
     page = document.new_page(width=200, height=200)

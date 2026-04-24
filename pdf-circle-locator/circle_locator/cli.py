@@ -52,6 +52,17 @@ def build_parser() -> argparse.ArgumentParser:
         default=0.72,
         help="Template matching threshold between 0 and 1",
     )
+    parser.add_argument(
+        "--fast-mode",
+        action="store_true",
+        help="Run a low-DPI page probe first and skip pages without circle candidates.",
+    )
+    parser.add_argument(
+        "--fast-probe-dpi",
+        type=int,
+        default=96,
+        help="DPI used by the fast page probe. Lower is faster but may miss faint circles.",
+    )
     return parser
 
 
@@ -68,6 +79,8 @@ def main() -> int:
         max_radius_pt=args.max_radius_pt,
         template_dir=args.template_dir,
         template_threshold=args.template_threshold,
+        fast_mode=args.fast_mode,
+        fast_probe_dpi=args.fast_probe_dpi,
     )
     records = detector.detect_pdf(args.input_pdf, preview_dir=preview_dir)
 
@@ -84,6 +97,9 @@ def main() -> int:
         print(f"preview_dir={preview_dir}")
     if args.template_dir is not None:
         print(f"template_dir={args.template_dir.resolve()}")
+    if args.fast_mode:
+        print(f"fast_mode=true")
+        print(f"fast_probe_dpi={args.fast_probe_dpi}")
 
     return 0
 

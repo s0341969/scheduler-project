@@ -21,6 +21,7 @@ PREVIEW_BADGE_COLOR = (0, 170, 90)
 PREVIEW_BADGE_INNER_COLOR = (255, 255, 255)
 PREVIEW_TEXT_OFFSET_X = 22
 PREVIEW_TEXT_OFFSET_Y = -10
+DEFAULT_FAST_PROBE_DPI = 96
 
 
 @dataclass(slots=True)
@@ -55,6 +56,8 @@ class NumberedCircleDetector:
         max_radius_pt: float = 48.0,
         template_dir: Path | None = None,
         template_threshold: float = 0.72,
+        fast_mode: bool = False,
+        fast_probe_dpi: int = DEFAULT_FAST_PROBE_DPI,
     ) -> None:
         if dpi < 144:
             raise ValueError("dpi must be at least 144 for stable circle detection")
@@ -62,11 +65,15 @@ class NumberedCircleDetector:
             raise ValueError("min_radius_pt and max_radius_pt are invalid")
         if not 0.5 <= template_threshold <= 0.99:
             raise ValueError("template_threshold must be between 0.5 and 0.99")
+        if fast_probe_dpi < 72:
+            raise ValueError("fast_probe_dpi must be at least 72")
 
         self.dpi = dpi
         self.min_radius_pt = min_radius_pt
         self.max_radius_pt = max_radius_pt
         self.template_threshold = template_threshold
+        self.fast_mode = fast_mode
+        self.fast_probe_dpi = fast_probe_dpi
         self._ocr: RapidOCR | None = None
         self._templates = self._load_templates(template_dir)
 
@@ -88,6 +95,8 @@ class NumberedCircleDetector:
         try:
             for page_index in range(document.page_count):
                 page = document.load_page(page_index)
+                if self.fast_mode and not self._page_has_circle_candidates(page):
+                    continue
                 page_records, preview = self._detect_page(page)
                 records.extend(self._suppress_overlapping_records(page_records))
 
@@ -99,27 +108,15 @@ class NumberedCircleDetector:
 
         return records
 
+    def _page_has_circle_candidates(self, page: fitz.Page) -> bool:
+        gray, _ = self._render_page_gray(page, self.fast_probe_dpi)
+        probe_circles = self._find_circles(gray, self.fast_probe_dpi, param2=16)
+        return probe_circles is not None and len(probe_circles[0, :]) > 0
+
     def _detect_page(self, page: fitz.Page) -> tuple[list[DetectionRecord], Image.Image]:
+        gray, image = self._render_page_gray(page, self.dpi)
         scale = self.dpi / 72.0
-        pixmap = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
-        image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
-        rgb = np.array(image)
-        gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
-        blurred = cv2.GaussianBlur(gray, (9, 9), 1.5)
-
-        min_radius_px = max(8, int(self.min_radius_pt * scale))
-        max_radius_px = max(min_radius_px + 4, int(self.max_radius_pt * scale))
-
-        circles = cv2.HoughCircles(
-            blurred,
-            cv2.HOUGH_GRADIENT,
-            dp=1.2,
-            minDist=max(16, min_radius_px * 2),
-            param1=100,
-            param2=20,
-            minRadius=min_radius_px,
-            maxRadius=max_radius_px,
-        )
+        circles = self._find_circles(gray, self.dpi, param2=20)
 
         text_spans = list(self._extract_digit_spans(page))
         preview = image.copy()
@@ -177,6 +174,30 @@ class NumberedCircleDetector:
             self._draw_preview_marker(preview_draw, record, scale)
 
         return all_records, preview
+
+    def _render_page_gray(self, page: fitz.Page, dpi: int) -> tuple[np.ndarray, Image.Image]:
+        scale = dpi / 72.0
+        pixmap = page.get_pixmap(matrix=fitz.Matrix(scale, scale), alpha=False)
+        image = Image.frombytes("RGB", (pixmap.width, pixmap.height), pixmap.samples)
+        rgb = np.array(image)
+        gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+        return gray, image
+
+    def _find_circles(self, gray: np.ndarray, dpi: int, param2: int) -> np.ndarray | None:
+        scale = dpi / 72.0
+        blurred = cv2.GaussianBlur(gray, (9, 9), 1.5)
+        min_radius_px = max(8, int(self.min_radius_pt * scale))
+        max_radius_px = max(min_radius_px + 4, int(self.max_radius_pt * scale))
+        return cv2.HoughCircles(
+            blurred,
+            cv2.HOUGH_GRADIENT,
+            dp=1.2,
+            minDist=max(16, min_radius_px * 2),
+            param1=100,
+            param2=param2,
+            minRadius=min_radius_px,
+            maxRadius=max_radius_px,
+        )
 
     def _extract_digit_spans(self, page: fitz.Page) -> Iterable[tuple[fitz.Rect, str]]:
         text_dict = page.get_text("dict")
