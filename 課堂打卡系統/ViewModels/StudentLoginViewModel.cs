@@ -13,5 +13,5 @@ public sealed class StudentLoginViewModel
     [Display(Name = "密碼")]
     public string Password { get; set; } = string.Empty;
 
-    public string ReturnUrl { get; set; } = string.Empty;
+    public string? ReturnUrl { get; set; }
 }
