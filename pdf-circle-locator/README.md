@@ -81,10 +81,22 @@ Windows 若想直接雙擊測試，可使用：
 .\run_pdf_circle_locator.bat
 ```
 
+若要直接使用快速模式，可使用：
+
+```powershell
+.\run_pdf_circle_locator_fast.bat
+```
+
 若要測自己的 PDF，可把 PDF 拖到 `run_pdf_circle_locator.bat` 上，或用命令列帶入路徑：
 
 ```powershell
 .\run_pdf_circle_locator.bat .\your-file.pdf
+```
+
+快速模式也支援拖放 PDF 或命令列帶入路徑：
+
+```powershell
+.\run_pdf_circle_locator_fast.bat .\your-file.pdf
 ```
 
 `run_pdf_circle_locator.bat` 為了避免 Windows `cmd.exe` 的批次檔編碼問題，訊息文字固定使用 ASCII 英文；偵測輸出與程式本體不受此限制。
@@ -168,6 +180,7 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 - `templates/`: 你的圓圈範本庫
 - `tools/`: 產生測試 PDF 與範本的工具
 - `run_pdf_circle_locator.bat`: Windows 雙擊測試入口
+- `run_pdf_circle_locator_fast.bat`: Windows 快速模式入口，預設啟用 `--fast-mode --no-preview`
 - `tests/`: 基本自動化測試
 - `output/`: 偵測輸出
 - `tmp/`: 中間測試資料
