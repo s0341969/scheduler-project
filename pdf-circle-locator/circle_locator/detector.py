@@ -16,6 +16,11 @@ from rapidocr_onnxruntime import RapidOCR
 
 
 DIGIT_PATTERN = re.compile(r"\d+")
+PREVIEW_OUTLINE_COLOR = (255, 0, 0)
+PREVIEW_BADGE_COLOR = (0, 170, 90)
+PREVIEW_BADGE_INNER_COLOR = (255, 255, 255)
+PREVIEW_TEXT_OFFSET_X = 22
+PREVIEW_TEXT_OFFSET_Y = -10
 
 
 @dataclass(slots=True)
@@ -169,20 +174,7 @@ class NumberedCircleDetector:
         template_records = self._detect_by_templates(page, gray)
         all_records = self._merge_records(records + template_records)
         for record in all_records:
-            cx_px = record.center_x * scale
-            cy_px = record.center_y * scale
-            radius_px = record.radius * scale
-            preview_draw.ellipse(
-                (
-                    cx_px - radius_px,
-                    cy_px - radius_px,
-                    cx_px + radius_px,
-                    cy_px + radius_px,
-                ),
-                outline=(255, 0, 0),
-                width=3,
-            )
-            preview_draw.text((cx_px + radius_px + 4, cy_px - 8), record.number, fill=(255, 0, 0))
+            self._draw_preview_marker(preview_draw, record, scale)
 
         return all_records, preview
 
@@ -407,6 +399,60 @@ class NumberedCircleDetector:
         if self._ocr is None:
             self._ocr = RapidOCR()
         return self._ocr
+
+    def _draw_preview_marker(
+        self,
+        preview_draw: ImageDraw.ImageDraw,
+        record: DetectionRecord,
+        scale: float,
+    ) -> None:
+        cx_px = record.center_x * scale
+        cy_px = record.center_y * scale
+        radius_px = record.radius * scale
+        badge_cx, badge_cy, badge_radius = self._preview_badge_geometry(cx_px, cy_px, radius_px)
+
+        preview_draw.ellipse(
+            (
+                cx_px - radius_px,
+                cy_px - radius_px,
+                cx_px + radius_px,
+                cy_px + radius_px,
+            ),
+            outline=PREVIEW_OUTLINE_COLOR,
+            width=3,
+        )
+        preview_draw.ellipse(
+            (
+                badge_cx - badge_radius,
+                badge_cy - badge_radius,
+                badge_cx + badge_radius,
+                badge_cy + badge_radius,
+            ),
+            fill=PREVIEW_BADGE_COLOR,
+            outline=PREVIEW_BADGE_COLOR,
+            width=2,
+        )
+        inner_radius = max(2.0, badge_radius * 0.34)
+        preview_draw.ellipse(
+            (
+                badge_cx - inner_radius,
+                badge_cy - inner_radius,
+                badge_cx + inner_radius,
+                badge_cy + inner_radius,
+            ),
+            fill=PREVIEW_BADGE_INNER_COLOR,
+        )
+        preview_draw.text(
+            (badge_cx + badge_radius + PREVIEW_TEXT_OFFSET_X, badge_cy + PREVIEW_TEXT_OFFSET_Y),
+            record.number,
+            fill=PREVIEW_OUTLINE_COLOR,
+        )
+
+    def _preview_badge_geometry(self, cx_px: float, cy_px: float, radius_px: float) -> tuple[float, float, float]:
+        badge_radius = max(8.0, radius_px * 0.32)
+        badge_cx = cx_px + radius_px * 1.18
+        badge_cy = cy_px - radius_px * 0.88
+        return badge_cx, badge_cy, badge_radius
 
     def _merge_records(self, records: list[DetectionRecord]) -> list[DetectionRecord]:
         merged = self._suppress_overlapping_records(records)

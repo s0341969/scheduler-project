@@ -80,6 +80,16 @@ def test_detector_defers_ocr_initialization() -> None:
     assert detector._ocr is None
 
 
+def test_preview_badge_geometry_places_colored_marker_next_to_circle() -> None:
+    detector = NumberedCircleDetector()
+
+    badge_cx, badge_cy, badge_radius = detector._preview_badge_geometry(100.0, 120.0, 30.0)
+
+    assert badge_cx > 130.0
+    assert badge_cy < 120.0
+    assert badge_radius >= 8.0
+
+
 def test_sample_pdf_generation_and_open() -> None:
     document = fitz.open()
     page = document.new_page(width=200, height=200)
