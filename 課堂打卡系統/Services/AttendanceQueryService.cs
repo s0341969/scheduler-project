@@ -41,6 +41,7 @@ public interface IAttendanceQueryService
 
 public sealed class AttendanceQueryService : IAttendanceQueryService
 {
+    private static readonly int[] SupportedGrades = [1, 2, 3];
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly string _storePath;
     private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web)
@@ -245,10 +246,12 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
     {
         var store = await LoadStoreAsync(cancellationToken);
         var courseItems = store.Courses
-            .OrderBy(course => course.CourseCode)
+            .OrderBy(course => course.ClassCode)
+            .ThenBy(course => course.CourseCode)
             .Select(course => new AdminCourseItemViewModel
             {
                 Id = course.Id,
+                ClassCode = course.ClassCode,
                 CourseCode = course.CourseCode,
                 CourseName = course.CourseName,
                 TeacherName = course.TeacherName,
@@ -269,6 +272,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 {
                     Id = session.Id,
                     CourseId = course.Id,
+                    ClassCode = course.ClassCode,
                     CourseCode = course.CourseCode,
                     CourseName = course.CourseName,
                     TeacherName = course.TeacherName,
@@ -335,6 +339,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         return new CourseFormViewModel
         {
             Id = course.Id,
+            ClassCode = course.ClassCode,
             CourseCode = course.CourseCode,
             CourseName = course.CourseName,
             TeacherName = course.TeacherName,
@@ -349,6 +354,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         try
         {
             var store = await LoadStoreUnsafeAsync(cancellationToken);
+            var normalizedClassCode = form.ClassCode.Trim();
             var normalizedCode = form.CourseCode.Trim().ToUpperInvariant();
 
             var duplicated = store.Courses.Any(course =>
@@ -368,6 +374,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     return new OperationResult { Success = false, Message = "找不到指定課程。" };
                 }
 
+                course.ClassCode = normalizedClassCode;
                 course.CourseCode = normalizedCode;
                 course.CourseName = form.CourseName.Trim();
                 course.TeacherName = form.TeacherName.Trim();
@@ -379,6 +386,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 store.Courses.Add(new AttendanceCourse
                 {
                     Id = Guid.NewGuid(),
+                    ClassCode = normalizedClassCode,
                     CourseCode = normalizedCode,
                     CourseName = form.CourseName.Trim(),
                     TeacherName = form.TeacherName.Trim(),
@@ -655,6 +663,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 return new SessionCardViewModel
                 {
                     SessionId = session.Id,
+                    ClassCode = course.ClassCode,
                     CourseCode = course.CourseCode,
                     CourseName = course.CourseName,
                     TeacherName = course.TeacherName,
@@ -682,12 +691,35 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             })
             .ToList();
 
+        var gradeSections = SupportedGrades
+            .Select(gradeYear => new GradeSectionViewModel
+            {
+                GradeYear = gradeYear,
+                GradeLabel = GetGradeLabel(gradeYear),
+                ClassSections =
+                [
+                    .. GetClassCodesForGrade(gradeYear).Select(classCode => new ClassSectionViewModel
+                    {
+                        ClassCode = classCode,
+                        ClassLabel = $"{classCode} 班",
+                        Sessions =
+                        [
+                            .. sessionCards
+                                .Where(session => string.Equals(session.ClassCode, classCode, StringComparison.OrdinalIgnoreCase))
+                                .OrderBy(session => session.StartAt)
+                                .ThenBy(session => session.CourseCode)
+                        ]
+                    })
+                ]
+            })
+            .ToList();
+
         return new AttendanceDashboardViewModel
         {
             GeneratedAt = localNow.LocalDateTime,
             OpenSessionCount = sessionCards.Count(session => session.IsOpen),
             TotalAttendanceCount = store.Records.Count,
-            Sessions = sessionCards
+            GradeSections = gradeSections
         };
     }
 
@@ -772,7 +804,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 .Select(course => new CourseOptionViewModel
                 {
                     Id = course.Id,
-                    DisplayName = $"{course.CourseCode}｜{course.CourseName}"
+                    DisplayName = $"{course.ClassCode}班｜{course.CourseCode}｜{course.CourseName}"
                 })
         ];
     }
@@ -801,7 +833,13 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
 
         await using var stream = File.OpenRead(_storePath);
         var store = await JsonSerializer.DeserializeAsync<AttendanceStore>(stream, _jsonOptions, cancellationToken);
-        return store ?? BuildSeedStore();
+        var resolvedStore = store ?? BuildSeedStore();
+        if (NormalizeStore(resolvedStore))
+        {
+            await SaveStoreUnsafeAsync(resolvedStore, cancellationToken);
+        }
+
+        return resolvedStore;
     }
 
     private async Task SaveStoreUnsafeAsync(AttendanceStore store, CancellationToken cancellationToken)
@@ -819,6 +857,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         var course1 = new AttendanceCourse
         {
             Id = Guid.Parse("5d5114f2-d4f3-485e-8dbf-8bf97d09c930"),
+            ClassCode = "101",
             CourseCode = "CS101",
             CourseName = "資訊系統導論",
             TeacherName = "林冠廷",
@@ -829,6 +868,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         var course2 = new AttendanceCourse
         {
             Id = Guid.Parse("858bb6db-02b0-43c6-a4a7-47882dcf3c4f"),
+            ClassCode = "201",
             CourseCode = "SE305",
             CourseName = "軟體工程實務",
             TeacherName = "陳宜蓁",
@@ -836,13 +876,25 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             Description = "專案管理、版本控制與團隊開發流程。"
         };
 
+        var course3 = new AttendanceCourse
+        {
+            Id = Guid.Parse("ef948f5c-f680-42a8-9f48-b3d6e13ef9c2"),
+            ClassCode = "301",
+            CourseCode = "DS401",
+            CourseName = "資料分析應用",
+            TeacherName = "吳若寧",
+            Classroom = "資訊館 C303",
+            Description = "資料整理、視覺化與課堂案例演練。"
+        };
+
         var todayStart = new DateTimeOffset(today.AddHours(9), offset);
         var afternoonStart = new DateTimeOffset(today.AddHours(14), offset);
         var tomorrowStart = new DateTimeOffset(today.AddDays(1).AddHours(10), offset);
+        var tomorrowAfternoonStart = new DateTimeOffset(today.AddDays(1).AddHours(15), offset);
 
         return new AttendanceStore
         {
-            Courses = [course1, course2],
+            Courses = [course1, course2, course3],
             Sessions =
             [
                 new ClassSession
@@ -874,9 +926,85 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     IsOpen = false,
                     Topic = "第二週：校務流程數位化分組討論",
                     RequireStudentLogin = true
+                },
+                new ClassSession
+                {
+                    Id = Guid.Parse("f28b2eb1-e4a2-4bc3-bf81-8ee4efa85a83"),
+                    CourseId = course3.Id,
+                    StartAt = tomorrowAfternoonStart,
+                    EndAt = tomorrowAfternoonStart.AddHours(2),
+                    IsOpen = false,
+                    Topic = "儀表板指標解讀與班級案例分析",
+                    RequireStudentLogin = true
                 }
             ]
         };
+    }
+
+    private bool NormalizeStore(AttendanceStore store)
+    {
+        var changed = false;
+        var usedClassCodes = new HashSet<string>(
+            store.Courses
+                .Select(course => course.ClassCode.Trim())
+                .Where(IsSupportedClassCode),
+            StringComparer.OrdinalIgnoreCase);
+        var fallbackClassCodes = SupportedGrades
+            .SelectMany(GetClassCodesForGrade)
+            .ToList();
+        var fallbackIndex = 0;
+
+        foreach (var course in store.Courses.OrderBy(item => item.CourseCode, StringComparer.OrdinalIgnoreCase))
+        {
+            if (IsSupportedClassCode(course.ClassCode))
+            {
+                course.ClassCode = course.ClassCode.Trim();
+                continue;
+            }
+
+            while (fallbackIndex < fallbackClassCodes.Count && usedClassCodes.Contains(fallbackClassCodes[fallbackIndex]))
+            {
+                fallbackIndex++;
+            }
+
+            var fallback = fallbackIndex < fallbackClassCodes.Count
+                ? fallbackClassCodes[fallbackIndex]
+                : "101";
+
+            course.ClassCode = fallback;
+            usedClassCodes.Add(fallback);
+            changed = true;
+        }
+
+        return changed;
+    }
+
+    private static IReadOnlyList<string> GetClassCodesForGrade(int gradeYear)
+    {
+        return [.. Enumerable.Range(1, 10).Select(classNumber => $"{gradeYear}{classNumber:00}")];
+    }
+
+    private static string GetGradeLabel(int gradeYear)
+    {
+        return gradeYear switch
+        {
+            1 => "一年級",
+            2 => "二年級",
+            3 => "三年級",
+            _ => $"{gradeYear} 年級"
+        };
+    }
+
+    private static bool IsSupportedClassCode(string? classCode)
+    {
+        if (string.IsNullOrWhiteSpace(classCode) || classCode.Length != 3)
+        {
+            return false;
+        }
+
+        return classCode is "101" or "102" or "103" or "104" or "105" or "106" or "107" or "108" or "109" or "110"
+            or "201" or "202" or "203" or "204" or "205" or "206" or "207" or "208" or "209" or "210"
+            or "301" or "302" or "303" or "304" or "305" or "306" or "307" or "308" or "309" or "310";
     }
 
     private static string SanitizeFileName(string input)

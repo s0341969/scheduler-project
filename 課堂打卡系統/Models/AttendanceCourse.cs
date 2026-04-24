@@ -4,6 +4,8 @@ public sealed class AttendanceCourse
 {
     public Guid Id { get; set; }
 
+    public string ClassCode { get; set; } = string.Empty;
+
     public string CourseCode { get; set; } = string.Empty;
 
     public string CourseName { get; set; } = string.Empty;

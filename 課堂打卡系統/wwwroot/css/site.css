@@ -204,6 +204,47 @@ a:hover {
   gap: 1.25rem;
 }
 
+.grade-section {
+  margin-bottom: 1.5rem;
+}
+
+.grade-section__header,
+.class-panel__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.grade-section__summary,
+.class-panel__count {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.class-board {
+  display: grid;
+  gap: 1rem;
+}
+
+.class-panel {
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 1.25rem;
+  background:
+    linear-gradient(135deg, rgba(10, 92, 89, 0.05), transparent 62%),
+    var(--surface-strong);
+}
+
+.class-panel__header {
+  margin-bottom: 1rem;
+}
+
+.class-panel__header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
 .session-card {
   padding: 1.4rem;
 }

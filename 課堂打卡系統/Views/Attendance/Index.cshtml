@@ -35,88 +35,127 @@
     <div class="alert alert-danger" role="alert">@errorMessage</div>
 }
 
-<section class="session-grid" aria-label="課堂清單">
-    @foreach (var session in Model.Sessions)
-    {
-        <article class="session-card">
-            <div class="session-card__header">
-                <div>
-                    <p class="session-card__code">@session.CourseCode</p>
-                    <h2>@session.CourseName</h2>
-                </div>
-                <span class="status-chip @(session.IsOpen ? "status-chip--open" : "status-chip--closed")">
-                    @(session.IsOpen ? "打卡開放中" : "打卡已關閉")
-                </span>
+@foreach (var grade in Model.GradeSections)
+{
+    <section class="grade-section content-card" aria-label="@grade.GradeLabel 課堂清單">
+        <div class="grade-section__header">
+            <div>
+                <p class="eyebrow">Grade @grade.GradeYear</p>
+                <h2 class="section-title">@grade.GradeLabel</h2>
             </div>
+            <span class="grade-section__summary">@grade.ClassSections.Count 個班級區塊</span>
+        </div>
 
-            <p class="session-card__topic">@session.Topic</p>
-            <dl class="session-card__meta">
-                <div>
-                    <dt>教師</dt>
-                    <dd>@session.TeacherName</dd>
-                </div>
-                <div>
-                    <dt>教室</dt>
-                    <dd>@session.Classroom</dd>
-                </div>
-                <div>
-                    <dt>時間</dt>
-                    <dd>@session.StartAt.ToString("MM/dd HH:mm") - @session.EndAt.ToString("HH:mm")</dd>
-                </div>
-                <div>
-                    <dt>已到人數</dt>
-                    <dd>@session.AttendanceCount 人</dd>
-                </div>
-            </dl>
+        <div class="class-board">
+            @foreach (var classSection in grade.ClassSections)
+            {
+                <section class="class-panel">
+                    <div class="class-panel__header">
+                        <div>
+                            <p class="session-card__code">@classSection.ClassCode</p>
+                            <h3>@classSection.ClassLabel</h3>
+                        </div>
+                        <span class="class-panel__count">@classSection.Sessions.Count 堂課</span>
+                    </div>
 
-            <p class="session-card__description">@session.Description</p>
+                    @if (classSection.Sessions.Count == 0)
+                    {
+                        <p class="empty-text">目前這個班級尚未安排課堂。</p>
+                    }
+                    else
+                    {
+                        <div class="session-grid">
+                            @foreach (var session in classSection.Sessions)
+                            {
+                                <article class="session-card">
+                                    <div class="session-card__header">
+                                        <div>
+                                            <p class="session-card__code">@session.CourseCode</p>
+                                            <h2>@session.CourseName</h2>
+                                        </div>
+                                        <span class="status-chip @(session.IsOpen ? "status-chip--open" : "status-chip--closed")">
+                                            @(session.IsOpen ? "打卡開放中" : "打卡已關閉")
+                                        </span>
+                                    </div>
 
-            <div class="session-card__actions">
-                <a class="btn btn-primary" asp-controller="Attendance" asp-action="QrBoard" asp-route-id="@session.SessionId" target="_blank" rel="noopener noreferrer">開啟 QR 打卡板</a>
-                <a class="btn btn-outline-secondary" asp-controller="Student" asp-action="Login">學生登入</a>
-                @if (session.IsManagementEnabled)
-                {
-                    <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="sessionId" value="@session.SessionId" />
-                        <button type="submit" class="btn btn-outline-secondary">
-                            @(session.IsOpen ? "關閉打卡" : "開放打卡")
-                        </button>
-                    </form>
-                }
-            </div>
+                                    <p class="session-card__topic">@session.Topic</p>
+                                    <dl class="session-card__meta">
+                                        <div>
+                                            <dt>班級</dt>
+                                            <dd>@session.ClassCode 班</dd>
+                                        </div>
+                                        <div>
+                                            <dt>教師</dt>
+                                            <dd>@session.TeacherName</dd>
+                                        </div>
+                                        <div>
+                                            <dt>教室</dt>
+                                            <dd>@session.Classroom</dd>
+                                        </div>
+                                        <div>
+                                            <dt>時間</dt>
+                                            <dd>@session.StartAt.ToString("MM/dd HH:mm") - @session.EndAt.ToString("HH:mm")</dd>
+                                        </div>
+                                        <div>
+                                            <dt>已到人數</dt>
+                                            <dd>@session.AttendanceCount 人</dd>
+                                        </div>
+                                    </dl>
 
-            <section class="recent-list">
-                <div class="recent-list__header">
-                    <h3>最近打卡</h3>
-                    <span>@session.RecentStudents.Count 筆</span>
-                </div>
-                @if (session.RecentStudents.Count == 0)
-                {
-                    <p class="empty-text">目前尚無任何出席紀錄。</p>
-                }
-                else
-                {
-                    <ul>
-                        @foreach (var record in session.RecentStudents)
-                        {
-                            <li>
-                                <div>
-                                    <strong>@record.StudentName</strong>
-                                    <span>@record.StudentNumber</span>
-                                </div>
-                                <div class="recent-item__meta">
-                                    <time>@record.CheckedInAt.ToString("HH:mm:ss")</time>
-                                    @if (record.IsSuspicious)
-                                    {
-                                        <span class="risk-badge">可疑</span>
-                                    }
-                                </div>
-                            </li>
-                        }
-                    </ul>
-                }
-            </section>
-        </article>
-    }
-</section>
+                                    <p class="session-card__description">@session.Description</p>
+
+                                    <div class="session-card__actions">
+                                        <a class="btn btn-primary" asp-controller="Attendance" asp-action="QrBoard" asp-route-id="@session.SessionId" target="_blank" rel="noopener noreferrer">開啟 QR 打卡板</a>
+                                        <a class="btn btn-outline-secondary" asp-controller="Student" asp-action="Login">學生登入</a>
+                                        @if (session.IsManagementEnabled)
+                                        {
+                                            <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="sessionId" value="@session.SessionId" />
+                                                <button type="submit" class="btn btn-outline-secondary">
+                                                    @(session.IsOpen ? "關閉打卡" : "開放打卡")
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+
+                                    <section class="recent-list">
+                                        <div class="recent-list__header">
+                                            <h3>最近打卡</h3>
+                                            <span>@session.RecentStudents.Count 筆</span>
+                                        </div>
+                                        @if (session.RecentStudents.Count == 0)
+                                        {
+                                            <p class="empty-text">目前尚無任何出席紀錄。</p>
+                                        }
+                                        else
+                                        {
+                                            <ul>
+                                                @foreach (var record in session.RecentStudents)
+                                                {
+                                                    <li>
+                                                        <div>
+                                                            <strong>@record.StudentName</strong>
+                                                            <span>@record.StudentNumber</span>
+                                                        </div>
+                                                        <div class="recent-item__meta">
+                                                            <time>@record.CheckedInAt.ToString("HH:mm:ss")</time>
+                                                            @if (record.IsSuspicious)
+                                                            {
+                                                                <span class="risk-badge">可疑</span>
+                                                            }
+                                                        </div>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        }
+                                    </section>
+                                </article>
+                            }
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    </section>
+}

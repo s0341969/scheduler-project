@@ -8,12 +8,32 @@ public sealed class AttendanceDashboardViewModel
 
     public int TotalAttendanceCount { get; init; }
 
+    public IReadOnlyList<GradeSectionViewModel> GradeSections { get; init; } = [];
+}
+
+public sealed class GradeSectionViewModel
+{
+    public int GradeYear { get; init; }
+
+    public string GradeLabel { get; init; } = string.Empty;
+
+    public IReadOnlyList<ClassSectionViewModel> ClassSections { get; init; } = [];
+}
+
+public sealed class ClassSectionViewModel
+{
+    public string ClassCode { get; init; } = string.Empty;
+
+    public string ClassLabel { get; init; } = string.Empty;
+
     public IReadOnlyList<SessionCardViewModel> Sessions { get; init; } = [];
 }
 
 public sealed class SessionCardViewModel
 {
     public Guid SessionId { get; init; }
+
+    public string ClassCode { get; init; } = string.Empty;
 
     public string CourseCode { get; init; } = string.Empty;
 

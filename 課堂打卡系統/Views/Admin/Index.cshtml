@@ -52,6 +52,7 @@
         <table class="table attendance-table">
             <thead>
                 <tr>
+                    <th>班級</th>
                     <th>代碼</th>
                     <th>名稱</th>
                     <th>教師 / 教室</th>
@@ -64,6 +65,7 @@
                 @foreach (var course in Model.Courses)
                 {
                     <tr>
+                        <td>@course.ClassCode 班</td>
                         <td>@course.CourseCode</td>
                         <td>
                             <strong>@course.CourseName</strong>
@@ -102,6 +104,7 @@
         <table class="table attendance-table">
             <thead>
                 <tr>
+                    <th>班級</th>
                     <th>課程</th>
                     <th>主題</th>
                     <th>時間</th>
@@ -115,6 +118,7 @@
                 @foreach (var session in Model.Sessions)
                 {
                     <tr>
+                        <td>@session.ClassCode 班</td>
                         <td>
                             <strong>@session.CourseCode</strong>
                             <div class="table-subtext">@session.CourseName</div>

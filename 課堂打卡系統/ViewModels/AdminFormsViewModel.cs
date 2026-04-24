@@ -20,6 +20,11 @@ public sealed class CourseFormViewModel
 {
     public Guid? Id { get; set; }
 
+    [Required(ErrorMessage = "請輸入班級")]
+    [RegularExpression("^[1-3](0[1-9]|10)$", ErrorMessage = "班級僅支援 101-110、201-210、301-310")]
+    [Display(Name = "班級")]
+    public string ClassCode { get; set; } = string.Empty;
+
     [Required(ErrorMessage = "請輸入課程代碼")]
     [StringLength(20, ErrorMessage = "課程代碼最多 20 個字")]
     [Display(Name = "課程代碼")]

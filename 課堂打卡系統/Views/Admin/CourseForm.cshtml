@@ -20,6 +20,11 @@
 
         <div class="form-grid">
             <div class="mb-3">
+                <label asp-for="ClassCode" class="form-label"></label>
+                <input asp-for="ClassCode" class="form-control" placeholder="例如 101、205、310" />
+                <span asp-validation-for="ClassCode" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
                 <label asp-for="CourseCode" class="form-label"></label>
                 <input asp-for="CourseCode" class="form-control" />
                 <span asp-validation-for="CourseCode" class="text-danger"></span>

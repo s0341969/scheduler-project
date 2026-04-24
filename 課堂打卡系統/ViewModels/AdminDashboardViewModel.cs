@@ -23,6 +23,8 @@ public sealed class AdminCourseItemViewModel
 {
     public Guid Id { get; init; }
 
+    public string ClassCode { get; init; } = string.Empty;
+
     public string CourseCode { get; init; } = string.Empty;
 
     public string CourseName { get; init; } = string.Empty;
@@ -43,6 +45,8 @@ public sealed class AdminSessionItemViewModel
     public Guid Id { get; init; }
 
     public Guid CourseId { get; init; }
+
+    public string ClassCode { get; init; } = string.Empty;
 
     public string CourseCode { get; init; } = string.Empty;
 
