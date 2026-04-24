@@ -68,6 +68,20 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 pdf-circle-locator .\your-file.pdf --template-dir .\templates
 ```
 
+Windows 若想直接雙擊測試，可使用：
+
+```powershell
+.\run_pdf_circle_locator.bat
+```
+
+若要測自己的 PDF，可把 PDF 拖到 `run_pdf_circle_locator.bat` 上，或用命令列帶入路徑：
+
+```powershell
+.\run_pdf_circle_locator.bat .\your-file.pdf
+```
+
+`run_pdf_circle_locator.bat` 為了避免 Windows `cmd.exe` 的批次檔編碼問題，訊息文字固定使用 ASCII 英文；偵測輸出與程式本體不受此限制。
+
 ## 測試
 
 本專案為 Python 專案，未包含 `.sln` 或 `.csproj`，因此不適用 `dotnet build`。
@@ -137,6 +151,7 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 - `circle_locator/`: 核心套件與 CLI
 - `templates/`: 你的圓圈範本庫
 - `tools/`: 產生測試 PDF 與範本的工具
+- `run_pdf_circle_locator.bat`: Windows 雙擊測試入口
 - `tests/`: 基本自動化測試
 - `output/`: 偵測輸出
 - `tmp/`: 中間測試資料

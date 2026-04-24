@@ -1,7 +1,12 @@
 # Changelog
 
+## 2026-04-25
+
+- 將 `run_pdf_circle_locator.bat` 的提示訊息改為 ASCII 英文，避免 `cmd.exe` 讀取批次檔時發生中文編碼錯亂而無法執行。
+
 ## 2026-04-24
 
+- 新增 `run_pdf_circle_locator.bat`，支援 Windows 雙擊 sample 測試與拖放 PDF 直接執行偵測。
 - 預覽圖新增彩色提示圈，會畫在已偵測圓圈旁邊，方便人工快速辨識已抓取目標。
 - 延後初始化 `RapidOCR`，避免純向量文字頁面也承受 OCR 啟動成本。
 - 修正圓圈去重邏輯，抑制落在較大圓內的誤檢小圓。
