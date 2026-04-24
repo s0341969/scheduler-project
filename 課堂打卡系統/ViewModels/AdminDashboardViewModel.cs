@@ -10,9 +10,13 @@ public sealed class AdminDashboardViewModel
 
     public int AttendanceCount { get; init; }
 
+    public int SuspiciousAttendanceCount { get; init; }
+
     public IReadOnlyList<AdminCourseItemViewModel> Courses { get; init; } = [];
 
     public IReadOnlyList<AdminSessionItemViewModel> Sessions { get; init; } = [];
+
+    public IReadOnlyList<AdminSuspiciousRecordViewModel> SuspiciousRecords { get; init; } = [];
 }
 
 public sealed class AdminCourseItemViewModel
@@ -57,4 +61,25 @@ public sealed class AdminSessionItemViewModel
     public bool IsOpen { get; init; }
 
     public int AttendanceCount { get; init; }
+
+    public int SuspiciousAttendanceCount { get; init; }
+}
+
+public sealed class AdminSuspiciousRecordViewModel
+{
+    public string CourseCode { get; init; } = string.Empty;
+
+    public string CourseName { get; init; } = string.Empty;
+
+    public string Topic { get; init; } = string.Empty;
+
+    public string StudentNumber { get; init; } = string.Empty;
+
+    public string StudentName { get; init; } = string.Empty;
+
+    public DateTime CheckedInAt { get; init; }
+
+    public string SourceIp { get; init; } = string.Empty;
+
+    public string SuspiciousReasonSummary { get; init; } = string.Empty;
 }

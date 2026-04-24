@@ -22,6 +22,10 @@
             <span>出席筆數</span>
             <strong>@Model.AttendanceCount</strong>
         </article>
+        <article>
+            <span>可疑紀錄</span>
+            <strong>@Model.SuspiciousAttendanceCount</strong>
+        </article>
     </div>
 </section>
 
@@ -103,6 +107,7 @@
                     <th>時間</th>
                     <th>狀態</th>
                     <th>出席數</th>
+                    <th>可疑數</th>
                     <th class="text-end">操作</th>
                 </tr>
             </thead>
@@ -125,6 +130,7 @@
                             </span>
                         </td>
                         <td>@session.AttendanceCount</td>
+                        <td>@session.SuspiciousAttendanceCount</td>
                         <td class="text-end">
                             <div class="table-actions">
                                 <a class="btn btn-sm btn-outline-secondary" asp-controller="Admin" asp-action="EditSession" asp-route-id="@session.Id">編輯</a>
@@ -149,4 +155,52 @@
             </tbody>
         </table>
     </div>
+</section>
+
+<section class="content-card">
+    <div class="section-toolbar">
+        <div>
+            <p class="eyebrow">Risk Review</p>
+            <h2 class="section-title">最近可疑打卡</h2>
+        </div>
+    </div>
+
+    @if (Model.SuspiciousRecords.Count == 0)
+    {
+        <p class="empty-text">目前沒有可疑打卡紀錄。</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table attendance-table">
+                <thead>
+                    <tr>
+                        <th>課程</th>
+                        <th>學生</th>
+                        <th>時間</th>
+                        <th>來源 IP</th>
+                        <th>原因</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.SuspiciousRecords)
+                    {
+                        <tr class="table-warning">
+                            <td>
+                                <strong>@record.CourseCode</strong>
+                                <div class="table-subtext">@record.Topic</div>
+                            </td>
+                            <td>
+                                <strong>@record.StudentName</strong>
+                                <div class="table-subtext">@record.StudentNumber</div>
+                            </td>
+                            <td>@record.CheckedInAt.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                            <td>@record.SourceIp</td>
+                            <td>@record.SuspiciousReasonSummary</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 </section>

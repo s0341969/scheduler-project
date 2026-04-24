@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using 課堂打卡系統.Options;
 using 課堂打卡系統.Services;
 
@@ -19,9 +20,14 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAuthorization();
 builder.Services.Configure<AdminAuthOptions>(builder.Configuration.GetSection(AdminAuthOptions.SectionName));
+builder.Services.Configure<StudentAuthOptions>(builder.Configuration.GetSection(StudentAuthOptions.SectionName));
+builder.Services.Configure<AttendanceSecurityOptions>(builder.Configuration.GetSection(AttendanceSecurityOptions.SectionName));
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IAdminAuthService, AdminAuthService>();
+builder.Services.AddSingleton<IStudentAuthService, StudentAuthService>();
+builder.Services.AddSingleton<IQrTokenService, QrTokenService>();
 builder.Services.AddSingleton<IAttendanceQueryService, AttendanceQueryService>();
+builder.Services.TryAddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 
 var app = builder.Build();
 var supportedCultures = new[] { new CultureInfo("zh-TW") };

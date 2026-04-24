@@ -5,7 +5,7 @@ using 課堂打卡系統.ViewModels;
 
 namespace 課堂打卡系統.Controllers;
 
-[Authorize]
+[Authorize(Roles = AuthClaimTypes.RoleAdministrator)]
 public sealed class AdminController : Controller
 {
     private readonly IAttendanceQueryService _attendanceQueryService;

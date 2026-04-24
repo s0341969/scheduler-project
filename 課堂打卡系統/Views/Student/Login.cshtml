@@ -1,0 +1,37 @@
+@model 課堂打卡系統.ViewModels.StudentLoginViewModel
+@{
+    ViewData["Title"] = "學生登入";
+}
+
+<section class="auth-shell">
+    <article class="content-card auth-card">
+        <p class="eyebrow">Student Login</p>
+        <h1 class="section-title">學生本人登入</h1>
+        <p class="hero-panel__text">請先登入學生帳號，再從課堂 QR Code 進入打卡頁。系統會以登入身分作為本人驗證依據。</p>
+
+        <form asp-controller="Student" asp-action="Login" method="post" class="checkin-form" novalidate>
+            @Html.AntiForgeryToken()
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="StudentNumber" class="form-label"></label>
+                <input asp-for="StudentNumber" class="form-control" autocomplete="username" />
+                <span asp-validation-for="StudentNumber" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">登入並前往打卡</button>
+        </form>
+    </article>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -106,4 +106,8 @@ public sealed class QrBoardViewModel
     public DateTime StartAt { get; init; }
 
     public DateTime EndAt { get; init; }
+
+    public DateTime ExpiresAt { get; init; }
+
+    public string ExpectedSsidLabel { get; init; } = string.Empty;
 }

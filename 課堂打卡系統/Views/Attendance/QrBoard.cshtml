@@ -9,6 +9,7 @@
         <h1 class="section-title">@Model.CourseName</h1>
         <p class="checkin-topic">@Model.Topic</p>
         <p class="hero-panel__text">@Model.StartAt.ToString("yyyy/MM/dd HH:mm") - @Model.EndAt.ToString("HH:mm") ｜ @Model.Classroom</p>
+        <p class="hero-panel__text">請學生先連上 <strong>@Model.ExpectedSsidLabel</strong>，並於 <strong>@Model.ExpiresAt.ToString("HH:mm:ss")</strong> 前掃描。頁面會自動刷新 QR Code。</p>
 
         <div class="qr-svg-wrap" aria-label="打卡 QR Code">
             @Html.Raw(Model.QrCodeSvg)
@@ -25,3 +26,9 @@
         </div>
     </article>
 </section>
+
+@section Scripts {
+    <script>
+        setTimeout(function () { window.location.reload(); }, 60000);
+    </script>
+}

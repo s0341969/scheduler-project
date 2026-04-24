@@ -49,4 +49,8 @@ public sealed class AttendanceRecordViewModel
     public DateTime CheckedInAt { get; init; }
 
     public string Note { get; init; } = string.Empty;
+
+    public bool IsSuspicious { get; init; }
+
+    public string SuspiciousReasonSummary { get; init; } = string.Empty;
 }

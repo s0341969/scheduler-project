@@ -72,8 +72,8 @@
             <p class="session-card__description">@session.Description</p>
 
             <div class="session-card__actions">
-                <a class="btn btn-primary" asp-controller="Attendance" asp-action="CheckIn" asp-route-id="@session.SessionId">進入打卡頁</a>
-                <a class="btn btn-outline-secondary" asp-controller="Attendance" asp-action="QrBoard" asp-route-id="@session.SessionId" target="_blank" rel="noopener noreferrer">QR Code</a>
+                <a class="btn btn-primary" asp-controller="Attendance" asp-action="QrBoard" asp-route-id="@session.SessionId" target="_blank" rel="noopener noreferrer">開啟 QR 打卡板</a>
+                <a class="btn btn-outline-secondary" asp-controller="Student" asp-action="Login">學生登入</a>
                 @if (session.IsManagementEnabled)
                 {
                     <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
@@ -105,7 +105,13 @@
                                     <strong>@record.StudentName</strong>
                                     <span>@record.StudentNumber</span>
                                 </div>
-                                <time>@record.CheckedInAt.ToString("HH:mm:ss")</time>
+                                <div class="recent-item__meta">
+                                    <time>@record.CheckedInAt.ToString("HH:mm:ss")</time>
+                                    @if (record.IsSuspicious)
+                                    {
+                                        <span class="risk-badge">可疑</span>
+                                    }
+                                </div>
                             </li>
                         }
                     </ul>

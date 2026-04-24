@@ -318,6 +318,12 @@ a:hover {
   font-size: 0.92rem;
 }
 
+.recent-item__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .checkin-layout {
   align-items: start;
   margin-bottom: 1.5rem;
@@ -444,6 +450,34 @@ a:hover {
 .qr-link-box {
   margin-bottom: 1rem;
   text-align: start;
+}
+
+.identity-card {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: var(--surface-strong);
+}
+
+.identity-card h3,
+.identity-card p {
+  margin: 0 0 0.35rem;
+}
+
+.identity-card__hint {
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.risk-badge {
+  display: inline-flex;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(181, 72, 54, 0.14);
+  color: var(--danger);
+  font-size: 0.78rem;
+  font-weight: 700;
 }
 
 @media (max-width: 992px) {

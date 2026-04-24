@@ -30,11 +30,23 @@
                 <dt>狀態</dt>
                 <dd class="@(Model.IsOpen ? "text-success" : "text-danger")">@(Model.IsOpen ? "開放打卡中" : "已關閉打卡")</dd>
             </div>
+            <div>
+                <dt>來源網路</dt>
+                <dd class="@(Model.IsWithinAllowedNetwork ? "text-success" : "text-warning")">
+                    @(Model.IsWithinAllowedNetwork ? $"符合 {Model.ExpectedSsidLabel} 網段" : $"未連上 {Model.ExpectedSsidLabel} 允許網段")
+                </dd>
+            </div>
+            <div>
+                <dt>QR 驗證</dt>
+                <dd class="@(Model.IsQrValidated ? "text-success" : "text-danger")">
+                    @(Model.IsQrValidated ? $"有效至 {Model.QrExpiresAtLocal:HH:mm:ss}" : "未通過")
+                </dd>
+            </div>
         </dl>
     </article>
 
     <article class="content-card">
-        <h2 class="section-title">學生打卡</h2>
+        <h2 class="section-title">本人打卡</h2>
 
         @if (TempData["StatusMessage"] is string statusMessage)
         {
@@ -46,23 +58,24 @@
             <div class="alert alert-danger" role="alert">@errorMessage</div>
         }
 
+        @if (!string.IsNullOrWhiteSpace(Model.AccessError))
+        {
+            <div class="alert @(Model.CanCheckIn ? "alert-warning" : "alert-danger")" role="alert">@Model.AccessError</div>
+        }
+
+        <div class="identity-card">
+            <h3>已登入學生</h3>
+            <p><strong>@Model.StudentName</strong></p>
+            <p>@Model.StudentNumber</p>
+            <p class="identity-card__hint">打卡學號與姓名由登入帳號帶入，無法手動修改。</p>
+        </div>
+
         <form asp-controller="Attendance" asp-action="CheckIn" method="post" class="checkin-form" novalidate>
             @Html.AntiForgeryToken()
             <input asp-for="Form.SessionId" type="hidden" />
+            <input asp-for="Form.Token" type="hidden" />
 
             <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-            <div class="mb-3">
-                <label asp-for="Form.StudentNumber" class="form-label"></label>
-                <input asp-for="Form.StudentNumber" class="form-control" autocomplete="username" />
-                <span asp-validation-for="Form.StudentNumber" class="text-danger"></span>
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="Form.StudentName" class="form-label"></label>
-                <input asp-for="Form.StudentName" class="form-control" autocomplete="name" />
-                <span asp-validation-for="Form.StudentName" class="text-danger"></span>
-            </div>
 
             <div class="mb-3">
                 <label asp-for="Form.Note" class="form-label"></label>
@@ -70,7 +83,7 @@
                 <span asp-validation-for="Form.Note" class="text-danger"></span>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100" disabled="@(!Model.IsOpen)">送出打卡</button>
+            <button type="submit" class="btn btn-primary w-100" disabled="@(!Model.CanCheckIn)">送出本人打卡</button>
         </form>
     </article>
 </section>
@@ -94,16 +107,18 @@
                         <th scope="col">學號</th>
                         <th scope="col">姓名</th>
                         <th scope="col">打卡時間</th>
+                        <th scope="col">可疑註記</th>
                         <th scope="col">備註</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var record in Model.Records)
                     {
-                        <tr>
+                        <tr class="@(record.IsSuspicious ? "table-warning" : null)">
                             <td>@record.StudentNumber</td>
                             <td>@record.StudentName</td>
                             <td>@record.CheckedInAt.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                            <td>@(record.IsSuspicious ? record.SuspiciousReasonSummary : "無")</td>
                             <td>@(string.IsNullOrWhiteSpace(record.Note) ? "無" : record.Note)</td>
                         </tr>
                     }

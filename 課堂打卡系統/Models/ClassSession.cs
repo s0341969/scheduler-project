@@ -13,4 +13,6 @@ public sealed class ClassSession
     public bool IsOpen { get; set; }
 
     public string Topic { get; set; } = string.Empty;
+
+    public bool RequireStudentLogin { get; set; } = true;
 }

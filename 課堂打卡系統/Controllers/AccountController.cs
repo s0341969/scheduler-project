@@ -50,7 +50,7 @@ public sealed class AccountController : Controller
         {
             new(ClaimTypes.Name, _adminAuthService.GetUsername()),
             new(ClaimTypes.GivenName, _adminAuthService.GetDisplayName()),
-            new(ClaimTypes.Role, "Administrator")
+            new(ClaimTypes.Role, AuthClaimTypes.RoleAdministrator)
         };
 
         var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

@@ -1,7 +1,11 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using ClosedXML.Excel;
+using Microsoft.Extensions.Options;
 using QRCoder;
 using 課堂打卡系統.Models;
+using 課堂打卡系統.Options;
 using 課堂打卡系統.ViewModels;
 
 namespace 課堂打卡系統.Services;
@@ -10,9 +14,9 @@ public interface IAttendanceQueryService
 {
     Task<AttendanceDashboardViewModel> GetDashboardAsync(bool isManagementEnabled, CancellationToken cancellationToken = default);
 
-    Task<CheckInPageViewModel?> GetCheckInPageAsync(Guid sessionId, CancellationToken cancellationToken = default);
+    Task<CheckInPageViewModel?> GetCheckInPageAsync(Guid sessionId, string? token, StudentIdentity? student, string sourceIp, CancellationToken cancellationToken = default);
 
-    Task<AttendanceResult> SubmitCheckInAsync(Guid sessionId, string studentNumber, string studentName, string? note, CancellationToken cancellationToken = default);
+    Task<AttendanceResult> SubmitCheckInAsync(Guid sessionId, string token, StudentIdentity student, string? note, string sourceIp, string userAgent, string deviceId, CancellationToken cancellationToken = default);
 
     Task<OperationResult> ToggleSessionStatusAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
@@ -32,7 +36,7 @@ public interface IAttendanceQueryService
 
     Task<AttendanceExportPayload?> ExportSessionAttendanceAsync(Guid sessionId, CancellationToken cancellationToken = default);
 
-    Task<QrBoardViewModel?> GetQrBoardAsync(Guid sessionId, string checkInUrl, CancellationToken cancellationToken = default);
+    Task<QrBoardViewModel?> GetQrBoardAsync(Guid sessionId, string checkInBaseUrl, CancellationToken cancellationToken = default);
 }
 
 public sealed class AttendanceQueryService : IAttendanceQueryService
@@ -44,13 +48,21 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         WriteIndented = true
     };
     private readonly TimeProvider _timeProvider;
+    private readonly IQrTokenService _qrTokenService;
+    private readonly AttendanceSecurityOptions _securityOptions;
 
-    public AttendanceQueryService(IHostEnvironment environment, TimeProvider timeProvider)
+    public AttendanceQueryService(
+        IHostEnvironment environment,
+        TimeProvider timeProvider,
+        IQrTokenService qrTokenService,
+        IOptions<AttendanceSecurityOptions> securityOptions)
     {
         var dataDirectory = Path.Combine(environment.ContentRootPath, "App_Data");
         Directory.CreateDirectory(dataDirectory);
         _storePath = Path.Combine(dataDirectory, "attendance-data.json");
         _timeProvider = timeProvider;
+        _qrTokenService = qrTokenService;
+        _securityOptions = securityOptions.Value;
     }
 
     public async Task<AttendanceDashboardViewModel> GetDashboardAsync(bool isManagementEnabled, CancellationToken cancellationToken = default)
@@ -59,13 +71,52 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         return BuildDashboard(store, isManagementEnabled);
     }
 
-    public async Task<CheckInPageViewModel?> GetCheckInPageAsync(Guid sessionId, CancellationToken cancellationToken = default)
+    public async Task<CheckInPageViewModel?> GetCheckInPageAsync(Guid sessionId, string? token, StudentIdentity? student, string sourceIp, CancellationToken cancellationToken = default)
     {
         var store = await LoadStoreAsync(cancellationToken);
-        return BuildCheckInPage(store, sessionId);
+        var session = store.Sessions.FirstOrDefault(item => item.Id == sessionId);
+        if (session is null)
+        {
+            return null;
+        }
+
+        var course = store.Courses.First(courseItem => courseItem.Id == session.CourseId);
+        var records = BuildRecordViewModels(store, sessionId);
+        var qrValidation = _qrTokenService.ValidateToken(sessionId, token);
+        var isWithinAllowedNetwork = IsAllowedIp(sourceIp);
+        var canCheckIn = session.IsOpen && qrValidation.IsValid && student is not null && (!_securityOptions.StrictNetworkValidation || isWithinAllowedNetwork);
+        var accessError = ResolveAccessError(session, qrValidation, student, isWithinAllowedNetwork);
+
+        return new CheckInPageViewModel
+        {
+            SessionId = session.Id,
+            CourseCode = course.CourseCode,
+            CourseName = course.CourseName,
+            TeacherName = course.TeacherName,
+            Classroom = course.Classroom,
+            Topic = session.Topic,
+            StartAt = session.StartAt.LocalDateTime,
+            EndAt = session.EndAt.LocalDateTime,
+            IsOpen = session.IsOpen,
+            RequireStudentLogin = session.RequireStudentLogin,
+            CanCheckIn = canCheckIn,
+            IsQrValidated = qrValidation.IsValid,
+            IsWithinAllowedNetwork = isWithinAllowedNetwork,
+            ExpectedSsidLabel = _securityOptions.ExpectedSsidLabel,
+            AccessError = accessError,
+            StudentNumber = student?.StudentNumber ?? string.Empty,
+            StudentName = student?.StudentName ?? string.Empty,
+            QrExpiresAtLocal = qrValidation.IsValid ? qrValidation.ExpiresAtUtc.LocalDateTime : null,
+            Records = records,
+            Form = new CheckInFormViewModel
+            {
+                SessionId = session.Id,
+                Token = token ?? string.Empty
+            }
+        };
     }
 
-    public async Task<AttendanceResult> SubmitCheckInAsync(Guid sessionId, string studentNumber, string studentName, string? note, CancellationToken cancellationToken = default)
+    public async Task<AttendanceResult> SubmitCheckInAsync(Guid sessionId, string token, StudentIdentity student, string? note, string sourceIp, string userAgent, string deviceId, CancellationToken cancellationToken = default)
     {
         await _gate.WaitAsync(cancellationToken);
         try
@@ -82,13 +133,14 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 return new AttendanceResult { Success = false, Message = "此課堂尚未開放或已關閉打卡。" };
             }
 
-            var normalizedStudentNumber = studentNumber.Trim().ToUpperInvariant();
-            var normalizedStudentName = studentName.Trim();
-
-            if (string.IsNullOrWhiteSpace(normalizedStudentNumber) || string.IsNullOrWhiteSpace(normalizedStudentName))
+            var qrValidation = _qrTokenService.ValidateToken(sessionId, token);
+            if (!qrValidation.IsValid)
             {
-                return new AttendanceResult { Success = false, Message = "學號與姓名不可為空白。" };
+                return new AttendanceResult { Success = false, Message = qrValidation.ErrorMessage };
             }
+
+            var normalizedStudentNumber = student.StudentNumber.Trim().ToUpperInvariant();
+            var normalizedStudentName = student.StudentName.Trim();
 
             var duplicated = store.Records.Any(record =>
                 record.SessionId == sessionId &&
@@ -96,7 +148,40 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
 
             if (duplicated)
             {
-                return new AttendanceResult { Success = false, Message = "此學號已完成本堂課打卡，請勿重複提交。" };
+                return new AttendanceResult { Success = false, Message = "你已完成本堂課打卡，請勿重複提交。" };
+            }
+
+            var isWithinAllowedNetwork = IsAllowedIp(sourceIp);
+            if (_securityOptions.StrictNetworkValidation && !isWithinAllowedNetwork)
+            {
+                return new AttendanceResult
+                {
+                    Success = false,
+                    Message = $"目前來源網路不屬於 {_securityOptions.ExpectedSsidLabel} 的允許網段，請先連上班級 SSID 再打卡。"
+                };
+            }
+
+            var fingerprint = ComputeDeviceFingerprint(deviceId, userAgent);
+            var suspiciousReasons = new List<string>();
+            if (!isWithinAllowedNetwork)
+            {
+                suspiciousReasons.Add($"來源 IP {sourceIp} 不在 {_securityOptions.ExpectedSsidLabel} 的允許網段內");
+            }
+
+            if (string.IsNullOrWhiteSpace(userAgent))
+            {
+                suspiciousReasons.Add("缺少 User-Agent");
+            }
+
+            var reusedDevice = store.Records.Any(record =>
+                !string.IsNullOrWhiteSpace(record.DeviceFingerprint) &&
+                string.Equals(record.DeviceFingerprint, fingerprint, StringComparison.Ordinal) &&
+                !string.Equals(record.StudentNumber, normalizedStudentNumber, StringComparison.OrdinalIgnoreCase) &&
+                record.CheckedInAt >= _timeProvider.GetLocalNow().AddHours(-12));
+
+            if (reusedDevice)
+            {
+                suspiciousReasons.Add("同一裝置近期曾被不同學號使用");
             }
 
             store.Records.Add(new AttendanceRecord
@@ -106,11 +191,23 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 StudentNumber = normalizedStudentNumber,
                 StudentName = normalizedStudentName,
                 CheckedInAt = _timeProvider.GetLocalNow(),
-                Note = (note ?? string.Empty).Trim()
+                Note = (note ?? string.Empty).Trim(),
+                SourceIp = sourceIp,
+                UserAgent = userAgent,
+                DeviceId = deviceId,
+                DeviceFingerprint = fingerprint,
+                QrIssuedAtUtc = qrValidation.IssuedAtUtc,
+                QrExpiresAtUtc = qrValidation.ExpiresAtUtc,
+                IsSuspicious = suspiciousReasons.Count > 0,
+                SuspiciousReasons = suspiciousReasons,
+                IsWithinAllowedNetwork = isWithinAllowedNetwork
             });
 
             await SaveStoreUnsafeAsync(store, cancellationToken);
-            return new AttendanceResult { Success = true, Message = "打卡成功，已完成出席登記。" };
+            var resultMessage = suspiciousReasons.Count > 0
+                ? "打卡成功，但此筆紀錄已被標示為可疑，管理者將於後台複核。"
+                : "打卡成功，已完成本人出席登記。";
+            return new AttendanceResult { Success = true, Message = resultMessage };
         }
         finally
         {
@@ -167,7 +264,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             .OrderByDescending(session => session.StartAt)
             .Select(session =>
             {
-                var course = store.Courses.First(course => course.Id == session.CourseId);
+                var course = store.Courses.First(courseItem => courseItem.Id == session.CourseId);
                 return new AdminSessionItemViewModel
                 {
                     Id = session.Id,
@@ -180,7 +277,30 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     StartAt = session.StartAt.LocalDateTime,
                     EndAt = session.EndAt.LocalDateTime,
                     IsOpen = session.IsOpen,
-                    AttendanceCount = store.Records.Count(record => record.SessionId == session.Id)
+                    AttendanceCount = store.Records.Count(record => record.SessionId == session.Id),
+                    SuspiciousAttendanceCount = store.Records.Count(record => record.SessionId == session.Id && record.IsSuspicious)
+                };
+            })
+            .ToList();
+
+        var suspiciousRecords = store.Records
+            .Where(record => record.IsSuspicious)
+            .OrderByDescending(record => record.CheckedInAt)
+            .Take(12)
+            .Select(record =>
+            {
+                var session = store.Sessions.First(item => item.Id == record.SessionId);
+                var course = store.Courses.First(item => item.Id == session.CourseId);
+                return new AdminSuspiciousRecordViewModel
+                {
+                    CourseCode = course.CourseCode,
+                    CourseName = course.CourseName,
+                    Topic = session.Topic,
+                    StudentNumber = record.StudentNumber,
+                    StudentName = record.StudentName,
+                    CheckedInAt = record.CheckedInAt.LocalDateTime,
+                    SourceIp = record.SourceIp,
+                    SuspiciousReasonSummary = string.Join("、", record.SuspiciousReasons)
                 };
             })
             .ToList();
@@ -191,8 +311,10 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             CourseCount = courseItems.Count,
             SessionCount = sessionItems.Count,
             AttendanceCount = store.Records.Count,
+            SuspiciousAttendanceCount = store.Records.Count(record => record.IsSuspicious),
             Courses = courseItems,
-            Sessions = sessionItems
+            Sessions = sessionItems,
+            SuspiciousRecords = suspiciousRecords
         };
     }
 
@@ -312,7 +434,8 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             {
                 CourseOptions = courseOptions,
                 StartAt = _timeProvider.GetLocalNow().LocalDateTime.AddMinutes(30),
-                EndAt = _timeProvider.GetLocalNow().LocalDateTime.AddHours(2)
+                EndAt = _timeProvider.GetLocalNow().LocalDateTime.AddHours(2),
+                IsOpen = false
             };
         }
 
@@ -368,6 +491,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                 session.StartAt = startAt;
                 session.EndAt = endAt;
                 session.IsOpen = form.IsOpen;
+                session.RequireStudentLogin = true;
             }
             else
             {
@@ -378,7 +502,8 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     Topic = form.Topic.Trim(),
                     StartAt = startAt,
                     EndAt = endAt,
-                    IsOpen = form.IsOpen
+                    IsOpen = form.IsOpen,
+                    RequireStudentLogin = true
                 });
             }
 
@@ -449,7 +574,11 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         sheet.Cell(headerRow, 2).Value = "學號";
         sheet.Cell(headerRow, 3).Value = "姓名";
         sheet.Cell(headerRow, 4).Value = "打卡時間";
-        sheet.Cell(headerRow, 5).Value = "備註";
+        sheet.Cell(headerRow, 5).Value = "IP";
+        sheet.Cell(headerRow, 6).Value = "裝置指紋";
+        sheet.Cell(headerRow, 7).Value = "網段狀態";
+        sheet.Cell(headerRow, 8).Value = "可疑註記";
+        sheet.Cell(headerRow, 9).Value = "備註";
 
         for (var index = 0; index < records.Count; index++)
         {
@@ -459,10 +588,14 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             sheet.Cell(row, 2).Value = record.StudentNumber;
             sheet.Cell(row, 3).Value = record.StudentName;
             sheet.Cell(row, 4).Value = record.CheckedInAt.LocalDateTime.ToString("yyyy/MM/dd HH:mm:ss");
-            sheet.Cell(row, 5).Value = record.Note;
+            sheet.Cell(row, 5).Value = record.SourceIp;
+            sheet.Cell(row, 6).Value = record.DeviceFingerprint;
+            sheet.Cell(row, 7).Value = record.IsWithinAllowedNetwork ? "符合班級 SSID 網段" : "不在允許網段";
+            sheet.Cell(row, 8).Value = record.IsSuspicious ? string.Join("、", record.SuspiciousReasons) : "無";
+            sheet.Cell(row, 9).Value = record.Note;
         }
 
-        sheet.Range(1, 1, headerRow, 5).Style.Font.Bold = true;
+        sheet.Range(1, 1, headerRow, 9).Style.Font.Bold = true;
         sheet.Columns().AdjustToContents();
 
         using var stream = new MemoryStream();
@@ -474,7 +607,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         };
     }
 
-    public async Task<QrBoardViewModel?> GetQrBoardAsync(Guid sessionId, string checkInUrl, CancellationToken cancellationToken = default)
+    public async Task<QrBoardViewModel?> GetQrBoardAsync(Guid sessionId, string checkInBaseUrl, CancellationToken cancellationToken = default)
     {
         var store = await LoadStoreAsync(cancellationToken);
         var session = store.Sessions.FirstOrDefault(item => item.Id == sessionId);
@@ -484,6 +617,8 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         }
 
         var course = store.Courses.First(courseItem => courseItem.Id == session.CourseId);
+        var token = _qrTokenService.CreateToken(sessionId);
+        var checkInUrl = $"{checkInBaseUrl}?id={sessionId:D}&token={Uri.EscapeDataString(token.Token)}";
         using var qrGenerator = new QRCodeGenerator();
         using var qrData = qrGenerator.CreateQrCode(checkInUrl, QRCodeGenerator.ECCLevel.Q);
         var qrCode = new SvgQRCode(qrData);
@@ -498,7 +633,9 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             CheckInUrl = checkInUrl,
             QrCodeSvg = qrCode.GetGraphic(12),
             StartAt = session.StartAt.LocalDateTime,
-            EndAt = session.EndAt.LocalDateTime
+            EndAt = session.EndAt.LocalDateTime,
+            ExpiresAt = token.ExpiresAtUtc.LocalDateTime,
+            ExpectedSsidLabel = _securityOptions.ExpectedSsidLabel
         };
     }
 
@@ -509,7 +646,7 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
             .OrderBy(session => session.StartAt)
             .Select(session =>
             {
-                var course = store.Courses.First(course => course.Id == session.CourseId);
+                var course = store.Courses.First(courseItem => courseItem.Id == session.CourseId);
                 var records = store.Records
                     .Where(record => record.SessionId == session.Id)
                     .OrderByDescending(record => record.CheckedInAt)
@@ -536,7 +673,9 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                             StudentNumber = record.StudentNumber,
                             StudentName = record.StudentName,
                             CheckedInAt = record.CheckedInAt.LocalDateTime,
-                            Note = record.Note
+                            Note = record.Note,
+                            IsSuspicious = record.IsSuspicious,
+                            SuspiciousReasonSummary = record.IsSuspicious ? string.Join("、", record.SuspiciousReasons) : string.Empty
                         })
                     ]
                 };
@@ -552,44 +691,76 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
         };
     }
 
-    private CheckInPageViewModel? BuildCheckInPage(AttendanceStore store, Guid sessionId)
+    private IReadOnlyList<AttendanceRecordViewModel> BuildRecordViewModels(AttendanceStore store, Guid sessionId)
     {
-        var session = store.Sessions.FirstOrDefault(item => item.Id == sessionId);
-        if (session is null)
+        return
+        [
+            .. store.Records
+                .Where(record => record.SessionId == sessionId)
+                .OrderByDescending(record => record.CheckedInAt)
+                .Select(record => new AttendanceRecordViewModel
+                {
+                    StudentNumber = record.StudentNumber,
+                    StudentName = record.StudentName,
+                    CheckedInAt = record.CheckedInAt.LocalDateTime,
+                    Note = record.Note,
+                    IsSuspicious = record.IsSuspicious,
+                    SuspiciousReasonSummary = record.IsSuspicious ? string.Join("、", record.SuspiciousReasons) : string.Empty
+                })
+        ];
+    }
+
+    private string ResolveAccessError(ClassSession session, QrTokenValidationResult qrValidation, StudentIdentity? student, bool isWithinAllowedNetwork)
+    {
+        if (!session.IsOpen)
         {
-            return null;
+            return "此課堂目前未開放打卡。";
         }
 
-        var course = store.Courses.First(course => course.Id == session.CourseId);
-        var records = store.Records
-            .Where(record => record.SessionId == sessionId)
-            .OrderByDescending(record => record.CheckedInAt)
-            .Select(record => new AttendanceRecordViewModel
-            {
-                StudentNumber = record.StudentNumber,
-                StudentName = record.StudentName,
-                CheckedInAt = record.CheckedInAt.LocalDateTime,
-                Note = record.Note
-            })
-            .ToList();
-
-        return new CheckInPageViewModel
+        if (student is null)
         {
-            SessionId = session.Id,
-            CourseCode = course.CourseCode,
-            CourseName = course.CourseName,
-            TeacherName = course.TeacherName,
-            Classroom = course.Classroom,
-            Topic = session.Topic,
-            StartAt = session.StartAt.LocalDateTime,
-            EndAt = session.EndAt.LocalDateTime,
-            IsOpen = session.IsOpen,
-            Records = records,
-            Form = new CheckInFormViewModel
-            {
-                SessionId = session.Id
-            }
-        };
+            return "請先使用學生帳號登入，系統才會將此次打卡視為本人出席。";
+        }
+
+        if (!qrValidation.IsValid)
+        {
+            return qrValidation.ErrorMessage;
+        }
+
+        if (_securityOptions.StrictNetworkValidation && !isWithinAllowedNetwork)
+        {
+            return $"你目前沒有連上 {_securityOptions.ExpectedSsidLabel} 的允許網段，請連上班級 SSID 後重新掃碼。";
+        }
+
+        if (!isWithinAllowedNetwork)
+        {
+            return $"目前來源網路不在 {_securityOptions.ExpectedSsidLabel} 的允許網段內，此次打卡若送出將被標示為可疑紀錄。";
+        }
+
+        return string.Empty;
+    }
+
+    private bool IsAllowedIp(string sourceIp)
+    {
+        if (string.IsNullOrWhiteSpace(sourceIp))
+        {
+            return false;
+        }
+
+        if (_securityOptions.AllowedIpPrefixes.Count == 0)
+        {
+            return true;
+        }
+
+        return _securityOptions.AllowedIpPrefixes.Any(prefix =>
+            sourceIp.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string ComputeDeviceFingerprint(string deviceId, string userAgent)
+    {
+        var raw = $"{deviceId}|{userAgent}";
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(raw));
+        return Convert.ToHexString(hash);
     }
 
     private IReadOnlyList<CourseOptionViewModel> BuildCourseOptions(AttendanceStore store)
@@ -681,7 +852,8 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     StartAt = todayStart,
                     EndAt = todayStart.AddHours(2),
                     IsOpen = true,
-                    Topic = "第一週：資訊系統角色與案例分析"
+                    Topic = "第一週：資訊系統角色與案例分析",
+                    RequireStudentLogin = true
                 },
                 new ClassSession
                 {
@@ -690,7 +862,8 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     StartAt = afternoonStart,
                     EndAt = afternoonStart.AddHours(3),
                     IsOpen = false,
-                    Topic = "Sprint 規劃與需求拆解演練"
+                    Topic = "Sprint 規劃與需求拆解演練",
+                    RequireStudentLogin = true
                 },
                 new ClassSession
                 {
@@ -699,7 +872,8 @@ public sealed class AttendanceQueryService : IAttendanceQueryService
                     StartAt = tomorrowStart,
                     EndAt = tomorrowStart.AddHours(2),
                     IsOpen = false,
-                    Topic = "第二週：校務流程數位化分組討論"
+                    Topic = "第二週：校務流程數位化分組討論",
+                    RequireStudentLogin = true
                 }
             ]
         };

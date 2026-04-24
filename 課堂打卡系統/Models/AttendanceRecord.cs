@@ -13,4 +13,22 @@ public sealed class AttendanceRecord
     public DateTimeOffset CheckedInAt { get; set; }
 
     public string Note { get; set; } = string.Empty;
+
+    public string SourceIp { get; set; } = string.Empty;
+
+    public string UserAgent { get; set; } = string.Empty;
+
+    public string DeviceId { get; set; } = string.Empty;
+
+    public string DeviceFingerprint { get; set; } = string.Empty;
+
+    public DateTimeOffset QrIssuedAtUtc { get; set; }
+
+    public DateTimeOffset QrExpiresAtUtc { get; set; }
+
+    public bool IsSuspicious { get; set; }
+
+    public List<string> SuspiciousReasons { get; set; } = [];
+
+    public bool IsWithinAllowedNetwork { get; set; }
 }
