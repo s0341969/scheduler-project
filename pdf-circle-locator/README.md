@@ -9,6 +9,7 @@
 - 支援範本庫比對，適合固定版型圖面
 - 優先使用 PDF 向量文字位置提升準確率
 - 若無法從向量文字取得數字，改用 OCR 辨識圈內數字
+- OCR 採延後初始化，只有真的需要 OCR 時才載入模型
 - 匯出 `JSON` 與 `CSV`
 - 輸出每頁標註預覽圖，方便人工複核
 
@@ -91,6 +92,7 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 3. 使用 `PyMuPDF` 直接抽取頁面文字 span，若數字 span 落在圓圈內，優先採用。
 4. 若該圓內沒有可用文字 span，使用 `RapidOCR` 對圈內區域做 OCR。
 5. 若提供 `templates` 目錄，會先額外使用範本比對產生高可信候選。
+   若範本檔名已提供數字提示，系統不會再對該候選重複執行 OCR。
 6. 將像素座標回推成 PDF point 座標。
 7. 輸出結構化紀錄與標註預覽圖。
 

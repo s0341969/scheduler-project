@@ -62,7 +62,7 @@ class NumberedCircleDetector:
         self.min_radius_pt = min_radius_pt
         self.max_radius_pt = max_radius_pt
         self.template_threshold = template_threshold
-        self._ocr = RapidOCR()
+        self._ocr: RapidOCR | None = None
         self._templates = self._load_templates(template_dir)
 
     def detect_pdf(
@@ -249,8 +249,9 @@ class NumberedCircleDetector:
 
         best_text = ""
         best_confidence = 0.0
+        ocr_engine = self._get_ocr()
         for variant in variants:
-            result, _ = self._ocr(variant, use_det=True, use_cls=False, use_rec=True)
+            result, _ = ocr_engine(variant, use_det=True, use_cls=False, use_rec=True)
             if not result:
                 continue
             for item in result:
@@ -285,6 +286,9 @@ class NumberedCircleDetector:
                 smaller_radius = min(radius, er)
                 larger_radius = max(radius, er)
                 if center_distance + smaller_radius <= larger_radius * 1.05:
+                    duplicate = True
+                    break
+                if center_distance <= larger_radius * 0.85 and smaller_radius <= larger_radius * 0.7:
                     duplicate = True
                     break
             if not duplicate:
@@ -336,14 +340,18 @@ class NumberedCircleDetector:
             if template.width >= page_binary.shape[1] or template.height >= page_binary.shape[0]:
                 continue
             result = cv2.matchTemplate(page_binary, template.image, cv2.TM_CCOEFF_NORMED)
-            locations = np.where(result >= self.template_threshold)
-            for y, x in zip(locations[0], locations[1]):
+            for x, y, score in self._iter_template_matches(result, template.width, template.height):
                 score = float(result[y, x])
                 center_x_px = x + (template.width / 2.0)
                 center_y_px = y + (template.height / 2.0)
                 radius_px = max(template.width, template.height) / 2.0
-                crop_text, ocr_conf = self._ocr_circle(page_binary, center_x_px, center_y_px, radius_px)
-                number = template.number_hint or crop_text
+                crop_text = ""
+                ocr_conf = 0.0
+                if template.number_hint:
+                    number = template.number_hint
+                else:
+                    crop_text, ocr_conf = self._ocr_circle(page_binary, center_x_px, center_y_px, radius_px)
+                    number = crop_text
                 number = self._normalize_digits(number)
                 if not number:
                     continue
@@ -364,6 +372,41 @@ class NumberedCircleDetector:
                     )
                 )
         return page_records
+
+    def _iter_template_matches(
+        self,
+        result: np.ndarray,
+        template_width: int,
+        template_height: int,
+    ) -> list[tuple[int, int, float]]:
+        locations = np.where(result >= self.template_threshold)
+        candidates = sorted(
+            (
+                (int(x), int(y), float(result[y, x]))
+                for y, x in zip(locations[0], locations[1])
+            ),
+            key=lambda item: item[2],
+            reverse=True,
+        )
+        kept: list[tuple[int, int, float]] = []
+        for x, y, score in candidates:
+            is_duplicate = False
+            for kept_x, kept_y, _ in kept:
+                overlap_x = max(0, min(x + template_width, kept_x + template_width) - max(x, kept_x))
+                overlap_y = max(0, min(y + template_height, kept_y + template_height) - max(y, kept_y))
+                overlap_area = overlap_x * overlap_y
+                template_area = template_width * template_height
+                if template_area > 0 and overlap_area / template_area >= 0.45:
+                    is_duplicate = True
+                    break
+            if not is_duplicate:
+                kept.append((x, y, score))
+        return kept
+
+    def _get_ocr(self) -> RapidOCR:
+        if self._ocr is None:
+            self._ocr = RapidOCR()
+        return self._ocr
 
     def _merge_records(self, records: list[DetectionRecord]) -> list[DetectionRecord]:
         merged = self._suppress_overlapping_records(records)

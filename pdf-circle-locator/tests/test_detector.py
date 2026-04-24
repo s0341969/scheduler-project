@@ -74,6 +74,12 @@ def test_detect_pdf_raises_for_missing_file() -> None:
         raise AssertionError("Expected FileNotFoundError for missing PDF")
 
 
+def test_detector_defers_ocr_initialization() -> None:
+    detector = NumberedCircleDetector()
+
+    assert detector._ocr is None
+
+
 def test_sample_pdf_generation_and_open() -> None:
     document = fitz.open()
     page = document.new_page(width=200, height=200)
@@ -87,3 +93,28 @@ def test_sample_pdf_generation_and_open() -> None:
         assert opened.page_count == 1
     finally:
         opened.close()
+
+
+def test_detect_page_sample_pdf_returns_only_three_expected_records() -> None:
+    document = fitz.open()
+    page = document.new_page(width=595, height=842)
+    samples = [
+        ((120, 140), 18, "1"),
+        ((250, 320), 20, "12"),
+        ((410, 540), 22, "7"),
+    ]
+
+    for center, radius, text in samples:
+        page.draw_circle(center, radius, color=(0, 0, 0), width=1.2)
+        page.insert_text(
+            (center[0] - radius * 0.45, center[1] + radius * 0.35),
+            text,
+            fontsize=radius * 1.1,
+            color=(0, 0, 0),
+        )
+
+    detector = NumberedCircleDetector()
+    records, _ = detector._detect_page(page)
+    document.close()
+
+    assert [record.number for record in records] == ["1", "12", "7"]
