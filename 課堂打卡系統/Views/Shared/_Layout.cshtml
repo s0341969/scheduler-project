@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - 課堂打卡系統</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/課堂打卡系統.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="app-shell__header">
+        <div class="container app-shell__header-inner">
+            <div>
+                <a class="app-shell__brand" asp-area="" asp-controller="Attendance" asp-action="Index">課堂打卡系統</a>
+                <p class="app-shell__subtitle mb-0">教室現場可直接使用的出席管理面板</p>
+            </div>
+            <nav class="app-shell__nav" aria-label="主要導覽">
+                <a asp-controller="Attendance" asp-action="Index">課堂總覽</a>
+                <a asp-controller="Home" asp-action="Privacy">系統說明</a>
+            </nav>
+        </div>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-5">
+            @RenderBody()
+        </main>
+    </div>
+    <footer class="app-shell__footer">
+        <div class="container">
+            <span>課堂打卡系統</span>
+            <span>ASP.NET Core MVC / zh-TW</span>
+        </div>
+    </footer>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

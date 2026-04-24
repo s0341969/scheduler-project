@@ -1,0 +1,118 @@
+@model 課堂打卡系統.ViewModels.CheckInPageViewModel
+@{
+    ViewData["Title"] = "課堂打卡";
+}
+
+<div class="page-backlink">
+    <a asp-controller="Attendance" asp-action="Index">返回課堂總覽</a>
+</div>
+
+<section class="checkin-layout">
+    <article class="content-card content-card--primary">
+        <p class="eyebrow">@Model.CourseCode</p>
+        <h1 class="section-title">@Model.CourseName</h1>
+        <p class="checkin-topic">@Model.Topic</p>
+
+        <dl class="detail-list">
+            <div>
+                <dt>教師</dt>
+                <dd>@Model.TeacherName</dd>
+            </div>
+            <div>
+                <dt>教室</dt>
+                <dd>@Model.Classroom</dd>
+            </div>
+            <div>
+                <dt>時間</dt>
+                <dd>@Model.StartAt.ToString("yyyy/MM/dd HH:mm") - @Model.EndAt.ToString("HH:mm")</dd>
+            </div>
+            <div>
+                <dt>狀態</dt>
+                <dd class="@(Model.IsOpen ? "text-success" : "text-danger")">@(Model.IsOpen ? "開放打卡中" : "已關閉打卡")</dd>
+            </div>
+        </dl>
+    </article>
+
+    <article class="content-card">
+        <h2 class="section-title">學生打卡</h2>
+
+        @if (TempData["StatusMessage"] is string statusMessage)
+        {
+            <div class="alert alert-success" role="status">@statusMessage</div>
+        }
+
+        @if (TempData["ErrorMessage"] is string errorMessage)
+        {
+            <div class="alert alert-danger" role="alert">@errorMessage</div>
+        }
+
+        <form asp-controller="Attendance" asp-action="CheckIn" method="post" class="checkin-form" novalidate>
+            @Html.AntiForgeryToken()
+            <input asp-for="Form.SessionId" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Form.StudentNumber" class="form-label"></label>
+                <input asp-for="Form.StudentNumber" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Form.StudentNumber" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Form.StudentName" class="form-label"></label>
+                <input asp-for="Form.StudentName" class="form-control" autocomplete="name" />
+                <span asp-validation-for="Form.StudentName" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Form.Note" class="form-label"></label>
+                <input asp-for="Form.Note" class="form-control" autocomplete="off" />
+                <span asp-validation-for="Form.Note" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" disabled="@(!Model.IsOpen)">送出打卡</button>
+        </form>
+    </article>
+</section>
+
+<section class="content-card">
+    <div class="recent-list__header">
+        <h2 class="section-title">本堂已打卡名單</h2>
+        <span>@Model.Records.Count 人</span>
+    </div>
+
+    @if (Model.Records.Count == 0)
+    {
+        <p class="empty-text">尚未有學生完成打卡。</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table attendance-table">
+                <thead>
+                    <tr>
+                        <th scope="col">學號</th>
+                        <th scope="col">姓名</th>
+                        <th scope="col">打卡時間</th>
+                        <th scope="col">備註</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var record in Model.Records)
+                    {
+                        <tr>
+                            <td>@record.StudentNumber</td>
+                            <td>@record.StudentName</td>
+                            <td>@record.CheckedInAt.ToString("yyyy/MM/dd HH:mm:ss")</td>
+                            <td>@(string.IsNullOrWhiteSpace(record.Note) ? "無" : record.Note)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

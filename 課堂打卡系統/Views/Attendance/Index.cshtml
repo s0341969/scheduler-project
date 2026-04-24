@@ -1,0 +1,102 @@
+@model 課堂打卡系統.ViewModels.AttendanceDashboardViewModel
+@{
+    ViewData["Title"] = "課堂總覽";
+}
+
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Attendance Console</p>
+        <h1 class="hero-panel__title">課堂打卡總覽</h1>
+        <p class="hero-panel__text">集中查看本日課堂、打卡狀態與最近出席紀錄，教務端可直接在此開放或關閉某堂課的打卡。</p>
+    </div>
+    <div class="hero-panel__stats">
+        <article>
+            <span>開放打卡課堂</span>
+            <strong>@Model.OpenSessionCount</strong>
+        </article>
+        <article>
+            <span>累積打卡筆數</span>
+            <strong>@Model.TotalAttendanceCount</strong>
+        </article>
+        <article>
+            <span>畫面更新時間</span>
+            <strong>@Model.GeneratedAt.ToString("yyyy/MM/dd HH:mm")</strong>
+        </article>
+    </div>
+</section>
+
+<section class="session-grid" aria-label="課堂清單">
+    @foreach (var session in Model.Sessions)
+    {
+        <article class="session-card">
+            <div class="session-card__header">
+                <div>
+                    <p class="session-card__code">@session.CourseCode</p>
+                    <h2>@session.CourseName</h2>
+                </div>
+                <span class="status-chip @(session.IsOpen ? "status-chip--open" : "status-chip--closed")">
+                    @(session.IsOpen ? "打卡開放中" : "打卡已關閉")
+                </span>
+            </div>
+
+            <p class="session-card__topic">@session.Topic</p>
+            <dl class="session-card__meta">
+                <div>
+                    <dt>教師</dt>
+                    <dd>@session.TeacherName</dd>
+                </div>
+                <div>
+                    <dt>教室</dt>
+                    <dd>@session.Classroom</dd>
+                </div>
+                <div>
+                    <dt>時間</dt>
+                    <dd>@session.StartAt.ToString("MM/dd HH:mm") - @session.EndAt.ToString("HH:mm")</dd>
+                </div>
+                <div>
+                    <dt>已到人數</dt>
+                    <dd>@session.AttendanceCount 人</dd>
+                </div>
+            </dl>
+
+            <p class="session-card__description">@session.Description</p>
+
+            <div class="session-card__actions">
+                <a class="btn btn-primary" asp-controller="Attendance" asp-action="CheckIn" asp-route-id="@session.SessionId">進入打卡頁</a>
+                <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="sessionId" value="@session.SessionId" />
+                    <button type="submit" class="btn btn-outline-secondary">
+                        @(session.IsOpen ? "關閉打卡" : "開放打卡")
+                    </button>
+                </form>
+            </div>
+
+            <section class="recent-list">
+                <div class="recent-list__header">
+                    <h3>最近打卡</h3>
+                    <span>@session.RecentStudents.Count 筆</span>
+                </div>
+                @if (session.RecentStudents.Count == 0)
+                {
+                    <p class="empty-text">目前尚無任何出席紀錄。</p>
+                }
+                else
+                {
+                    <ul>
+                        @foreach (var record in session.RecentStudents)
+                        {
+                            <li>
+                                <div>
+                                    <strong>@record.StudentName</strong>
+                                    <span>@record.StudentNumber</span>
+                                </div>
+                                <time>@record.CheckedInAt.ToString("HH:mm:ss")</time>
+                            </li>
+                        }
+                    </ul>
+                }
+            </section>
+        </article>
+    }
+</section>
