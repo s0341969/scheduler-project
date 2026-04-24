@@ -69,6 +69,12 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m circle_locator.cli .\your-file.pdf --fast-mode --fast-probe-dpi 96 --no-preview
 ```
 
+限制合法數字範圍：
+
+```powershell
+C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe -m circle_locator.cli .\your-file.pdf --allowed-number-min 7 --allowed-number-max 16
+```
+
 安裝成命令列工具後也可直接執行：
 
 ```powershell
@@ -143,8 +149,9 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 5. 若提供 `templates` 目錄，會先額外使用範本比對產生高可信候選。
    若範本檔名已提供數字提示，系統不會再對該候選重複執行 OCR。
 6. 若啟用 `--fast-mode`，會先以較低 DPI 掃描每頁是否存在圓圈候選；沒有候選的頁面直接跳過完整辨識。
-7. 將像素座標回推成 PDF point 座標。
-8. 輸出結構化紀錄與標註預覽圖。
+7. 若設定 `--allowed-number-min` 與 `--allowed-number-max`，辨識結果只保留合法範圍內的數字。
+8. 將像素座標回推成 PDF point 座標。
+9. 輸出結構化紀錄與標註預覽圖。
 
 ## 提速建議
 
@@ -153,6 +160,7 @@ C:\Users\TECHUP\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\
 - 若文件圓圈尺寸固定，請縮小 `--min-radius-pt` 與 `--max-radius-pt` 範圍。
 - 若模板不是必要條件，先不要帶 `--template-dir`。
 - `--fast-probe-dpi` 建議先用 `96`；若有漏檢，再提高到 `120` 或 `144`。
+- 若你知道目標只會落在固定號碼區間，請搭配 `--allowed-number-min` 與 `--allowed-number-max` 降低誤判輸出。
 
 ## 範本庫格式
 

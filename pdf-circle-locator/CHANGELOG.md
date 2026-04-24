@@ -2,6 +2,7 @@
 
 ## 2026-04-25
 
+- 新增 `--allowed-number-min` 與 `--allowed-number-max`，可限制輸出只保留合法數字範圍內的辨識結果。
 - 新增 `tools/generate_number_template_library.py`，可批次產生 `1` 到 `100` 的圓圈數字模板庫。
 - 新增 `run_pdf_circle_locator_fast.bat`，提供 Windows 快速模式入口，預設啟用 `--fast-mode --fast-probe-dpi 96 --no-preview`。
 - 新增 `--fast-mode` 與 `--fast-probe-dpi`，先用低 DPI 預檢頁面是否存在圓圈候選，沒有候選的頁面直接跳過完整偵測。

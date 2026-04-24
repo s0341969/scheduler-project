@@ -63,6 +63,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=96,
         help="DPI used by the fast page probe. Lower is faster but may miss faint circles.",
     )
+    parser.add_argument(
+        "--allowed-number-min",
+        type=int,
+        default=None,
+        help="Minimum accepted circle number. Use together with --allowed-number-max.",
+    )
+    parser.add_argument(
+        "--allowed-number-max",
+        type=int,
+        default=None,
+        help="Maximum accepted circle number. Use together with --allowed-number-min.",
+    )
     return parser
 
 
@@ -81,6 +93,8 @@ def main() -> int:
         template_threshold=args.template_threshold,
         fast_mode=args.fast_mode,
         fast_probe_dpi=args.fast_probe_dpi,
+        allowed_number_min=args.allowed_number_min,
+        allowed_number_max=args.allowed_number_max,
     )
     records = detector.detect_pdf(args.input_pdf, preview_dir=preview_dir)
 
@@ -100,6 +114,8 @@ def main() -> int:
     if args.fast_mode:
         print(f"fast_mode=true")
         print(f"fast_probe_dpi={args.fast_probe_dpi}")
+    if args.allowed_number_min is not None and args.allowed_number_max is not None:
+        print(f"allowed_number_range={args.allowed_number_min}-{args.allowed_number_max}")
 
     return 0
 

@@ -80,6 +80,15 @@ def test_detector_defers_ocr_initialization() -> None:
     assert detector._ocr is None
 
 
+def test_allowed_number_range_filters_outside_values() -> None:
+    detector = NumberedCircleDetector(allowed_number_min=7, allowed_number_max=16)
+
+    assert detector._is_allowed_number("7") is True
+    assert detector._is_allowed_number("16") is True
+    assert detector._is_allowed_number("06") is False
+    assert detector._is_allowed_number("23") is False
+
+
 def test_preview_badge_geometry_places_colored_marker_next_to_circle() -> None:
     detector = NumberedCircleDetector()
 

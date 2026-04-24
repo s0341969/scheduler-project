@@ -58,6 +58,8 @@ class NumberedCircleDetector:
         template_threshold: float = 0.72,
         fast_mode: bool = False,
         fast_probe_dpi: int = DEFAULT_FAST_PROBE_DPI,
+        allowed_number_min: int | None = None,
+        allowed_number_max: int | None = None,
     ) -> None:
         if dpi < 144:
             raise ValueError("dpi must be at least 144 for stable circle detection")
@@ -67,6 +69,10 @@ class NumberedCircleDetector:
             raise ValueError("template_threshold must be between 0.5 and 0.99")
         if fast_probe_dpi < 72:
             raise ValueError("fast_probe_dpi must be at least 72")
+        if (allowed_number_min is None) != (allowed_number_max is None):
+            raise ValueError("allowed_number_min and allowed_number_max must be provided together")
+        if allowed_number_min is not None and allowed_number_max is not None and allowed_number_max < allowed_number_min:
+            raise ValueError("allowed_number_max must be greater than or equal to allowed_number_min")
 
         self.dpi = dpi
         self.min_radius_pt = min_radius_pt
@@ -74,6 +80,8 @@ class NumberedCircleDetector:
         self.template_threshold = template_threshold
         self.fast_mode = fast_mode
         self.fast_probe_dpi = fast_probe_dpi
+        self.allowed_number_min = allowed_number_min
+        self.allowed_number_max = allowed_number_max
         self._ocr: RapidOCR | None = None
         self._templates = self._load_templates(template_dir)
 
@@ -147,6 +155,8 @@ class NumberedCircleDetector:
 
             normalized_number = self._normalize_digits(number_text)
             if not normalized_number:
+                continue
+            if not self._is_allowed_number(normalized_number):
                 continue
 
             key = (round(cx_pt), round(cy_pt), normalized_number)
@@ -368,6 +378,8 @@ class NumberedCircleDetector:
                 number = self._normalize_digits(number)
                 if not number:
                     continue
+                if not self._is_allowed_number(number):
+                    continue
                 confidence = max(score, ocr_conf if crop_text == number else 0.0)
                 page_records.append(
                     DetectionRecord(
@@ -420,6 +432,12 @@ class NumberedCircleDetector:
         if self._ocr is None:
             self._ocr = RapidOCR()
         return self._ocr
+
+    def _is_allowed_number(self, number_text: str) -> bool:
+        if self.allowed_number_min is None or self.allowed_number_max is None:
+            return True
+        number_value = int(number_text)
+        return self.allowed_number_min <= number_value <= self.allowed_number_max
 
     def _draw_preview_marker(
         self,
