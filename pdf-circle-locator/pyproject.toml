@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pdf-circle-locator"
+version = "0.1.0"
+description = "Detect numbered circles inside PDF files and export their coordinates."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+authors = [
+  { name = "TECHUP" }
+]
+dependencies = [
+  "numpy>=2.0.0",
+  "Pillow>=12.0.0",
+  "pymupdf>=1.27.2",
+  "opencv-python-headless>=4.13.0.92",
+  "rapidocr-onnxruntime>=1.4.4"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0"
+]
+
+[project.scripts]
+pdf-circle-locator = "circle_locator.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["circle_locator*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-q -p no:cacheprovider"
