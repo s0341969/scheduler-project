@@ -1,0 +1,27 @@
+@model 課堂打卡系統.ViewModels.QrBoardViewModel
+@{
+    ViewData["Title"] = "QR Code 打卡板";
+}
+
+<section class="qr-shell">
+    <article class="content-card qr-card">
+        <p class="eyebrow">@Model.CourseCode</p>
+        <h1 class="section-title">@Model.CourseName</h1>
+        <p class="checkin-topic">@Model.Topic</p>
+        <p class="hero-panel__text">@Model.StartAt.ToString("yyyy/MM/dd HH:mm") - @Model.EndAt.ToString("HH:mm") ｜ @Model.Classroom</p>
+
+        <div class="qr-svg-wrap" aria-label="打卡 QR Code">
+            @Html.Raw(Model.QrCodeSvg)
+        </div>
+
+        <div class="qr-link-box">
+            <label class="form-label" for="checkin-url">打卡網址</label>
+            <input id="checkin-url" class="form-control" type="text" value="@Model.CheckInUrl" readonly />
+        </div>
+
+        <div class="session-card__actions">
+            <a class="btn btn-primary" href="@Model.CheckInUrl" target="_blank" rel="noopener noreferrer">開啟打卡頁</a>
+            <button type="button" class="btn btn-outline-secondary" onclick="window.print()">列印此頁</button>
+        </div>
+    </article>
+</section>

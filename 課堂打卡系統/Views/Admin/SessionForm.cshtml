@@ -1,0 +1,63 @@
+@model 課堂打卡系統.ViewModels.SessionFormViewModel
+@{
+    ViewData["Title"] = Model.Id.HasValue ? "編輯課堂" : "新增課堂";
+}
+
+<section class="content-card form-shell">
+    <div class="section-toolbar">
+        <div>
+            <p class="eyebrow">Session Editor</p>
+            <h1 class="section-title">@ViewData["Title"]</h1>
+        </div>
+        <a class="btn btn-outline-secondary" asp-controller="Admin" asp-action="Index">返回後台</a>
+    </div>
+
+    <form asp-controller="Admin" asp-action="SaveSession" method="post" class="editor-form" novalidate>
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+        <div class="mb-3">
+            <label asp-for="CourseId" class="form-label"></label>
+            <select asp-for="CourseId" class="form-select">
+                <option value="">請選擇課程</option>
+                @foreach (var option in Model.CourseOptions)
+                {
+                    <option value="@option.Id" selected="@(Model.CourseId == option.Id ? "selected" : null)">@option.DisplayName</option>
+                }
+            </select>
+            <span asp-validation-for="CourseId" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Topic" class="form-label"></label>
+            <input asp-for="Topic" class="form-control" />
+            <span asp-validation-for="Topic" class="text-danger"></span>
+        </div>
+
+        <div class="form-grid">
+            <div class="mb-3">
+                <label asp-for="StartAt" class="form-label"></label>
+                <input asp-for="StartAt" type="datetime-local" class="form-control" />
+                <span asp-validation-for="StartAt" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="EndAt" class="form-label"></label>
+                <input asp-for="EndAt" type="datetime-local" class="form-control" />
+                <span asp-validation-for="EndAt" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="form-check mb-4">
+            <input asp-for="IsOpen" class="form-check-input" />
+            <label asp-for="IsOpen" class="form-check-label"></label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">儲存課堂</button>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

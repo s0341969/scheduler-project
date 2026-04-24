@@ -1,0 +1,152 @@
+@model 課堂打卡系統.ViewModels.AdminDashboardViewModel
+@{
+    ViewData["Title"] = "管理後台";
+}
+
+<section class="hero-panel">
+    <div>
+        <p class="eyebrow">Admin Console</p>
+        <h1 class="hero-panel__title">課堂管理後台</h1>
+        <p class="hero-panel__text">集中維護課程、課堂時段、打卡開關，並可匯出 Excel 出席紀錄與顯示 QR Code 打卡板。</p>
+    </div>
+    <div class="hero-panel__stats">
+        <article>
+            <span>課程數</span>
+            <strong>@Model.CourseCount</strong>
+        </article>
+        <article>
+            <span>課堂數</span>
+            <strong>@Model.SessionCount</strong>
+        </article>
+        <article>
+            <span>出席筆數</span>
+            <strong>@Model.AttendanceCount</strong>
+        </article>
+    </div>
+</section>
+
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success" role="status">@statusMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
+<section class="content-card">
+    <div class="section-toolbar">
+        <div>
+            <p class="eyebrow">Courses</p>
+            <h2 class="section-title">課程維護</h2>
+        </div>
+        <a class="btn btn-primary" asp-controller="Admin" asp-action="CreateCourse">新增課程</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table attendance-table">
+            <thead>
+                <tr>
+                    <th>代碼</th>
+                    <th>名稱</th>
+                    <th>教師 / 教室</th>
+                    <th>課堂數</th>
+                    <th>出席筆數</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var course in Model.Courses)
+                {
+                    <tr>
+                        <td>@course.CourseCode</td>
+                        <td>
+                            <strong>@course.CourseName</strong>
+                            <div class="table-subtext">@course.Description</div>
+                        </td>
+                        <td>@course.TeacherName / @course.Classroom</td>
+                        <td>@course.SessionCount</td>
+                        <td>@course.AttendanceCount</td>
+                        <td class="text-end">
+                            <div class="table-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Admin" asp-action="EditCourse" asp-route-id="@course.Id">編輯</a>
+                                <form asp-controller="Admin" asp-action="DeleteCourse" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@course.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="content-card">
+    <div class="section-toolbar">
+        <div>
+            <p class="eyebrow">Sessions</p>
+            <h2 class="section-title">課堂時段維護</h2>
+        </div>
+        <a class="btn btn-primary" asp-controller="Admin" asp-action="CreateSession">新增課堂</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table attendance-table">
+            <thead>
+                <tr>
+                    <th>課程</th>
+                    <th>主題</th>
+                    <th>時間</th>
+                    <th>狀態</th>
+                    <th>出席數</th>
+                    <th class="text-end">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var session in Model.Sessions)
+                {
+                    <tr>
+                        <td>
+                            <strong>@session.CourseCode</strong>
+                            <div class="table-subtext">@session.CourseName</div>
+                        </td>
+                        <td>
+                            <strong>@session.Topic</strong>
+                            <div class="table-subtext">@session.TeacherName / @session.Classroom</div>
+                        </td>
+                        <td>@session.StartAt.ToString("yyyy/MM/dd HH:mm") - @session.EndAt.ToString("HH:mm")</td>
+                        <td>
+                            <span class="status-chip @(session.IsOpen ? "status-chip--open" : "status-chip--closed")">
+                                @(session.IsOpen ? "開放中" : "關閉中")
+                            </span>
+                        </td>
+                        <td>@session.AttendanceCount</td>
+                        <td class="text-end">
+                            <div class="table-actions">
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Admin" asp-action="EditSession" asp-route-id="@session.Id">編輯</a>
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Admin" asp-action="ExportSessionAttendance" asp-route-id="@session.Id">Excel</a>
+                                <a class="btn btn-sm btn-outline-secondary" asp-controller="Attendance" asp-action="QrBoard" asp-route-id="@session.Id" target="_blank" rel="noopener noreferrer">QR</a>
+                                <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="sessionId" value="@session.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                        @(session.IsOpen ? "關閉" : "開放")
+                                    </button>
+                                </form>
+                                <form asp-controller="Admin" asp-action="DeleteSession" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@session.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger">刪除</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

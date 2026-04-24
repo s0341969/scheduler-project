@@ -1,0 +1,37 @@
+@model 課堂打卡系統.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "管理者登入";
+}
+
+<section class="auth-shell">
+    <article class="content-card auth-card">
+        <p class="eyebrow">Administrator Access</p>
+        <h1 class="section-title">管理者登入</h1>
+        <p class="hero-panel__text">登入後可維護課程、課堂時段、下載 Excel 出席紀錄，並取得 QR Code 打卡板。</p>
+
+        <form asp-controller="Account" asp-action="Login" method="post" class="checkin-form" novalidate>
+            @Html.AntiForgeryToken()
+            <input asp-for="ReturnUrl" type="hidden" />
+
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <input asp-for="Username" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">登入</button>
+        </form>
+    </article>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

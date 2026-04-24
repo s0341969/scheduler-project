@@ -35,6 +35,8 @@ public sealed class SessionCardViewModel
 
     public int AttendanceCount { get; init; }
 
+    public bool IsManagementEnabled { get; init; }
+
     public IReadOnlyList<AttendanceRecordViewModel> RecentStudents { get; init; } = [];
 }
 

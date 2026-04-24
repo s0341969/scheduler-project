@@ -25,6 +25,16 @@
     </div>
 </section>
 
+@if (TempData["StatusMessage"] is string statusMessage)
+{
+    <div class="alert alert-success" role="status">@statusMessage</div>
+}
+
+@if (TempData["ErrorMessage"] is string errorMessage)
+{
+    <div class="alert alert-danger" role="alert">@errorMessage</div>
+}
+
 <section class="session-grid" aria-label="課堂清單">
     @foreach (var session in Model.Sessions)
     {
@@ -63,13 +73,17 @@
 
             <div class="session-card__actions">
                 <a class="btn btn-primary" asp-controller="Attendance" asp-action="CheckIn" asp-route-id="@session.SessionId">進入打卡頁</a>
-                <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="sessionId" value="@session.SessionId" />
-                    <button type="submit" class="btn btn-outline-secondary">
-                        @(session.IsOpen ? "關閉打卡" : "開放打卡")
-                    </button>
-                </form>
+                <a class="btn btn-outline-secondary" asp-controller="Attendance" asp-action="QrBoard" asp-route-id="@session.SessionId" target="_blank" rel="noopener noreferrer">QR Code</a>
+                @if (session.IsManagementEnabled)
+                {
+                    <form asp-controller="Attendance" asp-action="ToggleSessionStatus" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="sessionId" value="@session.SessionId" />
+                        <button type="submit" class="btn btn-outline-secondary">
+                            @(session.IsOpen ? "關閉打卡" : "開放打卡")
+                        </button>
+                    </form>
+                }
             </div>
 
             <section class="recent-list">

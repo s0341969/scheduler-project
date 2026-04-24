@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using 課堂打卡系統.Services;
 using 課堂打卡系統.ViewModels;
@@ -16,7 +17,7 @@ public sealed class AttendanceController : Controller
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        var viewModel = await _attendanceQueryService.GetDashboardAsync(cancellationToken);
+        var viewModel = await _attendanceQueryService.GetDashboardAsync(User.Identity?.IsAuthenticated == true, cancellationToken);
         return View(viewModel);
     }
 
@@ -24,6 +25,24 @@ public sealed class AttendanceController : Controller
     public async Task<IActionResult> CheckIn(Guid id, CancellationToken cancellationToken)
     {
         var viewModel = await _attendanceQueryService.GetCheckInPageAsync(id, cancellationToken);
+        if (viewModel is null)
+        {
+            return NotFound();
+        }
+
+        return View(viewModel);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> QrBoard(Guid id, CancellationToken cancellationToken)
+    {
+        var checkInUrl = Url.Action(nameof(CheckIn), "Attendance", new { id }, Request.Scheme);
+        if (string.IsNullOrWhiteSpace(checkInUrl))
+        {
+            return NotFound();
+        }
+
+        var viewModel = await _attendanceQueryService.GetQrBoardAsync(id, checkInUrl, cancellationToken);
         if (viewModel is null)
         {
             return NotFound();
@@ -67,11 +86,13 @@ public sealed class AttendanceController : Controller
         return RedirectToAction(nameof(CheckIn), new { id = form.SessionId });
     }
 
+    [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleSessionStatus(Guid sessionId, CancellationToken cancellationToken)
     {
-        await _attendanceQueryService.ToggleSessionStatusAsync(sessionId, cancellationToken);
+        var result = await _attendanceQueryService.ToggleSessionStatusAsync(sessionId, cancellationToken);
+        TempData[result.Success ? "StatusMessage" : "ErrorMessage"] = result.Message;
         return RedirectToAction(nameof(Index));
     }
 }

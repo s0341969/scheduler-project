@@ -18,7 +18,19 @@
             </div>
             <nav class="app-shell__nav" aria-label="主要導覽">
                 <a asp-controller="Attendance" asp-action="Index">課堂總覽</a>
+                <a asp-controller="Admin" asp-action="Index">管理後台</a>
                 <a asp-controller="Home" asp-action="Privacy">系統說明</a>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="link-button">登出</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Account" asp-action="Login">管理者登入</a>
+                }
             </nav>
         </div>
     </header>

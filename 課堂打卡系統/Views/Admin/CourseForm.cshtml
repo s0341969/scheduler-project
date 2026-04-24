@@ -1,0 +1,56 @@
+@model 課堂打卡系統.ViewModels.CourseFormViewModel
+@{
+    ViewData["Title"] = Model.Id.HasValue ? "編輯課程" : "新增課程";
+}
+
+<section class="content-card form-shell">
+    <div class="section-toolbar">
+        <div>
+            <p class="eyebrow">Course Editor</p>
+            <h1 class="section-title">@ViewData["Title"]</h1>
+        </div>
+        <a class="btn btn-outline-secondary" asp-controller="Admin" asp-action="Index">返回後台</a>
+    </div>
+
+    <form asp-controller="Admin" asp-action="SaveCourse" method="post" class="editor-form" novalidate>
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+        <div class="form-grid">
+            <div class="mb-3">
+                <label asp-for="CourseCode" class="form-label"></label>
+                <input asp-for="CourseCode" class="form-control" />
+                <span asp-validation-for="CourseCode" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="CourseName" class="form-label"></label>
+                <input asp-for="CourseName" class="form-control" />
+                <span asp-validation-for="CourseName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="TeacherName" class="form-label"></label>
+                <input asp-for="TeacherName" class="form-control" />
+                <span asp-validation-for="TeacherName" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Classroom" class="form-label"></label>
+                <input asp-for="Classroom" class="form-control" />
+                <span asp-validation-for="Classroom" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" class="form-control form-control--textarea"></textarea>
+            <span asp-validation-for="Description" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">儲存課程</button>
+    </form>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
