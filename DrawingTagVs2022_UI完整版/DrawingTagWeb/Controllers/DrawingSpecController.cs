@@ -222,18 +222,6 @@ public sealed class DrawingSpecController : ControllerBase
     private static string BuildPdfDisplayName(string filePath)
     {
         var fileName = Path.GetFileName(filePath);
-        var directory = Path.GetDirectoryName(filePath);
-
-        if (string.IsNullOrWhiteSpace(fileName))
-        {
-            return filePath;
-        }
-
-        if (string.IsNullOrWhiteSpace(directory))
-        {
-            return fileName;
-        }
-
-        return $"{fileName} | {directory}";
+        return string.IsNullOrWhiteSpace(fileName) ? filePath : fileName;
     }
 }
