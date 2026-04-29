@@ -649,7 +649,7 @@
         }
         function focusTagByItem(itemKey) {
             const tag = document.querySelector(`.circle-tag[data-id="${CSS.escape(itemKey)}"]`);
-            document.querySelectorAll('.circle-tag.tag-selected').forEach(t => t.classList.remove('tag-selected'));
+            clearSelectedTags();
             if (!tag) {
                 statusBar.innerText = `⚠️ Grid 泡泡 ${itemKey} 尚未在圖面上建立定位圈圈。`;
                 return;
@@ -681,6 +681,10 @@
             const raw = tag.dataset.id || tag.getAttribute('data-id') || tag.textContent || '';
             const firstLine = raw.toString().trim().split(/\s+/)[0];
             return normalizeItemKey(firstLine);
+
+        }
+        function clearSelectedTags() {
+            document.querySelectorAll('.circle-tag.tag-selected').forEach(t => t.classList.remove('tag-selected'));
 
         }
         function renderTagContent(tag, itemKey, method) {
@@ -854,15 +858,18 @@
             const clickX = (clientX - rect.left) / currentZoom;
             const clickY = (clientY - rect.top) / currentZoom;
 
-            createTagAt(currentNumber, method, clickX, clickY);
+            const createdTag = createTagAt(currentNumber, method, clickX, clickY);
+            selectGridRow(itemKey);
+            clearSelectedTags();
+            createdTag.classList.add('tag-selected');
 
             const nextNumber = parseInt(currentNumber) + 1;
             seqInput.value = nextNumber;
 
             if (method === 'UNASSIGNED') {
-                statusBar.innerText = `✅ 已定義項次 ${currentNumber} 座標 (等待套色)。 👉 下一步：按住放開定位 ${nextNumber}`;
+                statusBar.innerText = `✅ 已定義項次 ${currentNumber} 座標，右側規格已同步選取 (等待套色)。 👉 下一步：按住放開定位 ${nextNumber}`;
             } else {
-                statusBar.innerText = `✅ 已標註項次 ${currentNumber} (${method})。 👉 下一步：按住放開定位 ${nextNumber}`;
+                statusBar.innerText = `✅ 已標註項次 ${currentNumber} (${method})，右側規格已同步選取。 👉 下一步：按住放開定位 ${nextNumber}`;
             }
 
         }
@@ -929,7 +936,7 @@
             tag.addEventListener('click', function(ev) {
                 const item = getTagItemKey(this);
                 selectGridRow(item);
-                document.querySelectorAll('.circle-tag.tag-selected').forEach(t => t.classList.remove('tag-selected'));
+                clearSelectedTags();
                 this.classList.add('tag-selected');
                 statusBar.innerText = `🔎 已選取泡泡 ${item}，右側 GridView 已同步到對應規格資料。`;
             });
@@ -955,6 +962,7 @@
 
             makeDraggable(tag);
             workspace.appendChild(tag);
+            return tag;
 
         }
         function makeDraggable(element) {
