@@ -136,8 +136,11 @@
 
         <div class="control-group" style="flex: 0 0 220px; min-width: 220px; max-width: 220px;">
             <label style="font-weight:bold; color:#333;">2. 載入 PDF / 圖面：</label>
-            <input type="file" id="imageInput" accept="image/png, image/jpeg, application/pdf" title="載入圖面 (PDF/JPG/PNG)" style="margin-top: 5px;">
-            <small style="color: #666; margin-top: 3px;">* 支援直接上傳 PDF 工程圖（自動擷取首頁）</small>
+            <details>
+                <summary style="cursor:pointer; font-weight:bold; color:#555;">挑選檔案</summary>
+                <input type="file" id="imageInput" accept="image/png, image/jpeg, application/pdf" title="載入圖面 (PDF/JPG/PNG)" style="margin-top:8px;">
+                <small style="color: #666; margin-top: 5px; display:block;">* 支援直接上傳 PDF 工程圖（自動擷取首頁）</small>
+            </details>
             <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
                 <label for="dbPdfSelect" style="font-weight:bold; color:#004085;">資料庫 PDF 路徑：</label>
                 <select id="dbPdfSelect" class="spec-stage-select" style="width:100%; box-sizing:border-box;" disabled>
