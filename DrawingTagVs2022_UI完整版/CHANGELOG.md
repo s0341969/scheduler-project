@@ -18,3 +18,4 @@
 - 縮小圖面泡泡標示尺寸與字體，減少遮擋工程圖內容
 - 新增泡泡定位時，右側規格資料會同步自動選到對應項次
 - 將 `dotnet run` 預設綁定位址調整為 `http://10.1.1.12:5088`
+- 將預設綁定位址改為讀取 `appsettings.json` 的 `Hosting:Url`，未來修改 IP 不必再改 `launchSettings.json`

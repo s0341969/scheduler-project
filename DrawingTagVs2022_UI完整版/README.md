@@ -101,8 +101,9 @@
 
 1. 先在 MSSQL 執行 `DrawingTagWeb/Sql/01_CreateTables.sql`
 2. 修改 `DrawingTagWeb/appsettings.json` 的 `ConnectionStrings:DefaultConnection`
-3. 確認 `wwwroot/lib` 已放入離線 JS 檔
-4. 執行：
+3. 若要修改網站綁定 IP，請修改 `DrawingTagWeb/appsettings.json` 的 `Hosting:Url`
+4. 確認 `wwwroot/lib` 已放入離線 JS 檔
+5. 執行：
 
 ```powershell
 dotnet build
@@ -112,6 +113,21 @@ dotnet run --project .\DrawingTagWeb\DrawingTagWeb.csproj
 預設開發網址：
 
 - `http://10.1.1.12:5088`
+
+IP 與 Port 預設來源：
+
+- `DrawingTagWeb/appsettings.json`
+- 設定鍵：`Hosting:Url`
+
+例如：
+
+```json
+"Hosting": {
+  "Url": "http://10.1.1.12:5088"
+}
+```
+
+若之後要改成其他位址，例如 `10.1.1.20`，只要修改這個值即可。
 
 ## 離線前端相依檔
 
@@ -128,6 +144,7 @@ dotnet run --project .\DrawingTagWeb\DrawingTagWeb.csproj
 - `載入 PDF / 圖面` 區塊目前為獨立第二步驟，位於規格查詢與座標定義之間，並使用較窄欄寬避免佔用過多空間。
 - 第 2 步中的本機檔案挑選區預設收合，資料庫 PDF 路徑選取維持直接可見。
 - 圖面泡泡標示已縮小尺寸，降低遮擋工程圖內容的範圍。
+- `dotnet run` 預設綁定位址來自 `appsettings.json` 的 `Hosting:Url`。
 - 左鍵按住拖曳：平移圖面
 - 左鍵按住後放開且未拖曳：新增泡泡
 - 新增泡泡定位時，右側規格資料會自動選到對應項次
