@@ -128,19 +128,6 @@
             <small style="color:#0056b3; margin-top:0; margin-bottom:8px; display:block;">* 操作順序：圖號 → 版次 → 規格 → 載入規格</small>
 
             <hr style="width: 100%; border: 0.5px solid #ddd; margin: 6px 0;">
-            <label style="font-weight:bold; color:#333;">載入 PDF / 圖面：</label>
-            <input type="file" id="imageInput" accept="image/png, image/jpeg, application/pdf" title="載入圖面 (PDF/JPG/PNG)" style="margin-top: 5px;">
-            <small style="color: #666; margin-top: 3px;">* 支援直接上傳 PDF 工程圖（自動擷取首頁）</small>
-            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
-                <label for="dbPdfSelect" style="font-weight:bold; color:#004085;">資料庫 PDF 路徑：</label>
-                <select id="dbPdfSelect" class="spec-stage-select" style="width:100%; box-sizing:border-box;" disabled>
-                    <option value="">請先從資料庫載入規格</option>
-                </select>
-                <button type="button" class="btn-primary" onclick="loadSelectedPdfFromDatabase()" style="width:100%;" disabled id="loadDbPdfBtn">📄 載入資料庫 PDF</button>
-                <small id="dbPdfHint" style="color:#666;">* Stored Procedure 第二個結果集若有回傳 PDF 路徑，會顯示在這裡供選取。</small>
-            </div>
-
-            <hr style="width: 100%; border: 0.5px solid #ddd; margin: 6px 0;">
             <div class="file-upload-wrapper">
                 <button class="btn-success" style="width: 100%;">📁 載入已存的 .json 模板</button>
                 <input type="file" id="projectInput" accept=".json">
@@ -154,6 +141,19 @@
                 <input type="number" id="currentSeq" value="1" min="1">
             </div>
             <small style="color: #666; margin-top: 5px;">* 左鍵按住拖曳圖面：平移 PDF/圖面<br>* 左鍵按住後放開且未拖曳：新增定位<br>* 標籤左鍵拖曳：移動標籤<br>* 標籤上右鍵：刪除該標註</small>
+
+            <hr style="width: 100%; border: 0.5px solid #ddd; margin: 10px 0 8px 0;">
+            <label style="font-weight:bold; color:#333;">載入 PDF / 圖面：</label>
+            <input type="file" id="imageInput" accept="image/png, image/jpeg, application/pdf" title="載入圖面 (PDF/JPG/PNG)" style="margin-top: 5px;">
+            <small style="color: #666; margin-top: 3px;">* 支援直接上傳 PDF 工程圖（自動擷取首頁）</small>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                <label for="dbPdfSelect" style="font-weight:bold; color:#004085;">資料庫 PDF 路徑：</label>
+                <select id="dbPdfSelect" class="spec-stage-select" style="width:100%; box-sizing:border-box;" disabled>
+                    <option value="">請先從資料庫載入規格</option>
+                </select>
+                <button type="button" class="btn-primary" onclick="loadSelectedPdfFromDatabase()" style="width:100%;" disabled id="loadDbPdfBtn">📄 載入資料庫 PDF</button>
+                <small id="dbPdfHint" style="color:#666;">* Stored Procedure 第二個結果集若有回傳 PDF 路徑，會顯示在這裡供選取。</small>
+            </div>
         </div>
 
         <div class="control-group" style="background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #ddd; opacity:.85;">

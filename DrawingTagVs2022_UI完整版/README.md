@@ -124,6 +124,7 @@ dotnet run --project .\DrawingTagWeb\DrawingTagWeb.csproj
 
 ## 目前重要行為
 
+- `載入 PDF / 圖面` 區塊位於第二步驟「定義座標」欄位下方，讓載圖與定位操作集中在同一區。
 - 左鍵按住拖曳：平移圖面
 - 左鍵按住後放開且未拖曳：新增泡泡
 - 泡泡左鍵拖曳：移動泡泡
