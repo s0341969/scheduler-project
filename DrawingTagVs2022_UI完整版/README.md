@@ -23,7 +23,7 @@
 
 - 系統版次會顯示在畫面上方功能列。
 - 目前版次來源：`DrawingTagWeb.csproj`
-- 目前版次：`V2026.04.29.02`
+- 目前版次：`V2026.04.29.03`
 - 規則：每一次功能修正、UI 調整、行為變更，都必須同步遞增版次。
 
 目前使用欄位：
@@ -34,15 +34,15 @@
 例如：
 
 ```xml
-<Version>2026.4.29.2</Version>
-<InformationalVersion>V2026.04.29.02</InformationalVersion>
+<Version>2026.4.29.3</Version>
+<InformationalVersion>V2026.04.29.03</InformationalVersion>
 ```
 
 下次若再修版，必須改成下一版，例如：
 
 ```xml
-<Version>2026.4.29.3</Version>
-<InformationalVersion>V2026.04.29.03</InformationalVersion>
+<Version>2026.4.29.4</Version>
+<InformationalVersion>V2026.04.29.04</InformationalVersion>
 ```
 
 ## Stored Procedure 規格
@@ -170,7 +170,7 @@ IP 與 Port 預設來源：
 - 功能列順序目前為：`1. 圖面建檔/規格查詢 → 2. 載入 PDF/圖面 → 3. 定義座標 → 4. 備用功能 → 5. 製程圖層獨立匯出 → 6. 專案全域操作`
 - `載入 PDF / 圖面` 區塊目前為獨立第二步驟，位於規格查詢與座標定義之間，並使用較窄欄寬避免佔用過多空間。
 - 第 2 步中的本機檔案挑選區預設收合，資料庫 PDF 路徑選取維持直接可見。
-- 圖面泡泡標示已縮小尺寸，降低遮擋工程圖內容的範圍。
+- 圖面泡泡標示已縮小到更接近半尺寸，降低遮擋工程圖內容的範圍。
 - `dotnet run` 預設綁定位址來自 `appsettings.json` 的 `Hosting:Url`。
 - 每次修正都會同步提升系統版次，並顯示在上方功能列。
 - 左鍵按住拖曳：平移圖面

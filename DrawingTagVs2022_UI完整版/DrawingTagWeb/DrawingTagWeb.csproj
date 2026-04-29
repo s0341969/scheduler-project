@@ -5,8 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>DrawingTagWeb</RootNamespace>
     <AssemblyName>DrawingTagWeb</AssemblyName>
-    <Version>2026.4.29.2</Version>
-    <InformationalVersion>V2026.04.29.02</InformationalVersion>
+    <Version>2026.4.29.3</Version>
+    <InformationalVersion>V2026.04.29.03</InformationalVersion>
   </PropertyGroup>
 
   <ItemGroup>
