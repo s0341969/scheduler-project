@@ -1,0 +1,13 @@
+@host = http://localhost:5088
+
+### 取得規格資料：圖號 + 版次 + 項目
+GET {{host}}/api/drawing-spec?indwg=M1234&dwgrev=A&option=首件
+Accept: application/json
+
+### 取得規格資料：終檢
+GET {{host}}/api/drawing-spec?indwg=M1234&dwgrev=A&option=終檢
+Accept: application/json
+
+### 載入最新圖面版本
+GET {{host}}/api/drawing-project/latest/M1234
+Accept: application/json
