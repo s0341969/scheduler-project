@@ -13,6 +13,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f5f5f5; }
         .function-bar { background: #ffffff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); padding: 10px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 300; }
         .function-bar-title { font-weight: bold; color: #333; margin-right: auto; }
+        .system-version-badge { display: inline-flex; align-items: center; padding: 6px 10px; background: #eef6ff; border: 1px solid #b9d6ff; border-radius: 999px; color: #0b5394; font-size: 12px; font-weight: 700; white-space: nowrap; }
         .function-toggle-btn { padding: 9px 16px; background: #343a40; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .function-toggle-btn:hover { background: #23272b; }
         .function-mini-btn { padding: 7px 12px; background: #f8f9fa; color: #333; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-weight: bold; }
@@ -96,6 +97,7 @@
     <div class="function-bar">
         <button id="functionToggleBtn" class="function-toggle-btn" onclick="toggleFunctionPanel()">☰ 功能選單</button>
         <span class="function-bar-title">圖面定位工作區</span>
+        <span id="systemVersionBadge" class="system-version-badge">系統版次讀取中...</span>
         <button class="function-mini-btn" onclick="fitToScreen()">全景</button>
         <button class="function-mini-btn" onclick="setMarkZoom()">標註放大</button>
         <button class="function-mini-btn" onclick="undoLastAction()">↩️ 復原</button>
@@ -274,6 +276,7 @@
         let panMode = true;        // 最新版：左鍵按住拖曳 = 平移；左鍵點一下 = 新增標籤
 
         // ====== API 路徑設定：後端可依實際 ASP.NET Route 調整 ======
+        const API_SYSTEM_INFO_URL = '/api/system-info';
         const API_SPEC_URL = (indwg, dwgrev, option) => `/api/drawing-spec?indwg=${encodeURIComponent(indwg)}&dwgrev=${encodeURIComponent(dwgrev)}&option=${encodeURIComponent(option)}`;
         const API_PDF_FILE_URL = (path) => `/api/drawing-spec/pdf-file?path=${encodeURIComponent(path)}`;
         const API_SAVE_PROJECT_URL = '/api/drawing-project/save';
@@ -287,6 +290,7 @@
         const bgImage = document.getElementById('bg-image');
         const sizer = document.getElementById('workspace-sizer');
         const viewport = document.getElementById('workspace-viewport');
+        const systemVersionBadge = document.getElementById('systemVersionBadge');
         const inspectionStageInput = document.getElementById('inspectionStage');
         const specGrid = document.getElementById('specGrid');
         const specGridSummary = document.getElementById('specGridSummary');
@@ -328,6 +332,27 @@
                 statusBar.innerText = "等待載入圖面...";
             }
 
+        }
+        async function loadSystemVersion() {
+            if (!systemVersionBadge) return;
+
+            try {
+                const response = await fetch(API_SYSTEM_INFO_URL, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const version = data?.version || data?.Version || 'UNKNOWN';
+                systemVersionBadge.innerText = `系統版次 ${version}`;
+            } catch (error) {
+                console.error(error);
+                systemVersionBadge.innerText = '系統版次讀取失敗';
+            }
         }
         // ====== UX 強化：縮放、全景、標註放大、滑鼠滾輪縮放 ======
         function setZoom(level) {
@@ -1324,6 +1349,7 @@
 
         }
         updatePanModeButton();
+        loadSystemVersion();
     </script>
 </body>
 </html>

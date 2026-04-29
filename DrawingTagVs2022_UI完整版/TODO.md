@@ -16,3 +16,4 @@
 - 若之後部署到不同主機，需同步檢查 `appsettings.json` 的 `Hosting:Url` 是否仍符合該機器網卡設定。
 - 若未來切換到 IIS 正式部署，需提醒使用者 `Hosting:Url` 不再是唯一來源，IIS Binding 會優先決定外部入口位址。
 - 若第二結果集有多筆 PDF，後續可考慮加入記住上次選取檔名的邏輯，避免每次都先載入第一筆。
+- 若未來想避免手動改版號，可再評估加入簡單的發版腳本，自動遞增 `<Version>` 與 `<InformationalVersion>`。
