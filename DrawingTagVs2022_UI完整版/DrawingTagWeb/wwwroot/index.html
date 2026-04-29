@@ -533,12 +533,9 @@
             dbPdfHint.innerText = '＊ 可選擇 Stored Procedure 第二個結果集回傳的 PDF 路徑並直接載入首頁。';
         }
 
-        async function loadSelectedPdfFromDatabase() {
-            const selectedPath = dbPdfSelect.value;
+        async function loadPdfFromDatabasePath(selectedPath, displayName) {
             if (!selectedPath) {
-                alert('請先選擇要載入的 PDF 路徑。');
-                dbPdfSelect.focus();
-                return;
+                throw new Error('未指定 PDF 路徑。');
             }
 
             try {
@@ -556,12 +553,24 @@
                 }
 
                 const arrayBuffer = await response.arrayBuffer();
-                await renderPdfArrayBuffer(arrayBuffer, `資料庫 PDF「${dbPdfSelect.options[dbPdfSelect.selectedIndex].text}」`);
+                await renderPdfArrayBuffer(arrayBuffer, `資料庫 PDF「${displayName || selectedPath}」`);
             } catch (error) {
                 console.error(error);
                 alert('載入資料庫 PDF 失敗。請確認後端主機能存取該路徑，且檔案確實存在。\n\n錯誤：' + error.message);
                 updateStatus();
             }
+        }
+
+        async function loadSelectedPdfFromDatabase() {
+            const selectedPath = dbPdfSelect.value;
+            if (!selectedPath) {
+                alert('請先選擇要載入的 PDF 路徑。');
+                dbPdfSelect.focus();
+                return;
+            }
+
+            const displayName = dbPdfSelect.options[dbPdfSelect.selectedIndex]?.text || selectedPath;
+            await loadPdfFromDatabasePath(selectedPath, displayName);
         }
 
 
@@ -765,8 +774,16 @@
                 refreshTagsColor();
                 renderSpecGrid(json, drawingNumber, revision, inspectionStage);
 
+                if (availablePdfOptions.length > 0) {
+                    const firstPdf = availablePdfOptions[0];
+                    dbPdfSelect.value = firstPdf.filePath;
+                    await loadPdfFromDatabasePath(firstPdf.filePath, firstPdf.displayName);
+                }
+
                 statusBar.className = "status-sync";
-                statusBar.innerText = `✨ 資料庫規格載入成功！${inspectionStage} 共載入 ${Object.keys(specDataMap).length} 筆，PDF 路徑 ${availablePdfOptions.length} 筆。`;
+                statusBar.innerText = availablePdfOptions.length > 0
+                    ? `✨ 資料庫規格載入成功！${inspectionStage} 共載入 ${Object.keys(specDataMap).length} 筆，並已自動載入第一筆 PDF。`
+                    : `✨ 資料庫規格載入成功！${inspectionStage} 共載入 ${Object.keys(specDataMap).length} 筆，PDF 路徑 0 筆。`;
 
             } catch (error) {
                 console.error(error);
