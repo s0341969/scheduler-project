@@ -111,7 +111,7 @@ dotnet run --project .\DrawingTagWeb\DrawingTagWeb.csproj
 
 預設開發網址：
 
-- `http://localhost:5088`
+- `http://10.1.1.12:5088`
 
 ## 離線前端相依檔
 
