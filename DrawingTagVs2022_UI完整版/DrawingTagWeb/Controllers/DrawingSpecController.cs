@@ -141,18 +141,18 @@ public sealed class DrawingSpecController : ControllerBase
 
     private static string? ResolvePdfPath(SqlDataReader reader)
     {
-        var fullPath = GetFieldValue(reader, "PdfPath", "PDFPath", "FilePath", "FullPath", "Path", "圖檔完整路徑", "圖檔路徑", "PDF路徑");
-        if (!string.IsNullOrWhiteSpace(fullPath))
-        {
-            return NormalizePath(fullPath);
-        }
-
         var directory = GetFieldValue(reader, "DirectoryPath", "FolderPath", "BasePath", "RootPath", "圖檔資料夾", "圖檔路徑", "路徑");
         var fileName = GetFieldValue(reader, "PdfFileName", "FileName", "檔名", "圖檔檔名", "PDF檔名");
 
         if (!string.IsNullOrWhiteSpace(directory) && !string.IsNullOrWhiteSpace(fileName))
         {
             return NormalizePath(Path.Combine(directory.Trim(), fileName.Trim()));
+        }
+
+        var fullPath = GetFieldValue(reader, "PdfPath", "PDFPath", "FilePath", "FullPath", "Path", "圖檔完整路徑", "PDF路徑");
+        if (!string.IsNullOrWhiteSpace(fullPath))
+        {
+            return NormalizePath(fullPath);
         }
 
         foreach (var fallback in EnumerateAllStringValues(reader))
