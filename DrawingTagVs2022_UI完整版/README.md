@@ -23,7 +23,7 @@
 
 - 系統版次會顯示在畫面上方功能列。
 - 目前版次來源：`DrawingTagWeb.csproj`
-- 目前版次：`V2026.04.29.03`
+- 目前版次：`V2026.04.29.04`
 - 規則：每一次功能修正、UI 調整、行為變更，都必須同步遞增版次。
 
 目前使用欄位：
@@ -34,15 +34,15 @@
 例如：
 
 ```xml
-<Version>2026.4.29.3</Version>
-<InformationalVersion>V2026.04.29.03</InformationalVersion>
+<Version>2026.4.29.4</Version>
+<InformationalVersion>V2026.04.29.04</InformationalVersion>
 ```
 
 下次若再修版，必須改成下一版，例如：
 
 ```xml
-<Version>2026.4.29.4</Version>
-<InformationalVersion>V2026.04.29.04</InformationalVersion>
+<Version>2026.4.29.5</Version>
+<InformationalVersion>V2026.04.29.05</InformationalVersion>
 ```
 
 ## Stored Procedure 規格
@@ -101,6 +101,11 @@
 - `GET /api/drawing-spec/pdf-file?path={完整PDF路徑}`
 
 這個端點會由後端主機讀取 PDF 並串流回瀏覽器，再由前端擷取首頁轉成圖面背景。
+
+多頁 PDF 行為：
+
+- 若 PDF 有多頁，系統會將所有頁面依序串接成一張長圖後載入。
+- 不再只顯示第 1 頁。
 
 注意事項：
 
@@ -180,6 +185,7 @@ IP 與 Port 預設來源：
 - 泡泡右鍵：刪除泡泡
 - 載入規格後會依 `EQUIP` 自動套色
 - 載入規格後若資料庫 PDF 路徑有資料，會自動載入第一筆 PDF
+- 載入多頁 PDF 時，會將所有頁面合併後顯示於同一工作區
 - `EQUIP` 色碼規則：
   - `CMM`：綠色
   - `PM`：黃色
