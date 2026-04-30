@@ -161,6 +161,17 @@ IP 與 Port 預設來源：
 
 若之後要改成其他位址，例如 `10.1.1.20`，只要修改這個值即可。
 
+## GitHub 上傳
+
+若要將此資料夾獨立上傳為單獨的 GitHub repository，建議至少忽略以下內容：
+
+- `.vs/`
+- `publish/`
+- `DrawingTagWeb/bin/`
+- `DrawingTagWeb/obj/`
+
+本專案根目錄已提供 `.gitignore`，可直接用於獨立 repo。
+
 ## 離線前端相依檔
 
 請放入 `DrawingTagWeb/wwwroot/lib`：

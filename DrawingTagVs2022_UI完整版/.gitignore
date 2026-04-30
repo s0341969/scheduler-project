@@ -1,0 +1,9 @@
+.vs/
+publish/
+
+DrawingTagWeb/bin/
+DrawingTagWeb/obj/
+
+*.user
+*.suo
+*.cache
