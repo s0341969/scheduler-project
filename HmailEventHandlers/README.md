@@ -15,6 +15,22 @@
    - 中風險：標記 `[疑似詐騙]`、插入橘色警告。
    - 低風險：只寫 Log。
 
+## 內建與外部規則分工
+
+2026-05-12 起，系統不再內建任何特定高風險網域。
+
+目前分工如下：
+
+- 程式內建保留：
+  - 高風險特殊 Pattern：`#@`、`//#`
+  - URL 特徵：`http://`、`https://`
+  - 中風險關鍵字備援：`GetDefaultMediumRiskKeywords()`
+- 外部文字檔管理：
+  - `HighRisk_Domains.txt`：人工維護的高風險網域
+  - `AutoBlock_Domain.txt`：系統自動累積的封鎖網域
+
+這樣做的目的是避免解除某個網域時，還要同步修改 `EventHandlers.vbs` 與 `HighRisk_Domains.txt`，降低雙重維護風險。
+
 ## 重要外部規則檔
 
 - `White_Domain.txt`
