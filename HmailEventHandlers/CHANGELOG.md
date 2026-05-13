@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-05-13 13:15
+
+- 修正 `Evidence` 與實際評分來源不一致的問題。
+- `Evidence` 現在若無法直接在原始 `Subject/Body/HTMLBody` 回推，會改從實際評分用的 `MailBodyText` 顯示 `NormalizedScanText` 片段。
+- 避免 `Mail Security [高風險詐騙] Notice` 明明有 `Reason` 命中，但 `Evidence` 全部顯示 `Not found`。
+
 ## 2026-05-13 00:10
 
 - 在 `Mail Security [高風險詐騙] Notice` 新增 `Evidence` 欄位，顯示每個 `RiskReason` 命中的欄位與前後文片段。
