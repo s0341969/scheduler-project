@@ -15,6 +15,18 @@
    - 中風險：標記 `[疑似詐騙]`、插入橘色警告。
    - 低風險：只寫 Log。
 
+## MIS 通知 Evidence 顯示
+
+高風險通知信 `Mail Security [高風險詐騙] Notice` 與附件 `Mail Security - Suspected Phishing Email Sample` 會在 `Reason` 下方額外顯示 `Evidence`。
+
+`Evidence` 內容會依 `RiskReason` 逐項回頭檢查：
+
+- `Subject`
+- `Body`
+- `HTMLBody`
+
+並顯示第一個命中的欄位名稱與前後文片段，方便判斷像 `firebaseapp.com` 這類網域是藏在可見文字、回覆鏈，還是 HTML 原始碼的 `href/src` 之中。
+
 ## 內建與外部規則分工
 
 2026-05-12 起，系統不再內建任何特定高風險網域。

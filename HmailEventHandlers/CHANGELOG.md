@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-05-13 00:10
+
+- 在 `Mail Security [高風險詐騙] Notice` 新增 `Evidence` 欄位，顯示每個 `RiskReason` 命中的欄位與前後文片段。
+- 在 `Mail Security - Suspected Phishing Email Sample` 同步新增 `Evidence` 欄位。
+- 新增 `BuildRiskEvidenceText` 等 helper，從 `Subject`、`Body`、`HTMLBody` 回推命中位置，協助追查像 `firebaseapp.com` 這類隱藏於 HTML 原始碼或回覆鏈中的內容。
+
 ## 2026-05-12 16:05
 
 - 調整高風險網域維護策略，移除 `GetDefaultHighRiskDomains()` 內所有寫死的特定網域。
