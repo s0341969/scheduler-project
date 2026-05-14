@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2026-05-14 00:20
+
+- 在 `Mail Security [高風險詐騙] Notice` 與 `Mail Security - Suspected Phishing Email Sample` 新增 `ScriptVersion`、`BuildTime`、`EvidenceMode`。
+- 用於快速判斷 hMailServer 主機目前實際執行的腳本版本，避免誤把舊通知結果當成新版本行為。
+
 ## 2026-05-13 13:15
 
 - 修正 `Evidence` 與實際評分來源不一致的問題。

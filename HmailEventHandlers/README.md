@@ -29,6 +29,14 @@
 
 若原始 `Subject/Body/HTMLBody` 無法直接回推，但規則確實是在評分用的合併掃描字串中命中，則會改顯示 `NormalizedScanText` 片段，而不是只顯示 `Not found`。
 
+另外通知信與樣本附件都會顯示：
+
+- `ScriptVersion`
+- `BuildTime`
+- `EvidenceMode`
+
+用途是讓收件人直接判斷目前主機執行的 `EventHandlers.vbs` 是否為最新部署版本。
+
 ## 內建與外部規則分工
 
 2026-05-12 起，系統不再內建任何特定高風險網域。
