@@ -46,6 +46,8 @@ dotnet run
 
 - 操作手冊：`操作手冊.md`
 - 截圖版操作手冊：`操作手冊_截圖版.md`
+- 專案簡報：`課堂打卡系統_專案簡報.pptx`
+- 簡報產生腳本：`tools/generate_project_presentation.py`
 
 ## 學生登入
 
