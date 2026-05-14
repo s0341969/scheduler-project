@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-05-14 15:10
+
+- 徹底重構 `Evidence` 產生方式，改為在 `GetPhishingRiskLevel()` 評分當下直接依命中項產生。
+- 移除通知階段的二次回推 Evidence 邏輯，避免 `Reason` 與 `Evidence` 使用不同資料來源。
+- 修正 `Reason` 已命中，但 `Evidence` 仍顯示 `Not found in Subject/Body/HTMLBody excerpt.` 的設計缺陷。
+
 ## 2026-05-14 00:20
 
 - 在 `Mail Security [高風險詐騙] Notice` 與 `Mail Security - Suspected Phishing Email Sample` 新增 `ScriptVersion`、`BuildTime`、`EvidenceMode`。
