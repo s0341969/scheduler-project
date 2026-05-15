@@ -19,13 +19,15 @@
 
 高風險通知信 `Mail Security [高風險詐騙] Notice` 與附件 `Mail Security - Suspected Phishing Email Sample` 會在 `Reason` 下方額外顯示 `Evidence`。
 
-`Evidence` 現在不是在通知階段回推，而是直接在評分階段依照同一份 `MailBodyText` 掃描字串產生。
+`Evidence` 現在不是在通知階段回推，而是直接在評分階段依照同一份 `MailBodyText` 掃描字串、於命中當下立即擷取片段。
 
 這代表：
 
 - `Reason` 與 `Evidence` 使用同一份命中資料
 - 只要 `Reason` 命中，`Evidence` 就必須同步顯示對應的 `NormalizedScanText` 片段
 - 不再允許出現「Reason 命中，但 Evidence 全部找不到」的邏輯分叉
+
+`EvidenceMode=CaptureSnippetAtScoringTime` 代表目前通知採用這個設計。
 
 另外通知信與樣本附件都會顯示：
 

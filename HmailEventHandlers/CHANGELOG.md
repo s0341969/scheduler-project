@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2026-05-15 00:20
+
+- 將 `EvidenceMode` 調整為 `CaptureSnippetAtScoringTime`。
+- `AutoBlockDomain`、`HighRiskPattern`、`MediumKeywords`、`URL` 的 evidence 改成在實際命中當下立即擷取片段，不再事後重新搜尋。
+- 補強 `NormalizeText()`，清除 `Null / CR / LF / Tab`，降低郵件內容控制字元造成 snippet 顯示失敗的風險。
+
 ## 2026-05-14 15:10
 
 - 徹底重構 `Evidence` 產生方式，改為在 `GetPhishingRiskLevel()` 評分當下直接依命中項產生。
