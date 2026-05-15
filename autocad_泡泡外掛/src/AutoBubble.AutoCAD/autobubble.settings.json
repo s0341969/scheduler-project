@@ -1,0 +1,10 @@
+{
+  "BubbleLayerName": "AUTOBUBBLE",
+  "BubbleColorIndex": 1,
+  "RadiusPaddingFactor": 0.35,
+  "MinimumRadius": 1.5,
+  "MaximumRadius": 100.0,
+  "MinimumValue": 1,
+  "MaximumValue": 9999,
+  "AcceptOnlyPureNumber": true
+}

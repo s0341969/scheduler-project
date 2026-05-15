@@ -1,0 +1,31 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoBubble.Core", "src\AutoBubble.Core\AutoBubble.Core.csproj", "{8A8E01B6-F68D-476E-B28B-70DCFF0E0CA1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AutoBubble.AutoCAD", "src\AutoBubble.AutoCAD\AutoBubble.AutoCAD.csproj", "{908347C0-CCDB-4253-900E-59BA1A58A764}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8A8E01B6-F68D-476E-B28B-70DCFF0E0CA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A8E01B6-F68D-476E-B28B-70DCFF0E0CA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A8E01B6-F68D-476E-B28B-70DCFF0E0CA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A8E01B6-F68D-476E-B28B-70DCFF0E0CA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{908347C0-CCDB-4253-900E-59BA1A58A764}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{908347C0-CCDB-4253-900E-59BA1A58A764}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{908347C0-CCDB-4253-900E-59BA1A58A764}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{908347C0-CCDB-4253-900E-59BA1A58A764}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {55A01514-07BA-42F6-BD7E-7BC8806B17E5}
+	EndGlobalSection
+EndGlobal

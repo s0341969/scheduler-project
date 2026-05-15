@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <RootNamespace>AutoBubble.AutoCAD</RootNamespace>
+    <AssemblyName>AutoBubble.AutoCAD</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AutoCadManagedDllDir Condition="'$(AutoCadManagedDllDir)' == ''">$(ACAD_MANAGED_DLL_DIR)</AutoCadManagedDllDir>
+    <AutoCadManagedDllDir Condition="'$(AutoCadManagedDllDir)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2025')">C:\Program Files\Autodesk\AutoCAD 2025</AutoCadManagedDllDir>
+    <AutoCadManagedDllDir Condition="'$(AutoCadManagedDllDir)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2024')">C:\Program Files\Autodesk\AutoCAD 2024</AutoCadManagedDllDir>
+    <AutoCadManagedDllDir Condition="'$(AutoCadManagedDllDir)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2023')">C:\Program Files\Autodesk\AutoCAD 2023</AutoCadManagedDllDir>
+    <AutoCadManagedDllDir Condition="'$(AutoCadManagedDllDir)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2022')">C:\Program Files\Autodesk\AutoCAD 2022</AutoCadManagedDllDir>
+    <AutoCadManagedDllDir Condition="'$(AutoCadManagedDllDir)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2021')">C:\Program Files\Autodesk\AutoCAD 2021</AutoCadManagedDllDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AutoBubble.Core\AutoBubble.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="AcDbMgd">
+      <HintPath>$(AutoCadManagedDllDir)\AcDbMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="AcMgd">
+      <HintPath>$(AutoCadManagedDllDir)\AcMgd.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="autobubble.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="EnsureAutoCadReferences" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(AutoCadManagedDllDir)\AcDbMgd.dll')" Text="AcDbMgd.dll not found. Set AutoCadManagedDllDir or ACAD_MANAGED_DLL_DIR to your AutoCAD installation folder." />
+    <Error Condition="!Exists('$(AutoCadManagedDllDir)\AcMgd.dll')" Text="AcMgd.dll not found. Set AutoCadManagedDllDir or ACAD_MANAGED_DLL_DIR to your AutoCAD installation folder." />
+  </Target>
+</Project>
