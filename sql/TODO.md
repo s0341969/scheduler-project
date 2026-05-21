@@ -1,5 +1,9 @@
 # TODO
 
+- [x] 補一份 `ML/APS` 導入評估文件，先做方案評估、不進正式執行面（2026-05-21）。
+- [ ] 若後續確認要推進，先整理訓練資料欄位清單與資料品質檢查規格。
+- [ ] 若後續確認要推進，先做工時預測與延誤風險的離線 PoC，不直接接管正式排程。
+
 - [x] 新增 `agent/SqlMaintenanceAgent.sln` 與 `SqlMaintenanceAgent.App`（.NET 8 CLI REPL）。
 - [x] 新增 `SqlGuard`（唯讀阻擋、危險關鍵字阻擋、無 WHERE UPDATE/DELETE 阻擋）。
 - [x] 新增 `LlmClient`（LM Studio API + retry/timeout）。
