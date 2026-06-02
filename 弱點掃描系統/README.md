@@ -29,6 +29,10 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 docker compose up -d --build
 ```
 
+或直接執行一鍵啟動檔：
+- PowerShell：`G:\codex_pg\弱點掃描系統\start_system.ps1`
+- 雙擊版：`G:\codex_pg\弱點掃描系統\start_system.bat`
+
 ### 驗證
 - 健康檢查：`GET http://localhost:8000/healthz`
 - Swagger：`GET http://localhost:8000/docs`
