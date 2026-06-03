@@ -37,6 +37,18 @@ async def _run_additive_schema_updates(connection) -> None:
     )
     await connection.exec_driver_sql(
         """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS default_scan_profile VARCHAR(50)
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS template_key VARCHAR(50)
+        """
+    )
+    await connection.exec_driver_sql(
+        """
         UPDATE assets
         SET device_type = 'Computer'
         WHERE device_type IS NULL OR device_type = ''
@@ -44,8 +56,46 @@ async def _run_additive_schema_updates(connection) -> None:
     )
     await connection.exec_driver_sql(
         """
+        UPDATE assets
+        SET default_scan_profile = 'standard'
+        WHERE default_scan_profile IS NULL OR default_scan_profile = '' OR default_scan_profile = 'full'
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        UPDATE assets
+        SET template_key = CASE
+            WHEN device_type = 'Firewall' THEN 'firewall'
+            WHEN device_type IN ('Switch', 'Router', 'NetworkDevice') THEN 'switch'
+            WHEN device_type = 'NAS' THEN 'nas'
+            ELSE 'generic'
+        END
+        WHERE template_key IS NULL OR template_key = ''
+        """
+    )
+    await connection.exec_driver_sql(
+        """
         ALTER TABLE scan_tasks
         ADD COLUMN IF NOT EXISTS scan_summary JSONB
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE scan_tasks
+        ADD COLUMN IF NOT EXISTS device_template VARCHAR(50)
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE scan_tasks
+        ADD COLUMN IF NOT EXISTS scan_config JSONB
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        UPDATE scan_tasks
+        SET scan_profile = 'standard'
+        WHERE scan_profile IS NULL OR scan_profile = '' OR scan_profile = 'full'
         """
     )
 

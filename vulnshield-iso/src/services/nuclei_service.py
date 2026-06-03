@@ -13,9 +13,13 @@ class NucleiService(BaseScanner):
     async def scan(self, target: str, **kwargs) -> List[Dict[str, Any]]:
         logger.info(f'Starting Nuclei scan on target: {target}')
         try:
-            # -jsonl: output in JSON lines format
-            cmd = [self.binary_path, '-jsonl', target]
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+            scan_tags = kwargs.get('scan_tags') or []
+            timeout = int(kwargs.get('timeout', 600))
+            cmd = [self.binary_path, '-jsonl', '-target', target]
+            if scan_tags:
+                cmd.extend(['-tags', ','.join(scan_tags)])
+
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             
             if result.returncode != 0:
                 logger.error(f'Nuclei failed: {result.stderr}')
@@ -24,7 +28,9 @@ class NucleiService(BaseScanner):
             findings = []
             for line in result.stdout.splitlines():
                 if line.strip():
-                    findings.append(json.loads(line))
+                    payload = json.loads(line)
+                    payload['scanner-command'] = cmd
+                    findings.append(payload)
             
             return findings
         except Exception as e:

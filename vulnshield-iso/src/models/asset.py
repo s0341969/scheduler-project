@@ -33,6 +33,8 @@ class Asset(Base):
     owner_id = Column(Integer, ForeignKey('users.id'))
     env = Column(Enum(EnvType), nullable=False)
     device_type = Column(String(50), nullable=False, default=DeviceType.COMPUTER.value)
+    default_scan_profile = Column(String(50), nullable=False, default='standard')
+    template_key = Column(String(50), nullable=False, default='generic')
     location = Column(String(255), nullable=True)
     tags = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)

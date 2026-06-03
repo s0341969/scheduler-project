@@ -22,9 +22,14 @@ class ScanSummaryTests(unittest.TestCase):
         self.assertEqual(services[0]['service'], 'ssh')
         self.assertIn('OpenSSH', services[0]['product'])
 
-    def test_summarize_scan_results_splits_vulns_and_info(self):
+    def test_summarize_scan_results_layers_results(self):
         summary = summarize_scan_results(
-            nmap_results=[],
+            nmap_results=[
+                {
+                    'type': 'service_discovery',
+                    'output': '443/tcp open  https   nginx 1.24.0\n3389/tcp open  ms-wbt-server\n',
+                }
+            ],
             nuclei_results=[
                 {
                     'template-id': 'ssl-misconfig',
@@ -34,6 +39,16 @@ class ScanSummaryTests(unittest.TestCase):
                         'name': 'TLS Weak Cipher',
                         'severity': 'medium',
                         'description': 'Weak cipher suites detected.',
+                    },
+                },
+                {
+                    'template-id': 'security-header-misconfig',
+                    'matcher-name': 'http',
+                    'matched-at': 'https://fw.example.com',
+                    'info': {
+                        'name': 'Missing Security Header',
+                        'severity': 'medium',
+                        'description': 'Security header is missing.',
                     },
                 },
                 {
@@ -47,11 +62,18 @@ class ScanSummaryTests(unittest.TestCase):
                     },
                 },
             ],
+            profile_key='web_only',
+            device_template_key='web_server',
         )
 
-        self.assertEqual(summary['vulnerability_count'], 1)
+        self.assertEqual(summary['profile_key'], 'web_only')
+        self.assertEqual(summary['device_template_key'], 'web_server')
+        self.assertEqual(summary['certificate_risk_count'], 1)
+        self.assertEqual(summary['misconfiguration_count'], 1)
+        self.assertGreaterEqual(summary['exposure_count'], 1)
         self.assertEqual(summary['informational_count'], 1)
-        self.assertEqual(summary['vulnerabilities'][0]['title'], 'TLS Weak Cipher')
+        self.assertEqual(summary['certificate_risks'][0]['title'], 'TLS Weak Cipher')
+        self.assertEqual(summary['misconfigurations'][0]['title'], 'Missing Security Header')
         self.assertEqual(summary['informational'][0]['title'], 'Technology Detection')
 
 

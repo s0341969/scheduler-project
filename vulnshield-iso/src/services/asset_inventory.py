@@ -7,6 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.asset import Asset, DeviceType
 from src.models.scan import ScanTask
 from src.models.vulnerability import Finding, FindingStatus
+from src.services.scan_catalog import (
+    get_device_template_definition,
+    get_scan_profile_definition,
+    normalize_device_template_key,
+    normalize_scan_profile_key,
+    recommended_template_for_device_type,
+)
 
 
 def normalize_tags(tags: Iterable[str] | None) -> str | None:
@@ -40,6 +47,17 @@ def ensure_device_type(raw_device_type: str | None) -> DeviceType:
             if device_type.value == raw_device_type:
                 return device_type
     return DeviceType.COMPUTER
+
+
+def ensure_scan_profile(raw_profile: str | None) -> str:
+    return normalize_scan_profile_key(raw_profile)
+
+
+def ensure_template_key(raw_template: str | None, raw_device_type: str | None = None) -> str:
+    normalized = normalize_device_template_key(raw_template)
+    if normalized != 'generic' or raw_template:
+        return normalized
+    return recommended_template_for_device_type(raw_device_type)
 
 
 def latest_scan_timestamp(scan_task: ScanTask | None) -> datetime | None:
@@ -115,6 +133,8 @@ def asset_to_response(asset: Asset, summary: dict[str, object] | None = None) ->
         'owner_id': asset.owner_id,
         'env': asset.env,
         'device_type': ensure_device_type(asset.device_type),
+        'default_scan_profile': ensure_scan_profile(getattr(asset, 'default_scan_profile', None)),
+        'template_key': ensure_template_key(getattr(asset, 'template_key', None), asset.device_type),
         'location': asset.location,
         'tags': parse_tags(asset.tags),
         'notes': asset.notes,
@@ -127,4 +147,6 @@ def asset_to_response(asset: Asset, summary: dict[str, object] | None = None) ->
         'total_findings': int(summary.get('total_findings', 0) or 0),
         'open_findings': int(summary.get('open_findings', 0) or 0),
         'high_risk_findings': int(summary.get('high_risk_findings', 0) or 0),
+        'default_scan_profile_label': get_scan_profile_definition(getattr(asset, 'default_scan_profile', None)).label,
+        'template_label': get_device_template_definition(getattr(asset, 'template_key', None) or recommended_template_for_device_type(asset.device_type)).label,
     }

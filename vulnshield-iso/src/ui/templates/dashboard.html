@@ -86,16 +86,7 @@
                             <div class="split-grid">
                                 <label>
                                     <span>設備類型</span>
-                                    <select name="device_type">
-                                        <option value="Computer">電腦</option>
-                                        <option value="Server">伺服器</option>
-                                        <option value="Firewall">防火牆</option>
-                                        <option value="Router">路由器</option>
-                                        <option value="Switch">交換器</option>
-                                        <option value="NAS">NAS</option>
-                                        <option value="NetworkDevice">其他網通設備</option>
-                                        <option value="Other">其他</option>
-                                    </select>
+                                    <select name="device_type" id="device-type-select"></select>
                                 </label>
                                 <label>
                                     <span>環境</span>
@@ -114,6 +105,16 @@
                                 <label>
                                     <span>位置</span>
                                     <input name="location" type="text" placeholder="台北總部 / 機房 A">
+                                </label>
+                            </div>
+                            <div class="split-grid">
+                                <label>
+                                    <span>預設掃描模式</span>
+                                    <select name="default_scan_profile" id="asset-profile-select"></select>
+                                </label>
+                                <label>
+                                    <span>設備模板</span>
+                                    <select name="template_key" id="asset-template-select"></select>
                                 </label>
                             </div>
                             <label>
@@ -137,14 +138,6 @@
                             <input id="asset-search" type="search" placeholder="搜尋設備名稱、IP、標籤">
                             <select id="asset-type-filter">
                                 <option value="">全部類型</option>
-                                <option value="Computer">電腦</option>
-                                <option value="Server">伺服器</option>
-                                <option value="Firewall">防火牆</option>
-                                <option value="Router">路由器</option>
-                                <option value="Switch">交換器</option>
-                                <option value="NAS">NAS</option>
-                                <option value="NetworkDevice">其他網通設備</option>
-                                <option value="Other">其他</option>
                             </select>
                         </div>
                         <div class="device-split">

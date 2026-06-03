@@ -9,6 +9,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 內建設備管理頁：`GET /dashboard`
 - Dashboard 已拆成三個工作分頁：`設備`、`掃描`、`報告`
 - 設備導向資產模型，支援設備類型、位置、標籤與備註
+- 第一階段商用化骨架已完成：`scan_profile`、設備模板、掃描分層摘要、全域掃描策略 API
 - Nmap + Nuclei 非同步掃描流程
 - 弱點風險分數：`CVSS/Severity × Asset Criticality`
 - Finding 狀態機：`Open -> Acknowledged -> Fixed -> Verified`，並保留 `Risk-Accepted`
@@ -94,13 +95,25 @@ docker compose -p vulnshield-iso up -d --build
 - `POST /scans/trigger`
 - 參數：
   - `asset_id`
-  - `scan_profile`
+  - `scan_profile`：`quick` / `standard` / `aggressive` / `web_only` / `network_only`
+  - `device_template`：可選，覆蓋設備預設模板
 
 或使用設備導向入口：
 - `POST /assets/{asset_id}/scan`
+  - Body 可選：
+```json
+{
+  "scan_profile": "quick",
+  "device_template": "generic"
+}
+```
 
 ### 4. 查詢掃描狀態
 - `GET /scans/{task_id}/status`
+
+掃描策略與模板目錄：
+- `GET /scans/profiles`
+- `GET /scans/templates`
 
 設備專用：
 - `GET /assets/{asset_id}/scans`
@@ -130,21 +143,39 @@ docker compose -p vulnshield-iso up -d --build
 ## 設備管理頁使用方式
 1. 開啟 `http://localhost:8000/dashboard`
 2. 使用 `.env` 內預設帳號密碼登入
-3. 在 `設備` 分頁左側建立設備，填入設備類型、目標位址、標籤與位置
+3. 在 `設備` 分頁左側建立設備，填入設備類型、目標位址、標籤、預設掃描模式與設備模板
 4. 在 `設備` 分頁的清單選取目標設備
-5. 在設備詳情頁按 `執行弱點掃描`
-6. 切到 `掃描` 分頁查看全域掃描任務歷史、狀態與每次掃描的內容摘要
-7. 切到 `報告` 分頁查看整體風險統計、高風險設備與掃描面向彙總
+5. 在設備詳情頁可改選當次掃描模式，再按 `執行弱點掃描`
+6. 切到 `掃描` 分頁查看全域掃描任務歷史、狀態、掃描引擎、服務發現、漏洞、錯誤設定、憑證風險與管理面曝露
+7. 切到 `報告` 分頁查看整體風險統計、高風險設備、掃描層次彙總與 profile 分布基礎資料
 
 ## 目前行為重點
+- `scan_profile` 目前支援：
+  - `quick`
+  - `standard`
+  - `aggressive`
+  - `web_only`
+  - `network_only`
+- 設備模板目前支援：
+  - `generic`
+  - `firewall`
+  - `switch`
+  - `nas`
+  - `web_server`
 - 若 Nuclei severity 是文字等級（如 `critical`、`medium`），系統會先正規化為數值。
 - 相同弱點會以 `template-id | matcher-name | info.name` 組成穩定 key，避免每次掃描都新增重複 `Vulnerability`。
 - 相同 `asset + vulnerability` 會更新既有 `Finding`，而不是無限制重複新增。
 - 已驗證關閉的 finding 若在後續掃描再次出現，會重新回到 `Open`。
 - `Asset` 已明確作為設備 inventory 使用，並支援依設備查看最近掃描、風險摘要與設備專屬 findings。
 - Celery worker 啟動時會主動匯入 `src.worker.tasks`，避免掃描任務因未註冊而停在 `Pending`。
-- 掃描摘要會將 Nmap 結果整理成服務清單，並把 Nuclei 結果分成「漏洞」與「資訊/風險提示」兩類。
-- Dashboard 目前採三分頁工作台：設備頁做 inventory 與單設備掃描，掃描頁做全域任務檢視，報告頁做風險與掃描面向彙總。
+- 掃描摘要目前分成：
+  - `服務發現`
+  - `漏洞發現`
+  - `錯誤設定`
+  - `憑證風險`
+  - `曝露管理介面`
+  - `資訊 / 風險提示`
+- Dashboard 目前採三分頁工作台：設備頁做 inventory 與單設備掃描策略、掃描頁做全域任務檢視，報告頁做風險與掃描面向彙總。
 
 ## 注意事項
 - `DEFAULT_ADMIN_PASSWORD` 僅適合首次啟動，正式環境必須立即更換。
@@ -153,3 +184,4 @@ docker compose -p vulnshield-iso up -d --build
 - `Dockerfile` 已避免使用遠端 shell install script 安裝 `Nuclei`，改為固定版本 binary，以降低建置失敗與供應鏈風險。
 - `API` 啟動時會重試資料庫初始化；即使 PostgreSQL 比 API 慢幾秒起來，也不會立刻因一次拒絕連線就退出。
 - 目前設備管理頁使用瀏覽器本地儲存 `access_token`，適合內部 PoC 與單機部署；若要正式上線，建議後續改為更完整的 session / 前端權杖保護策略。
+- 目前仍是非認證掃描架構；Windows 帳密、Linux SSH、SNMP / 網通設備帳密將作為後續階段實作。

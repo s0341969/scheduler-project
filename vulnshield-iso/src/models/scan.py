@@ -15,12 +15,14 @@ class ScanTask(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     asset_id = Column(Integer, ForeignKey('assets.id'), nullable=False)
-    scan_profile = Column(String, default='full')
+    scan_profile = Column(String, default='standard')
+    device_template = Column(String(50), nullable=True)
     status = Column(Enum(ScanStatus), default=ScanStatus.PENDING)
     started_at = Column(DateTime(timezone=True), nullable=True)
     finished_at = Column(DateTime(timezone=True), nullable=True)
     raw_output_path = Column(String, nullable=True)
     scan_summary = Column(JSON, nullable=True)
+    scan_config = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
 
     asset = relationship('Asset', back_populates='scan_tasks')

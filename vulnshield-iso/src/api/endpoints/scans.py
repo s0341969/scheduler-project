@@ -7,7 +7,15 @@ from src.api.deps import get_db, require_roles
 from src.models.asset import Asset
 from src.models.scan import ScanTask
 from src.models.user import User, UserRole
-from src.schemas.scan import ScanResponse, ScanTrigger
+from src.schemas.scan import (
+    DeviceTemplateDescriptor,
+    ScanProfileDescriptor,
+    ScanResponse,
+    ScanTrigger,
+)
+from src.services.asset_inventory import ensure_scan_profile, ensure_template_key
+from src.services.scan_catalog import list_device_templates, list_scan_profiles
+from src.services.scan_summary import normalize_scan_summary_payload
 from src.worker.tasks import execute_scan
 
 
@@ -22,14 +30,34 @@ def serialize_scan(task: ScanTask) -> ScanResponse:
         asset_name=asset.name if asset else None,
         asset_target=asset.target if asset else None,
         asset_device_type=asset.device_type if asset else None,
-        scan_profile=task.scan_profile,
+        scan_profile=ensure_scan_profile(task.scan_profile),
+        device_template=ensure_template_key(task.device_template, asset.device_type if asset else None),
         status=task.status,
         started_at=task.started_at,
         finished_at=task.finished_at,
         raw_output_path=task.raw_output_path,
-        scan_summary=task.scan_summary,
+        scan_summary=normalize_scan_summary_payload(
+            task.scan_summary,
+            profile_key=ensure_scan_profile(task.scan_profile),
+            device_template_key=ensure_template_key(task.device_template, asset.device_type if asset else None),
+        ),
+        scan_config=task.scan_config,
         error_message=task.error_message,
     )
+
+
+@router.get('/profiles', response_model=list[ScanProfileDescriptor])
+async def get_scan_profiles(
+    _: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR)),
+):
+    return list_scan_profiles()
+
+
+@router.get('/templates', response_model=list[DeviceTemplateDescriptor])
+async def get_device_templates(
+    _: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR)),
+):
+    return list_device_templates()
 
 
 @router.get('', response_model=list[ScanResponse])
@@ -63,7 +91,11 @@ async def trigger_scan(
     if current_user.role == UserRole.ANALYST and asset.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法掃描他人的設備')
 
-    new_task = ScanTask(asset_id=trigger.asset_id, scan_profile=trigger.scan_profile)
+    new_task = ScanTask(
+        asset_id=trigger.asset_id,
+        scan_profile=ensure_scan_profile(trigger.scan_profile),
+        device_template=ensure_template_key(trigger.device_template, asset.device_type),
+    )
     db.add(new_task)
     await db.commit()
     await db.refresh(new_task)

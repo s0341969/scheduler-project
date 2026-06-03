@@ -13,6 +13,8 @@ class AssetBase(BaseModel):
     criticality: int = Field(..., ge=1, le=5, example=5)
     env: EnvType
     device_type: DeviceType = DeviceType.COMPUTER
+    default_scan_profile: str = Field(default='standard', example='standard')
+    template_key: str | None = Field(default=None, example='firewall')
     location: Optional[str] = Field(default=None, example='台北總部機房')
     tags: list[str] = Field(default_factory=list, example=['總部', '外網設備'])
     notes: Optional[str] = Field(default=None, example='需於維護時段執行高強度掃描')
@@ -46,5 +48,7 @@ class AssetResponse(AssetBase):
     last_scan_id: Optional[int] = None
     last_scan_status: Optional[ScanStatus] = None
     last_scan_at: Optional[datetime] = None
+    default_scan_profile_label: str | None = None
+    template_label: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

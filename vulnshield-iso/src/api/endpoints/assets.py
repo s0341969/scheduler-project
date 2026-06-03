@@ -11,9 +11,17 @@ from src.models.scan import ScanTask
 from src.models.user import User, UserRole
 from src.models.vulnerability import Finding
 from src.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
-from src.schemas.scan import ScanResponse
+from src.schemas.scan import AssetScanRequest, ScanResponse
 from src.schemas.vulnerability import FindingDetailResponse
-from src.services.asset_inventory import asset_to_response, build_asset_summary_map, normalize_tags
+from src.services.asset_inventory import (
+    asset_to_response,
+    build_asset_summary_map,
+    ensure_scan_profile,
+    ensure_template_key,
+    normalize_tags,
+)
+from src.services.scan_catalog import recommended_profile_for_template, recommended_template_for_device_type
+from src.services.scan_summary import normalize_scan_summary_payload
 from src.worker.tasks import execute_scan
 
 
@@ -25,12 +33,18 @@ def serialize_asset_scan(task: ScanTask, asset: Asset | None = None) -> ScanResp
         asset_name=resolved_asset.name if resolved_asset else None,
         asset_target=resolved_asset.target if resolved_asset else None,
         asset_device_type=resolved_asset.device_type if resolved_asset else None,
-        scan_profile=task.scan_profile,
+        scan_profile=ensure_scan_profile(task.scan_profile),
+        device_template=ensure_template_key(task.device_template, resolved_asset.device_type if resolved_asset else None),
         status=task.status,
         started_at=task.started_at,
         finished_at=task.finished_at,
         raw_output_path=task.raw_output_path,
-        scan_summary=task.scan_summary,
+        scan_summary=normalize_scan_summary_payload(
+            task.scan_summary,
+            profile_key=ensure_scan_profile(task.scan_profile),
+            device_template_key=ensure_template_key(task.device_template, resolved_asset.device_type if resolved_asset else None),
+        ),
+        scan_config=task.scan_config,
         error_message=task.error_message,
     )
 
@@ -60,6 +74,10 @@ async def create_asset(
 
     payload = asset.model_dump()
     payload['device_type'] = payload['device_type'].value
+    payload['default_scan_profile'] = ensure_scan_profile(payload.get('default_scan_profile'))
+    payload['template_key'] = ensure_template_key(payload.get('template_key'), payload['device_type'])
+    if payload['default_scan_profile'] == 'standard' and asset.template_key is None:
+        payload['default_scan_profile'] = recommended_profile_for_template(payload['template_key'])
     payload['tags'] = normalize_tags(payload['tags'])
 
     new_asset = Asset(**payload)
@@ -109,6 +127,12 @@ async def update_asset(
     values = payload.model_dump(exclude_unset=True)
     if 'device_type' in values and values['device_type'] is not None:
         values['device_type'] = values['device_type'].value
+    if 'default_scan_profile' in values and values['default_scan_profile'] is not None:
+        values['default_scan_profile'] = ensure_scan_profile(values['default_scan_profile'])
+    if 'template_key' in values:
+        values['template_key'] = ensure_template_key(values['template_key'], values.get('device_type') or asset.device_type)
+    elif 'device_type' in values:
+        values['template_key'] = recommended_template_for_device_type(values['device_type'])
     if 'tags' in values:
         values['tags'] = normalize_tags(values['tags'])
 
@@ -124,11 +148,17 @@ async def update_asset(
 @router.post('/{asset_id}/scan', response_model=ScanResponse, status_code=status.HTTP_202_ACCEPTED)
 async def trigger_asset_scan(
     asset_id: int,
+    payload: AssetScanRequest | None = None,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     asset = await get_accessible_asset(asset_id, db, current_user)
-    new_task = ScanTask(asset_id=asset.id, scan_profile='full')
+    requested_profile = ensure_scan_profile(payload.scan_profile if payload else getattr(asset, 'default_scan_profile', None))
+    requested_template = ensure_template_key(
+        payload.device_template if payload else getattr(asset, 'template_key', None),
+        asset.device_type,
+    )
+    new_task = ScanTask(asset_id=asset.id, scan_profile=requested_profile, device_template=requested_template)
     db.add(new_task)
     await db.commit()
     await db.refresh(new_task)

@@ -105,6 +105,7 @@ textarea {
 .helper-row,
 .filter-row,
 .detail-actions,
+.inline-action-group,
 .asset-card-head,
 .finding-head,
 .scan-head {
@@ -358,6 +359,14 @@ textarea {
     gap: 12px;
 }
 
+.inline-action-group {
+    flex-wrap: wrap;
+}
+
+.inline-action-group select {
+    min-width: 220px;
+}
+
 .reports-layout {
     grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
 }
@@ -446,7 +455,8 @@ textarea {
     .metrics,
     .split-grid,
     .detail-grid,
-    .reports-layout + .panel .detail-sections {
+    .reports-layout + .panel .detail-sections,
+    .summary-grid {
         grid-template-columns: 1fr;
     }
 

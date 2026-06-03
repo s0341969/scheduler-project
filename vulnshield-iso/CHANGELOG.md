@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-06-03
+- 完成商用化第一階段骨架：新增 `scan_profile`（`quick` / `standard` / `aggressive` / `web_only` / `network_only`）、設備模板（`generic` / `firewall` / `switch` / `nas` / `web_server`），並讓設備與掃描任務保存預設策略與實際執行設定
+- 新增掃描策略 API：`GET /scans/profiles` 與 `GET /scans/templates`
+- 強化掃描執行邏輯：Nmap / Nuclei 會依 profile 與 template 決定參數、tags 與執行上限，並把 resolved `scan_config` 寫回掃描任務
+- 強化掃描摘要分層：除了原本的服務與漏洞，新增 `錯誤設定`、`憑證風險`、`曝露管理介面` 三類，並補上舊摘要格式相容層
+- 強化 dashboard：設備頁可設定預設掃描模式與模板、設備詳情可選當次掃描模式、掃描頁可顯示多層次結果、報告頁可彙總 profile 分布與各掃描面向數量
 - 優化 dashboard 為三分頁工作台：新增 `設備`、`掃描`、`報告` 分頁，將設備建檔、全域掃描檢視與報告摘要拆開呈現
 - 新增 `GET /scans` 全域掃描任務 API，供掃描分頁直接顯示任務狀態、設備名稱、目標位址與掃描摘要
 - 強化報告分頁：新增掃描面向彙總，可直接查看已完成/待處理/失敗掃描數，以及服務、漏洞與資訊提示的累計數量

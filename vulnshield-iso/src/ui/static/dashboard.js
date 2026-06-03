@@ -34,6 +34,9 @@ const assetTypeFilter = document.getElementById('asset-type-filter');
 const scanSearch = document.getElementById('scan-search');
 const scanStatusFilter = document.getElementById('scan-status-filter');
 const scanList = document.getElementById('scan-list');
+const deviceTypeSelect = document.getElementById('device-type-select');
+const assetProfileSelect = document.getElementById('asset-profile-select');
+const assetTemplateSelect = document.getElementById('asset-template-select');
 const reportSummary = document.getElementById('report-summary');
 const reportAssets = document.getElementById('report-assets');
 const reportSignals = document.getElementById('report-signals');
@@ -44,6 +47,21 @@ const refreshAllButton = document.getElementById('refresh-all');
 state.scans = [];
 state.report = null;
 state.activeTab = 'devices';
+state.catalog = {
+    profiles: [],
+    templates: [],
+};
+
+const deviceTypeToTemplate = {
+    Computer: 'generic',
+    Server: 'generic',
+    Firewall: 'firewall',
+    Router: 'switch',
+    Switch: 'switch',
+    NAS: 'nas',
+    NetworkDevice: 'switch',
+    Other: 'generic',
+};
 
 function showMessage(message) {
     window.alert(message);
@@ -63,6 +81,48 @@ function statusChip(status) {
                 ? 'warning'
                 : 'muted';
     return `<span class="status-chip ${className}">${normalized}</span>`;
+}
+
+function populateDeviceSelectors() {
+    deviceTypeSelect.innerHTML = Object.entries(deviceTypeLabels)
+        .map(([value, label]) => `<option value="${value}">${label}</option>`)
+        .join('');
+
+    assetTypeFilter.innerHTML = [
+        '<option value="">全部類型</option>',
+        ...Object.entries(deviceTypeLabels).map(([value, label]) => `<option value="${value}">${label}</option>`),
+    ].join('');
+}
+
+function profileLabel(profileKey) {
+    const profile = state.catalog.profiles.find((item) => item.key === profileKey);
+    return profile ? profile.label : profileKey;
+}
+
+function templateLabel(templateKey) {
+    const template = state.catalog.templates.find((item) => item.key === templateKey);
+    return template ? template.label : templateKey;
+}
+
+function populateProfileSelectors() {
+    assetProfileSelect.innerHTML = state.catalog.profiles
+        .map((profile) => `<option value="${profile.key}">${profile.label}</option>`)
+        .join('');
+    assetTemplateSelect.innerHTML = state.catalog.templates
+        .map((template) => `<option value="${template.key}">${template.label}</option>`)
+        .join('');
+}
+
+async function loadCatalog() {
+    if (!state.token) {
+        return;
+    }
+    const [profiles, templates] = await Promise.all([
+        apiRequest('/scans/profiles'),
+        apiRequest('/scans/templates'),
+    ]);
+    state.catalog = { profiles, templates };
+    populateProfileSelectors();
 }
 
 function formatDate(value) {
@@ -204,6 +264,8 @@ function renderAssets() {
                 <span class="pill">${deviceTypeLabels[asset.device_type] || asset.device_type}</span>
                 <span class="pill">${envLabels[asset.env] || asset.env}</span>
                 <span class="pill">重要度 ${asset.criticality}</span>
+                <span class="pill">${profileLabel(asset.default_scan_profile)}</span>
+                <span class="pill">${asset.template_label || templateLabel(asset.template_key)}</span>
             </div>
             <div class="asset-meta">
                 <span class="pill">未關閉 ${asset.open_findings}</span>
@@ -300,6 +362,45 @@ function scanCard(scan) {
         `).join('')
         : '<div class="empty-state">本次未命中漏洞模板。</div>';
 
+    const misconfigurationsHtml = summary?.misconfigurations?.length
+        ? summary.misconfigurations.map((signal) => `
+            <div class="signal-item">
+                <strong>${signal.title}</strong>
+                <p>${signal.description || '未提供描述'}</p>
+                <div class="pill-row">
+                    <span class="pill">Severity ${signal.severity}</span>
+                    ${signal.template_id ? `<span class="pill">${signal.template_id}</span>` : ''}
+                </div>
+            </div>
+        `).join('')
+        : '<div class="empty-state">本次未發現明確錯誤設定。</div>';
+
+    const certificateHtml = summary?.certificate_risks?.length
+        ? summary.certificate_risks.map((signal) => `
+            <div class="signal-item">
+                <strong>${signal.title}</strong>
+                <p>${signal.description || '未提供描述'}</p>
+                <div class="pill-row">
+                    <span class="pill">Severity ${signal.severity}</span>
+                    ${signal.template_id ? `<span class="pill">${signal.template_id}</span>` : ''}
+                </div>
+            </div>
+        `).join('')
+        : '<div class="empty-state">本次未發現憑證風險。</div>';
+
+    const exposureHtml = summary?.exposures?.length
+        ? summary.exposures.map((signal) => `
+            <div class="signal-item">
+                <strong>${signal.title}</strong>
+                <p>${signal.description || '未提供描述'}</p>
+                <div class="pill-row">
+                    <span class="pill">Severity ${signal.severity}</span>
+                    ${signal.matched_at ? `<span class="pill">${signal.matched_at}</span>` : ''}
+                </div>
+            </div>
+        `).join('')
+        : '<div class="empty-state">本次未發現額外曝露管理面。</div>';
+
     const infoHtml = summary?.informational?.length
         ? summary.informational.map((signal) => `
             <div class="signal-item">
@@ -324,11 +425,13 @@ function scanCard(scan) {
                 ${statusChip(scan.status)}
             </div>
             <div class="pill-row">
-                <span class="pill">Profile ${scan.scan_profile}</span>
+                <span class="pill">${summary?.profile_label || profileLabel(scan.scan_profile)}</span>
+                <span class="pill">${summary?.device_template_label || templateLabel(scan.device_template || 'generic')}</span>
                 ${scan.asset_device_type ? `<span class="pill">${deviceTypeLabels[scan.asset_device_type] || scan.asset_device_type}</span>` : ''}
                 <span class="pill">開始 ${formatDate(scan.started_at)}</span>
                 <span class="pill">結束 ${formatDate(scan.finished_at)}</span>
             </div>
+            ${scan.scan_config ? `<p class="scan-meta">範圍：${scan.scan_config.profile.label} / ${scan.scan_config.device_template.label}</p>` : ''}
             <p class="scan-meta">${scan.error_message || '目前無錯誤訊息。'}</p>
             <div class="summary-grid">
                 <section class="scan-summary-block">
@@ -342,6 +445,18 @@ function scanCard(scan) {
                 <section class="scan-summary-block">
                     <h4>哪些是漏洞</h4>
                     <div class="signal-list">${vulnerabilitiesHtml}</div>
+                </section>
+                <section class="scan-summary-block">
+                    <h4>哪些是錯誤設定</h4>
+                    <div class="signal-list">${misconfigurationsHtml}</div>
+                </section>
+                <section class="scan-summary-block">
+                    <h4>哪些是憑證風險</h4>
+                    <div class="signal-list">${certificateHtml}</div>
+                </section>
+                <section class="scan-summary-block">
+                    <h4>哪些是曝露管理介面</h4>
+                    <div class="signal-list">${exposureHtml}</div>
                 </section>
                 <section class="scan-summary-block">
                     <h4>哪些只是資訊或風險提示</h4>
@@ -428,6 +543,9 @@ function renderReports() {
         if (scan.scan_summary) {
             summary.services += scan.scan_summary.service_count || 0;
             summary.vulnerabilities += scan.scan_summary.vulnerability_count || 0;
+            summary.misconfigurations += scan.scan_summary.misconfiguration_count || 0;
+            summary.certificateRisks += scan.scan_summary.certificate_risk_count || 0;
+            summary.exposures += scan.scan_summary.exposure_count || 0;
             summary.informational += scan.scan_summary.informational_count || 0;
         }
         return summary;
@@ -435,6 +553,9 @@ function renderReports() {
         byStatus: {},
         services: 0,
         vulnerabilities: 0,
+        misconfigurations: 0,
+        certificateRisks: 0,
+        exposures: 0,
         informational: 0,
     });
 
@@ -458,6 +579,18 @@ function renderReports() {
         <article class="report-card">
             <span>漏洞訊號</span>
             <strong>${scanStats.vulnerabilities}</strong>
+        </article>
+        <article class="report-card">
+            <span>錯誤設定</span>
+            <strong>${scanStats.misconfigurations}</strong>
+        </article>
+        <article class="report-card">
+            <span>憑證風險</span>
+            <strong>${scanStats.certificateRisks}</strong>
+        </article>
+        <article class="report-card">
+            <span>管理面曝露</span>
+            <strong>${scanStats.exposures}</strong>
         </article>
         <article class="report-card">
             <span>資訊 / 風險提示</span>
@@ -488,7 +621,10 @@ function renderAssetDetail(asset, scans, findings) {
                     <h2>${asset.name}</h2>
                     <p class="subtle">${asset.target} ・ ${deviceTypeLabels[asset.device_type] || asset.device_type}</p>
                 </div>
-                <button id="run-scan" class="primary-button" type="button">執行弱點掃描</button>
+                <div class="inline-action-group">
+                    <select id="detail-scan-profile"></select>
+                    <button id="run-scan" class="primary-button" type="button">執行弱點掃描</button>
+                </div>
             </div>
 
             <div class="detail-grid">
@@ -503,6 +639,10 @@ function renderAssetDetail(asset, scans, findings) {
                 <article>
                     <h3>標籤</h3>
                     <p>${(asset.tags || []).join('、') || '未設定'}</p>
+                </article>
+                <article>
+                    <h3>掃描策略</h3>
+                    <p>${profileLabel(asset.default_scan_profile)} / ${asset.template_label || templateLabel(asset.template_key)}</p>
                 </article>
                 <article>
                     <h3>風險摘要</h3>
@@ -533,11 +673,23 @@ function renderAssetDetail(asset, scans, findings) {
         </div>
     `;
 
+    const detailProfileSelect = document.getElementById('detail-scan-profile');
+    detailProfileSelect.innerHTML = state.catalog.profiles
+        .map((profile) => `<option value="${profile.key}" ${profile.key === asset.default_scan_profile ? 'selected' : ''}>${profile.label}</option>`)
+        .join('');
+
     document.getElementById('run-scan').addEventListener('click', async () => {
         try {
-            const task = await apiRequest(`/assets/${asset.id}/scan`, { method: 'POST' });
+            const task = await apiRequest(`/assets/${asset.id}/scan`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    scan_profile: detailProfileSelect.value,
+                    device_template: asset.template_key,
+                }),
+            });
             showMessage(`已建立掃描任務 #${task.id}`);
-            await loadAssets();
+            await Promise.all([loadAssets(), loadScans(), loadReports()]);
             await loadAssetDetail(asset.id);
         } catch (error) {
             showMessage(error.message);
@@ -593,6 +745,7 @@ loginForm.addEventListener('submit', async (event) => {
     try {
         await login(String(formData.get('username') || ''), String(formData.get('password') || ''));
         await fetchCurrentUser();
+        await loadCatalog();
         await Promise.all([loadAssets(), loadScans(), loadReports()]);
         showMessage('登入成功。');
     } catch (error) {
@@ -615,6 +768,8 @@ assetForm.addEventListener('submit', async (event) => {
         criticality: Number(formData.get('criticality') || 3),
         env: String(formData.get('env') || 'Production'),
         device_type: String(formData.get('device_type') || 'Computer'),
+        default_scan_profile: String(formData.get('default_scan_profile') || 'standard'),
+        template_key: String(formData.get('template_key') || 'generic'),
         location: String(formData.get('location') || '').trim() || null,
         tags: String(formData.get('tags') || '')
             .split(',')
@@ -642,7 +797,7 @@ assetForm.addEventListener('submit', async (event) => {
 });
 
 refreshAllButton.addEventListener('click', () => {
-    Promise.all([loadAssets(), loadScans(), loadReports()]).catch((error) => showMessage(error.message));
+    Promise.all([loadCatalog(), loadAssets(), loadScans(), loadReports()]).catch((error) => showMessage(error.message));
 });
 
 logoutButton.addEventListener('click', logout);
@@ -654,12 +809,23 @@ navTabs.forEach((tab) => {
     tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
 });
 
+deviceTypeSelect.addEventListener('change', () => {
+    const recommendedTemplate = deviceTypeToTemplate[deviceTypeSelect.value] || 'generic';
+    assetTemplateSelect.value = recommendedTemplate;
+    const matchedTemplate = state.catalog.templates.find((template) => template.key === recommendedTemplate);
+    if (matchedTemplate) {
+        assetProfileSelect.value = matchedTemplate.recommended_profile;
+    }
+});
+
 (async function bootstrap() {
+    populateDeviceSelectors();
     if (!state.token) {
         return;
     }
     try {
         await fetchCurrentUser();
+        await loadCatalog();
         await Promise.all([loadAssets(), loadScans(), loadReports()]);
     } catch (error) {
         logout();
