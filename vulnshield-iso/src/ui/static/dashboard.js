@@ -24,7 +24,6 @@ const envLabels = {
 
 const loginForm = document.getElementById('login-form');
 const assetForm = document.getElementById('asset-form');
-const loadAssetsButton = document.getElementById('load-assets');
 const logoutButton = document.getElementById('logout');
 const assetList = document.getElementById('asset-list');
 const assetDetail = document.getElementById('asset-detail');
@@ -32,6 +31,19 @@ const authStatus = document.getElementById('auth-status');
 const selectedAssetStatus = document.getElementById('selected-asset-status');
 const assetSearch = document.getElementById('asset-search');
 const assetTypeFilter = document.getElementById('asset-type-filter');
+const scanSearch = document.getElementById('scan-search');
+const scanStatusFilter = document.getElementById('scan-status-filter');
+const scanList = document.getElementById('scan-list');
+const reportSummary = document.getElementById('report-summary');
+const reportAssets = document.getElementById('report-assets');
+const reportSignals = document.getElementById('report-signals');
+const reportStatus = document.getElementById('report-status');
+const navTabs = Array.from(document.querySelectorAll('.nav-tab'));
+const refreshAllButton = document.getElementById('refresh-all');
+
+state.scans = [];
+state.report = null;
+state.activeTab = 'devices';
 
 function showMessage(message) {
     window.alert(message);
@@ -124,7 +136,13 @@ function logout() {
     selectedAssetStatus.textContent = '尚未選取';
     selectedAssetStatus.className = 'status-chip muted';
     assetList.innerHTML = '<div class="empty-state">請先登入，再載入設備清單。</div>';
-    assetDetail.innerHTML = '選一台設備後，這裡會顯示設備資料、掃描歷史與弱點清單。';
+    assetDetail.innerHTML = '選一台設備後，這裡會顯示設備資料、掃描歷史、掃描內容與弱點清單。';
+    scanList.innerHTML = '<div class="empty-state">請先登入，再載入掃描任務。</div>';
+    reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
+    reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
+    reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
+    reportStatus.textContent = '尚未載入';
+    reportStatus.className = 'status-chip muted';
     updateMetrics([]);
 }
 
@@ -205,6 +223,26 @@ function renderAssets() {
     });
 }
 
+function filteredScans() {
+    const search = scanSearch.value.trim().toLowerCase();
+    const statusFilter = scanStatusFilter.value;
+
+    return state.scans.filter((scan) => {
+        if (statusFilter && scan.status !== statusFilter) {
+            return false;
+        }
+        if (!search) {
+            return true;
+        }
+        const haystack = [
+            String(scan.id),
+            scan.asset_name || '',
+            scan.asset_target || '',
+        ].join(' ').toLowerCase();
+        return haystack.includes(search);
+    });
+}
+
 function findingCard(finding) {
     return `
         <article class="finding-card">
@@ -226,20 +264,216 @@ function findingCard(finding) {
 }
 
 function scanCard(scan) {
+    const summary = scan.scan_summary;
+    const enginesHtml = summary?.engines?.length
+        ? summary.engines.map((engine) => `
+            <div class="signal-item">
+                <strong>${engine.name}</strong>
+                <p>${engine.detail || '未提供說明'}</p>
+                <div class="pill-row">
+                    <span class="pill">狀態 ${engine.status}</span>
+                </div>
+            </div>
+        `).join('')
+        : '<div class="empty-state">此筆掃描尚未產生引擎摘要。</div>';
+
+    const servicesHtml = summary?.services?.length
+        ? summary.services.map((service) => `
+            <div class="service-item">
+                <strong>${service.port}/${service.protocol} ${service.service}</strong>
+                <p>狀態：${service.state}${service.product ? ` ・ ${service.product}` : ''}</p>
+            </div>
+        `).join('')
+        : '<div class="empty-state">本次未記錄到可辨識的服務。</div>';
+
+    const vulnerabilitiesHtml = summary?.vulnerabilities?.length
+        ? summary.vulnerabilities.map((signal) => `
+            <div class="signal-item">
+                <strong>${signal.title}</strong>
+                <p>${signal.description || '未提供描述'}</p>
+                <div class="pill-row">
+                    <span class="pill">Severity ${signal.severity}</span>
+                    ${signal.template_id ? `<span class="pill">${signal.template_id}</span>` : ''}
+                    ${signal.matched_at ? `<span class="pill">${signal.matched_at}</span>` : ''}
+                </div>
+            </div>
+        `).join('')
+        : '<div class="empty-state">本次未命中漏洞模板。</div>';
+
+    const infoHtml = summary?.informational?.length
+        ? summary.informational.map((signal) => `
+            <div class="signal-item">
+                <strong>${signal.title}</strong>
+                <p>${signal.description || '未提供描述'}</p>
+                <div class="pill-row">
+                    <span class="pill">Severity ${signal.severity}</span>
+                    ${signal.template_id ? `<span class="pill">${signal.template_id}</span>` : ''}
+                    ${signal.matched_at ? `<span class="pill">${signal.matched_at}</span>` : ''}
+                </div>
+            </div>
+        `).join('')
+        : '<div class="empty-state">本次沒有額外資訊或風險提示。</div>';
+
     return `
         <article class="scan-card">
             <div class="scan-head">
-                <h3>掃描任務 #${scan.id}</h3>
+                <div>
+                    <h3>掃描任務 #${scan.id}</h3>
+                    <p>${scan.asset_name || '未知設備'}${scan.asset_target ? ` ・ ${scan.asset_target}` : ''}</p>
+                </div>
                 ${statusChip(scan.status)}
             </div>
             <div class="pill-row">
                 <span class="pill">Profile ${scan.scan_profile}</span>
+                ${scan.asset_device_type ? `<span class="pill">${deviceTypeLabels[scan.asset_device_type] || scan.asset_device_type}</span>` : ''}
                 <span class="pill">開始 ${formatDate(scan.started_at)}</span>
                 <span class="pill">結束 ${formatDate(scan.finished_at)}</span>
             </div>
             <p class="scan-meta">${scan.error_message || '目前無錯誤訊息。'}</p>
+            <div class="summary-grid">
+                <section class="scan-summary-block">
+                    <h4>本次掃描用了哪些引擎</h4>
+                    <div class="signal-list">${enginesHtml}</div>
+                </section>
+                <section class="scan-summary-block">
+                    <h4>掃到了哪些服務</h4>
+                    <div class="service-list">${servicesHtml}</div>
+                </section>
+                <section class="scan-summary-block">
+                    <h4>哪些是漏洞</h4>
+                    <div class="signal-list">${vulnerabilitiesHtml}</div>
+                </section>
+                <section class="scan-summary-block">
+                    <h4>哪些只是資訊或風險提示</h4>
+                    <div class="signal-list">${infoHtml}</div>
+                </section>
+            </div>
         </article>
     `;
+}
+
+function renderScans() {
+    const scans = filteredScans();
+    if (!scans.length) {
+        scanList.innerHTML = '<div class="empty-state">目前沒有符合條件的掃描任務。</div>';
+        return;
+    }
+    scanList.innerHTML = scans.map(scanCard).join('');
+}
+
+function renderReports() {
+    if (!state.report) {
+        reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
+        reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
+        reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
+        reportStatus.textContent = '尚未載入';
+        reportStatus.className = 'status-chip muted';
+        return;
+    }
+
+    reportStatus.textContent = state.report.compliance_status;
+    reportStatus.className = state.report.compliance_status === 'Compliant'
+        ? 'status-chip safe'
+        : 'status-chip warning';
+
+    reportSummary.innerHTML = `
+        <article class="report-card">
+            <span>總 finding</span>
+            <strong>${state.report.summary.total_findings}</strong>
+        </article>
+        <article class="report-card">
+            <span>高風險</span>
+            <strong>${state.report.summary.high_risk}</strong>
+        </article>
+        <article class="report-card">
+            <span>中風險</span>
+            <strong>${state.report.summary.medium_risk}</strong>
+        </article>
+        <article class="report-card">
+            <span>低風險</span>
+            <strong>${state.report.summary.low_risk}</strong>
+        </article>
+    `;
+
+    const topAssets = [...state.assets]
+        .sort((left, right) => (right.high_risk_findings - left.high_risk_findings) || (right.open_findings - left.open_findings))
+        .slice(0, 6);
+
+    reportAssets.innerHTML = topAssets.length
+        ? topAssets.map((asset) => `
+            <article class="scan-card">
+                <div class="scan-head">
+                    <div>
+                        <h3>${asset.name}</h3>
+                        <p>${asset.target}</p>
+                    </div>
+                    <span class="status-chip ${asset.high_risk_findings > 0 ? 'danger' : asset.open_findings > 0 ? 'warning' : 'safe'}">
+                        ${asset.high_risk_findings > 0 ? '高風險' : asset.open_findings > 0 ? '待處理' : '穩定'}
+                    </span>
+                </div>
+                <div class="pill-row">
+                    <span class="pill">${deviceTypeLabels[asset.device_type] || asset.device_type}</span>
+                    <span class="pill">未關閉 ${asset.open_findings}</span>
+                    <span class="pill">高風險 ${asset.high_risk_findings}</span>
+                    <span class="pill">最後掃描 ${formatDate(asset.last_scan_at)}</span>
+                </div>
+            </article>
+        `).join('')
+        : '<div class="empty-state">目前尚無可分析的設備資料。</div>';
+
+    const scanStats = state.scans.reduce((summary, scan) => {
+        const status = scan.status || 'Unknown';
+        summary.byStatus[status] = (summary.byStatus[status] || 0) + 1;
+
+        if (scan.scan_summary) {
+            summary.services += scan.scan_summary.service_count || 0;
+            summary.vulnerabilities += scan.scan_summary.vulnerability_count || 0;
+            summary.informational += scan.scan_summary.informational_count || 0;
+        }
+        return summary;
+    }, {
+        byStatus: {},
+        services: 0,
+        vulnerabilities: 0,
+        informational: 0,
+    });
+
+    reportSignals.innerHTML = `
+        <article class="report-card">
+            <span>已完成掃描</span>
+            <strong>${scanStats.byStatus.Completed || 0}</strong>
+        </article>
+        <article class="report-card">
+            <span>待處理 / 執行中</span>
+            <strong>${(scanStats.byStatus.Pending || 0) + (scanStats.byStatus.Running || 0)}</strong>
+        </article>
+        <article class="report-card">
+            <span>掃描失敗</span>
+            <strong>${scanStats.byStatus.Failed || 0}</strong>
+        </article>
+        <article class="report-card">
+            <span>已辨識服務</span>
+            <strong>${scanStats.services}</strong>
+        </article>
+        <article class="report-card">
+            <span>漏洞訊號</span>
+            <strong>${scanStats.vulnerabilities}</strong>
+        </article>
+        <article class="report-card">
+            <span>資訊 / 風險提示</span>
+            <strong>${scanStats.informational}</strong>
+        </article>
+    `;
+}
+
+function setActiveTab(tabName) {
+    state.activeTab = tabName;
+    navTabs.forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+    document.querySelectorAll('.tab-panel').forEach((panel) => {
+        panel.classList.toggle('active', panel.id === `tab-${tabName}`);
+    });
 }
 
 function renderAssetDetail(asset, scans, findings) {
@@ -328,6 +562,22 @@ async function loadAssets() {
     }
 }
 
+async function loadScans() {
+    if (!state.token) {
+        return;
+    }
+    state.scans = await apiRequest('/scans');
+    renderScans();
+}
+
+async function loadReports() {
+    if (!state.token) {
+        return;
+    }
+    state.report = await apiRequest('/reports/iso27001');
+    renderReports();
+}
+
 async function loadAssetDetail(assetId) {
     const [asset, scans, findings] = await Promise.all([
         apiRequest(`/assets/${assetId}`),
@@ -343,7 +593,7 @@ loginForm.addEventListener('submit', async (event) => {
     try {
         await login(String(formData.get('username') || ''), String(formData.get('password') || ''));
         await fetchCurrentUser();
-        await loadAssets();
+        await Promise.all([loadAssets(), loadScans(), loadReports()]);
         showMessage('登入成功。');
     } catch (error) {
         logout();
@@ -383,7 +633,7 @@ assetForm.addEventListener('submit', async (event) => {
         });
         assetForm.reset();
         state.selectedAssetId = asset.id;
-        await loadAssets();
+        await Promise.all([loadAssets(), loadScans(), loadReports()]);
         await loadAssetDetail(asset.id);
         showMessage('設備建立成功。');
     } catch (error) {
@@ -391,13 +641,18 @@ assetForm.addEventListener('submit', async (event) => {
     }
 });
 
-loadAssetsButton.addEventListener('click', () => {
-    loadAssets().catch((error) => showMessage(error.message));
+refreshAllButton.addEventListener('click', () => {
+    Promise.all([loadAssets(), loadScans(), loadReports()]).catch((error) => showMessage(error.message));
 });
 
 logoutButton.addEventListener('click', logout);
 assetSearch.addEventListener('input', renderAssets);
 assetTypeFilter.addEventListener('change', renderAssets);
+scanSearch.addEventListener('input', renderScans);
+scanStatusFilter.addEventListener('change', renderScans);
+navTabs.forEach((tab) => {
+    tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
+});
 
 (async function bootstrap() {
     if (!state.token) {
@@ -405,7 +660,7 @@ assetTypeFilter.addEventListener('change', renderAssets);
     }
     try {
         await fetchCurrentUser();
-        await loadAssets();
+        await Promise.all([loadAssets(), loadScans(), loadReports()]);
     } catch (error) {
         logout();
     }

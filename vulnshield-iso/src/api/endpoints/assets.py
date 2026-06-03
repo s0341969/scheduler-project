@@ -17,6 +17,24 @@ from src.services.asset_inventory import asset_to_response, build_asset_summary_
 from src.worker.tasks import execute_scan
 
 
+def serialize_asset_scan(task: ScanTask, asset: Asset | None = None) -> ScanResponse:
+    resolved_asset = asset or task.asset
+    return ScanResponse(
+        id=task.id,
+        asset_id=task.asset_id,
+        asset_name=resolved_asset.name if resolved_asset else None,
+        asset_target=resolved_asset.target if resolved_asset else None,
+        asset_device_type=resolved_asset.device_type if resolved_asset else None,
+        scan_profile=task.scan_profile,
+        status=task.status,
+        started_at=task.started_at,
+        finished_at=task.finished_at,
+        raw_output_path=task.raw_output_path,
+        scan_summary=task.scan_summary,
+        error_message=task.error_message,
+    )
+
+
 router = APIRouter(prefix='/assets', tags=['assets'])
 
 
@@ -116,7 +134,7 @@ async def trigger_asset_scan(
     await db.refresh(new_task)
 
     execute_scan.delay(new_task.id)
-    return new_task
+    return serialize_asset_scan(new_task, asset)
 
 
 @router.get('/{asset_id}/scans', response_model=List[ScanResponse])
@@ -131,7 +149,7 @@ async def list_asset_scans(
         .where(ScanTask.asset_id == asset.id)
         .order_by(ScanTask.id.desc())
     )
-    return result.scalars().all()
+    return [serialize_asset_scan(task, asset) for task in result.scalars().all()]
 
 
 @router.get('/{asset_id}/findings', response_model=List[FindingDetailResponse])

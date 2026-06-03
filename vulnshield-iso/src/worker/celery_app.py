@@ -15,3 +15,7 @@ celery_app.conf.update(
     enable_utc=True,
 )
 
+# Ensure task modules are imported when the worker boots so registered task names
+# like `tasks.execute_scan` are available to Celery consumers.
+celery_app.conf.imports = ('src.worker.tasks',)
+

@@ -1,9 +1,14 @@
 # Changelog
 
 ## 2026-06-03
+- 優化 dashboard 為三分頁工作台：新增 `設備`、`掃描`、`報告` 分頁，將設備建檔、全域掃描檢視與報告摘要拆開呈現
+- 新增 `GET /scans` 全域掃描任務 API，供掃描分頁直接顯示任務狀態、設備名稱、目標位址與掃描摘要
+- 強化報告分頁：新增掃描面向彙總，可直接查看已完成/待處理/失敗掃描數，以及服務、漏洞與資訊提示的累計數量
+- 新增掃描內容摘要：設備頁可直接查看本次掃描使用的引擎、Nmap 探測到的服務、Nuclei 命中的漏洞與資訊提示
 - 新增設備中心模式：支援設備類型、位置、標籤、備註，以及 `GET /dashboard` 設備管理頁
 - 新增設備導向 API：`GET /users/me`、`GET /assets/{id}`、`GET /assets/{id}/scans`、`GET /assets/{id}/findings`、`POST /assets/{id}/scan`
 - 新增設備摘要邏輯：在設備清單顯示最近掃描狀態、未關閉 finding 數與高風險 finding 數
+- 修正 Celery task discovery：worker 會明確載入 `src.worker.tasks`，避免 `tasks.execute_scan` 被視為未註冊任務
 - 強化 `start_system.ps1`：將啟動等待時間延長至 180 秒，並同時檢查 API 健康狀態與 worker 容器是否 running
 - 強化 `start_system.ps1`：啟動失敗時自動輸出 `api` / `worker` 的近期 logs，便於診斷 Docker 啟動問題
 - 修正 `README.md` 的專案實際路徑，並同步更新一鍵啟動腳本的真實行為說明

@@ -228,15 +228,51 @@ textarea {
     gap: 24px;
 }
 
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+.nav-panel {
+    display: grid;
+    gap: 10px;
+}
+
+.nav-tab {
+    border: 1px solid rgba(111, 98, 84, 0.12);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    text-align: left;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.nav-tab.active {
+    background: linear-gradient(135deg, rgba(187, 79, 53, 0.14), rgba(207, 108, 66, 0.06));
+    color: var(--accent-dark);
+    border-color: rgba(187, 79, 53, 0.18);
+}
+
 .asset-list,
 .detail-stack {
     display: grid;
     gap: 14px;
 }
 
+.device-split {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.35fr);
+    gap: 18px;
+}
+
 .asset-card,
 .finding-card,
-.scan-card {
+.scan-card,
+.scan-summary-block {
     padding: 16px;
     border-radius: var(--radius-md);
     background: var(--surface-strong);
@@ -265,6 +301,7 @@ textarea {
 .asset-card p,
 .finding-card p,
 .scan-card p,
+.scan-summary-block p,
 .detail-grid p,
 .detail-empty,
 .empty-state {
@@ -276,7 +313,8 @@ textarea {
 .asset-meta,
 .pill-row,
 .detail-grid,
-.detail-sections {
+.detail-sections,
+.summary-grid {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
@@ -314,6 +352,59 @@ textarea {
     gap: 12px;
 }
 
+.summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.reports-layout {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+}
+
+.reports-layout + .panel .detail-sections {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.report-card {
+    padding: 18px;
+    border-radius: var(--radius-md);
+    background: var(--surface-strong);
+    border: 1px solid rgba(111, 98, 84, 0.12);
+}
+
+.report-card strong {
+    display: block;
+    font-size: 1.7rem;
+}
+
+.scan-summary-block h4 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.signal-list,
+.service-list {
+    display: grid;
+    gap: 10px;
+}
+
+.signal-item,
+.service-item {
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(111, 98, 84, 0.1);
+}
+
+.service-item strong,
+.signal-item strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
 .section-title {
     margin: 0;
     font-weight: 700;
@@ -339,7 +430,9 @@ textarea {
 @media (max-width: 1200px) {
     .shell,
     .workspace,
-    .hero {
+    .hero,
+    .device-split,
+    .reports-layout {
         grid-template-columns: 1fr;
     }
 
@@ -352,7 +445,8 @@ textarea {
 @media (max-width: 640px) {
     .metrics,
     .split-grid,
-    .detail-grid {
+    .detail-grid,
+    .reports-layout + .panel .detail-sections {
         grid-template-columns: 1fr;
     }
 

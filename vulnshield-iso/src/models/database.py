@@ -42,6 +42,12 @@ async def _run_additive_schema_updates(connection) -> None:
         WHERE device_type IS NULL OR device_type = ''
         """
     )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE scan_tasks
+        ADD COLUMN IF NOT EXISTS scan_summary JSONB
+        """
+    )
 
 
 async def init_db() -> None:

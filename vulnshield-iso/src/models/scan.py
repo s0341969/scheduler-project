@@ -20,6 +20,7 @@ class ScanTask(Base):
     started_at = Column(DateTime(timezone=True), nullable=True)
     finished_at = Column(DateTime(timezone=True), nullable=True)
     raw_output_path = Column(String, nullable=True)
+    scan_summary = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
 
     asset = relationship('Asset', back_populates='scan_tasks')

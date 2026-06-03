@@ -11,6 +11,7 @@ from src.models.database import async_session
 from src.models.scan import ScanTask, ScanStatus
 from src.models.asset import Asset
 from src.services.scan_processing import get_or_create_vulnerability, upsert_finding
+from src.services.scan_summary import summarize_scan_results
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ async def _execute_scan_logic(task_id: int):
                 encoding='utf-8',
             )
             task.raw_output_path = str(raw_output_path)
+            task.scan_summary = summarize_scan_results(nmap_res, nuclei_res)
             
             for item in nuclei_res:
                 vulnerability = await get_or_create_vulnerability(session, item)
