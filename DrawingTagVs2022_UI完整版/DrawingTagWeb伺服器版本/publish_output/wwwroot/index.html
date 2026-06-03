@@ -1,0 +1,2931 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>圖面檢驗標註工具 (V2026.05.02.05)</title>
+    <!-- 離線版：請將 4 個 JS 檔放在 index.html 同層的 lib 資料夾內：xlsx.full.min.js、html2pdf.bundle.min.js、pdf.min.js、pdf.worker.min.js -->
+    <script src="./lib/xlsx.full.min.js"></script>
+    <script src="./lib/html2pdf.bundle.min.js"></script>
+    <script src="./lib/pdf.min.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background: #f5f5f5; }
+        .function-bar { background: #ffffff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); padding: 10px 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; top: 0; z-index: 300; }
+        .function-bar-title { font-weight: bold; color: #333; margin-right: auto; }
+        .system-version-badge { display: inline-flex; align-items: center; padding: 6px 10px; background: #eef6ff; border: 1px solid #b9d6ff; border-radius: 999px; color: #0b5394; font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .function-toggle-btn { padding: 9px 16px; background: #343a40; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .function-toggle-btn:hover { background: #23272b; }
+        .function-mini-btn { padding: 7px 12px; background: #f8f9fa; color: #333; border: 1px solid #ccc; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .function-mini-btn:hover { background: #e9ecef; }
+        .controls { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+        .controls.is-collapsed { display: none; }
+        body.controls-collapsed .main-editor-area { height: calc(100vh - 130px); min-height: 650px; }
+        body.controls-expanded .main-editor-area { height: 650px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; border-right: 1px solid #eee; padding-right: 20px; }
+        .control-group:last-child { border-right: none; }
+        
+        #status-bar { width: 100%; padding: 10px; background: #e9ecef; border-radius: 4px; font-weight: bold; color: #333; text-align: center; margin-bottom: 20px; border: 1px solid #ccc; transition: 0.3s; font-size: 16px;}
+        .status-ready { background: #d4edda !important; color: #155724 !important; border-color: #c3e6cb !important; }
+        .status-sync { background: #cce5ff !important; color: #004085 !important; border-color: #b8daff !important; }
+        .status-working { background: #fff3cd !important; color: #856404 !important; border-color: #ffeeba !important; }
+
+        .seq-input-container { display: flex; align-items: center; gap: 10px; background: #fff3cd; padding: 10px; border-radius: 6px; border: 2px solid #ffeeba; }
+        #currentSeq { width: 70px; padding: 5px; font-size: 20px; font-weight: bold; text-align: center; color: #d32f2f; border: 1px solid #ccc; border-radius: 4px; }
+        #drawingNumber { width: 150px; padding: 5px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; font-weight: bold; }
+
+        /* 圖層清單樣式 */
+        .layer-list { display: flex; flex-direction: column; gap: 8px; }
+        .layer-item { display: flex; align-items: center; justify-content: space-between; background: #f8f9fa; padding: 6px 10px; border-radius: 6px; border: 1px solid #ddd; }
+        .layer-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+        .checkbox-label { display: flex; align-items: center; gap: 6px; cursor: pointer; font-weight: 500; min-width: 100px; }
+        .color-dot { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 1px solid #666; }
+        .btn-export-sm { padding: 4px 8px; font-size: 13px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn-export-sm:hover { background: #5a6268; }
+
+        /* 畫布區域設計 */
+        .main-editor-area { position: relative; width: 100%; height: 650px; border: 2px dashed #999; background: #d1d5db; border-radius: 8px; overflow: hidden; }
+        .floating-toolbar { position: absolute; bottom: 20px; right: 20px; background: rgba(255, 255, 255, 0.95); padding: 8px 15px; border-radius: 50px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 100; display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; }
+        .floating-toolbar button { border-radius: 50%; width: 36px; height: 36px; padding: 0; display: flex; justify-content: center; align-items: center; background: #f8f9fa; color: #333; border: 1px solid #ccc; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .floating-toolbar button:hover { background: #e2e6ea; }
+        .floating-toolbar #zoom-display { font-weight: bold; min-width: 50px; text-align: center; }
+        .floating-toolbar .btn-reset { border-radius: 20px; width: auto; padding: 0 15px; background: #17a2b8; color: white; border: none; font-size: 14px; }
+        
+        #workspace-viewport { width: 100%; height: 100%; overflow: auto; cursor: grab; }
+        #workspace-viewport:active { cursor: grabbing; }
+        #workspace-aligner { display: flex; justify-content: center; align-items: center; min-width: 100%; min-height: 100%; padding: 20px; box-sizing: border-box; }
+        #workspace-sizer { position: relative; transition: width 0.1s ease-out, height 0.1s ease-out; }
+        #workspace { position: absolute; top: 0; left: 0; transform-origin: top left; transition: transform 0.1s ease-out; background: white; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        #drawing-surface { position: relative; width: fit-content; min-width: 1px; min-height: 1px; }
+        #bg-image { max-width: none; display: block; cursor: grab; }
+        #pdf-pages { display: none; flex-direction: column; gap: 10px; align-items: stretch; background: #e9ecef; padding: 8px; box-sizing: border-box; }
+        .pdf-page-frame { position: relative; background: #ffffff; box-shadow: 0 2px 6px rgba(0,0,0,0.18); padding: 6px; overflow: hidden; }
+        .pdf-page-image { display: block; max-width: none; width: 100%; height: auto; }
+        .pdf-page-placeholder { display: flex; align-items: center; justify-content: center; color: #6c757d; font-size: 13px; background: linear-gradient(180deg, #fbfbfb, #f0f0f0); border: 1px dashed #d2d2d2; }
+        
+        .circle-tag { position: absolute; min-width: 18px; height: 18px; padding: 1px 2px; border-radius: 9px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; cursor: grab; user-select: none; box-shadow: 1px 1px 2px rgba(0,0,0,0.45); opacity: 0.92; transform: translate(-50%, -50%); z-index: 10; transition: background-color 0.3s, color 0.3s; line-height: 1; box-sizing: border-box; text-align: center; }
+        .circle-tag:active { cursor: grabbing; z-index: 1000; }
+        .circle-tag:hover { border: 2px solid red; box-sizing: border-box; }
+        .circle-tag.tag-selected { outline: 2px solid #ff0000; box-shadow: 0 0 0 3px rgba(255,0,0,0.18), 1px 1px 2px rgba(0,0,0,0.45); z-index: 2000 !important; }
+        .circle-tag .tag-item { font-size: 9px; line-height: 1; }
+        body.bubble-size-small .circle-tag { min-width: 20px; height: 20px; padding: 1px 2px; border-radius: 10px; }
+        body.bubble-size-small .circle-tag .tag-item { font-size: 9px; }
+        body.bubble-size-medium .circle-tag { min-width: 24px; height: 24px; padding: 2px 3px; border-radius: 12px; }
+        body.bubble-size-medium .circle-tag .tag-item { font-size: 10px; }
+        body.bubble-size-large .circle-tag { min-width: 28px; height: 28px; padding: 2px 4px; border-radius: 14px; }
+        body.bubble-size-large .circle-tag .tag-item { font-size: 11px; }
+        body.bubble-size-xlarge .circle-tag { min-width: 32px; height: 32px; padding: 3px 5px; border-radius: 16px; }
+        body.bubble-size-xlarge .circle-tag .tag-item { font-size: 13px; }
+        #specGrid tr.grid-selected { outline: 2px solid #ff0000; background: #fff1f1 !important; }
+
+        button.btn-primary { padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button.btn-primary:hover { background: #0056b3; }
+        .btn-success { padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-success:hover { background: #218838; }
+        .btn-danger { padding: 8px 16px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;}
+        .btn-danger:hover { background: #c82333; }
+        
+        .file-upload-wrapper { position: relative; display: inline-block; }
+        .file-upload-wrapper input[type="file"] { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+        .work-layout { display: grid; grid-template-columns: minmax(760px, 1fr) 260px; gap: 12px; align-items: start; }
+        .work-layout.spec-expanded { grid-template-columns: minmax(700px, 1fr) 420px; }
+        .drawing-panel { min-width: 0; }
+        .spec-side-panel { background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 10px; max-height: 650px; overflow: hidden; display: flex; flex-direction: column; }
+        .spec-side-panel h3 { margin: 0 0 8px 0; color: #004085; font-size: 16px; }
+        .spec-side-panel .spec-summary { font-size: 12px; color: #555; margin-bottom: 8px; line-height: 1.45; }
+        .spec-grid-wrap { overflow: auto; border: 1px solid #ddd; border-radius: 6px; flex: 1; background: #fff; }
+        #specGrid { width: 100%; border-collapse: collapse; font-size: 12px; white-space: nowrap; }
+        #specGrid th { position: sticky; top: 0; background: #e9f3ff; color: #003b73; z-index: 2; }
+        #specGrid th, #specGrid td { border-bottom: 1px solid #eee; border-right: 1px solid #eee; padding: 5px 6px; text-align: left; }
+        #specGrid tr:hover { background: #fff7dd; }
+        .spec-stage-select { padding: 6px; border: 1px solid #aaa; border-radius: 4px; font-weight: bold; background: white; }
+        .equip-legend { display: grid; grid-template-columns: 1fr; gap: 4px; margin: 6px 0 8px 0; padding: 6px; border: 1px solid #e4e4e4; border-radius: 6px; background: #fafafa; font-size: 12px; }
+        .equip-legend-item { display: flex; align-items: center; gap: 6px; font-weight: 600; }
+        .legend-dot { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #555; display: inline-block; }
+        @media (max-width: 1200px) { .work-layout, .work-layout.spec-expanded { grid-template-columns: 1fr; } .spec-side-panel { max-height: 420px; } }
+
+        /* ══════════════════════════════════════
+           外觀主題：CSS 變數定義
+           ══════════════════════════════════════ */
+        :root {
+            --th-bg-page:        #f5f5f5;
+            --th-bg-panel:       #ffffff;
+            --th-bg-bar:         #ffffff;
+            --th-bg-controls:    #ffffff;
+            --th-bg-input:       #ffffff;
+            --th-bg-editor:      #d1d5db;
+            --th-bg-status:      #e9ecef;
+            --th-bg-spec-panel:  #ffffff;
+            --th-bg-spec-head:   #e9f3ff;
+            --th-bg-spec-row-hover: #fff7dd;
+            --th-bg-layer-item:  #f8f9fa;
+            --th-bg-seq:         #fff3cd;
+            --th-bg-toolbar:     rgba(255,255,255,0.95);
+            --th-bg-workspace:   #ffffff;
+            --th-bg-pdf-pages:   #e9ecef;
+            --th-text-main:      #333333;
+            --th-text-muted:     #555555;
+            --th-text-blue:      #004085;
+            --th-text-title:     #333333;
+            --th-border:         #cccccc;
+            --th-border-light:   #eeeeee;
+            --th-border-seq:     #ffeeba;
+            --th-shadow:         rgba(0,0,0,0.12);
+        }
+
+        /* 深色主題 */
+        body.theme-dark {
+            --th-bg-page:        #000000;
+            --th-bg-panel:       #111111;
+            --th-bg-bar:         #111111;
+            --th-bg-controls:    #111111;
+            --th-bg-input:       #1a1a1a;
+            --th-bg-editor:      #000000;
+            --th-bg-status:      #1a1a1a;
+            --th-bg-spec-panel:  #111111;
+            --th-bg-spec-head:   #1a1a1a;
+            --th-bg-spec-row-hover: #2a2a2a;
+            --th-bg-layer-item:  #1a1a1a;
+            --th-bg-seq:         #1a1200;
+            --th-bg-toolbar:     rgba(17,17,17,0.97);
+            --th-bg-workspace:   #181818;
+            --th-bg-pdf-pages:   #0a0a0a;
+            --th-text-main:      #e8e8e8;
+            --th-text-muted:     #888888;
+            --th-text-blue:      #7ab8f5;
+            --th-text-title:     #e8e8e8;
+            --th-border:         #2e2e2e;
+            --th-border-light:   #222222;
+            --th-border-seq:     #4a3a00;
+            --th-shadow:         rgba(0,0,0,0.7);
+        }
+
+        /* 套用 CSS 變數到各元素 */
+        body {
+            background: var(--th-bg-page);
+            color: var(--th-text-main);
+            transition: background 0.25s, color 0.25s;
+        }
+        .function-bar {
+            background: var(--th-bg-bar) !important;
+            box-shadow: 0 2px 8px var(--th-shadow);
+        }
+        .function-bar-title { color: var(--th-text-title); }
+        .controls { background: var(--th-bg-controls); }
+        .control-group { border-right-color: var(--th-border-light); }
+        #status-bar { background: var(--th-bg-status); color: var(--th-text-main); border-color: var(--th-border); }
+        .seq-input-container { background: var(--th-bg-seq); border-color: var(--th-border-seq); }
+        .layer-item { background: var(--th-bg-layer-item); border-color: var(--th-border); }
+        .main-editor-area { background: var(--th-bg-editor); border-color: var(--th-border); }
+        .floating-toolbar { background: var(--th-bg-toolbar); border-color: var(--th-border); }
+        .floating-toolbar button { background: var(--th-bg-input); color: var(--th-text-main); border-color: var(--th-border); }
+        .floating-toolbar button:hover { filter: brightness(1.1); }
+        #workspace { background: var(--th-bg-workspace); }
+        #pdf-pages { background: var(--th-bg-pdf-pages); }
+        .spec-side-panel { background: var(--th-bg-spec-panel); }
+        .spec-side-panel h3 { color: var(--th-text-blue); }
+        .spec-summary { color: var(--th-text-muted); }
+        body.theme-dark .spec-summary { color: #e8e8e8; }
+        .spec-grid-wrap { border-color: var(--th-border); background: var(--th-bg-spec-panel); }
+        #specGrid th { background: var(--th-bg-spec-head); color: var(--th-text-blue); }
+        #specGrid th, #specGrid td { border-bottom-color: var(--th-border-light); border-right-color: var(--th-border-light); color: var(--th-text-main); }
+        #specGrid tr:hover { background: var(--th-bg-spec-row-hover) !important; }
+        .function-mini-btn { background: var(--th-bg-input); color: var(--th-text-main); border-color: var(--th-border); }
+        .function-mini-btn:hover { filter: brightness(1.1); }
+        .spec-stage-select { background: var(--th-bg-input); color: var(--th-text-main); border-color: var(--th-border); }
+        input[type="text"], input[type="number"] { background: var(--th-bg-input); color: var(--th-text-main); border-color: var(--th-border); }
+        .equip-legend { background: var(--th-bg-layer-item); border-color: var(--th-border-light); }
+        .equip-legend-item { color: var(--th-text-main); }
+        label { color: var(--th-text-main); }
+        small { color: var(--th-text-muted) !important; }
+        details summary { color: var(--th-text-muted); }
+
+        /* 淺色強制 — 覆蓋 prefers-color-scheme: dark 的系統預設 */
+        body.theme-light {
+            --th-bg-page:        #f5f5f5;
+            --th-bg-panel:       #ffffff;
+            --th-bg-bar:         #ffffff;
+            --th-bg-controls:    #ffffff;
+            --th-bg-input:       #ffffff;
+            --th-bg-editor:      #d1d5db;
+            --th-bg-status:      #e9ecef;
+            --th-bg-spec-panel:  #ffffff;
+            --th-bg-spec-head:   #e9f3ff;
+            --th-bg-spec-row-hover: #fff7dd;
+            --th-bg-layer-item:  #f8f9fa;
+            --th-bg-seq:         #fff3cd;
+            --th-bg-toolbar:     rgba(255,255,255,0.95);
+            --th-bg-workspace:   #ffffff;
+            --th-bg-pdf-pages:   #e9ecef;
+            --th-text-main:      #333333;
+            --th-text-muted:     #555555;
+            --th-text-blue:      #004085;
+            --th-text-title:     #333333;
+            --th-border:         #cccccc;
+            --th-border-light:   #eeeeee;
+            --th-border-seq:     #ffeeba;
+            --th-shadow:         rgba(0,0,0,0.12);
+        }
+
+        /* ── 功能列改良 ── */
+        .fbar-sep { width:1px; height:24px; background:var(--th-border); margin:0 4px; flex-shrink:0; }
+        .fbar-label { font-weight:700; color:var(--th-text-main); font-size:13px; white-space:nowrap; }
+        .fbar-select { width:86px; }
+        .fbar-util { font-size:12px; padding:5px 9px; }
+
+        /* ── 草稿徽章三色 ── */
+        .draft-badge { display:inline-flex; align-items:center; padding:5px 10px; border-radius:999px; font-size:12px; font-weight:700; white-space:nowrap; border:1px solid; transition:background .3s,color .3s,border-color .3s; }
+        .draft-none    { background:#f0f0f0; border-color:#ccc; color:#777; }
+        .draft-pending { background:#fff3cd; border-color:#f0b429; color:#7a4f00; }
+        .draft-saved   { background:#d4edda; border-color:#28a745; color:#155724; }
+        body.theme-dark .draft-none    { background:#1a1a1a; border-color:#333; color:#888; }
+        body.theme-dark .draft-pending { background:#1a1200; border-color:#7a5500; color:#d4a017; }
+        body.theme-dark .draft-saved   { background:#001a0a; border-color:#1a6b30; color:#4dc87a; }
+
+        /* ── 狀態列縮小 ── */
+        #status-bar { padding:6px 14px; font-size:13px; height:32px; line-height:1; display:flex; align-items:center; gap:8px; }
+        #status-bar::before { content:''; width:8px; height:8px; border-radius:50%; background:currentColor; opacity:.5; flex-shrink:0; }
+
+        /* ── 浮動工具列收合 ── */
+        .btn-collapse { border-radius:50% !important; width:28px !important; height:28px !important; font-size:16px !important; line-height:1 !important; transition:transform .2s; flex-shrink:0; }
+        .floating-toolbar.collapsed .btn-collapse { transform:rotate(180deg); }
+        #floatToolbarBody { display:flex; align-items:center; gap:8px; overflow:hidden; transition:max-width .25s ease, opacity .2s; max-width:500px; opacity:1; }
+        .floating-toolbar.collapsed #floatToolbarBody { max-width:0; opacity:0; pointer-events:none; }
+        .floating-toolbar.collapsed #pageIndicator { display:none !important; }
+        .btn-undo { background:#fff3e0 !important; color:#bf6000 !important; border-color:#f0c040 !important; font-size:15px !important; }
+        body.theme-dark .btn-undo { background:#1a1200 !important; color:#d4a017 !important; border-color:#4a3a00 !important; }
+        .ft-sep { width:1px; height:22px; background:var(--th-border,#ccc); margin:0 2px; flex-shrink:0; }
+
+        /* ── 頁碼指示器 ── */
+        .page-indicator { font-size:12px; font-weight:600; color:var(--th-text-muted); white-space:nowrap; padding-left:8px; border-left:1px solid var(--th-border); }
+
+        /* ── 泡泡 hover 顯示 ✕ 刪除鈕 ── */
+        .circle-tag .tag-del { display:none; position:absolute; top:-7px; right:-7px; width:14px; height:14px; border-radius:50%; background:#e53935; color:#fff; font-size:9px; line-height:14px; text-align:center; cursor:pointer; z-index:20; border:1.5px solid #fff; box-shadow:0 1px 3px rgba(0,0,0,.4); }
+        .circle-tag:hover .tag-del { display:block; }
+        .circle-tag { overflow:visible !important; }
+
+        /* ── 規格圖例折疊 ── */
+        .equip-legend-collapsed { display:flex; align-items:center; gap:6px; padding:5px 8px; cursor:pointer; border:1px solid var(--th-border-light); border-radius:6px; background:var(--th-bg-layer-item); user-select:none; }
+        .equip-legend-collapsed:hover { filter:brightness(1.05); }
+        .equip-legend-dots { display:flex; gap:4px; }
+        .legend-expand-hint { font-size:11px; color:var(--th-text-muted); margin-left:4px; }
+        .equip-legend-full { display:none; }
+        .equip-legend-full.open { display:grid; }
+
+        /* ── 深色模式泡泡顏色調整 ── */
+        body.theme-dark .circle-tag[data-method="PM"] { background-color:#C9A800 !important; color:#000 !important; }
+        body.theme-dark .circle-tag[data-method="GI"] { background-color:#4D9FFF !important; color:#000 !important; }
+        body.theme-dark .legend-dot-pm { background:#C9A800 !important; }
+        body.theme-dark .legend-dot-gi { background:#4D9FFF !important; }
+
+        /* ── 步驟編號圓圈（功能面板）── */
+        .step-label { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+        .step-num { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; background:#dee2e6; color:#555; border:2px solid #adb5bd; transition:.3s; }
+        .step-num.done { background:#28a745; color:#fff; border-color:#28a745; }
+        .step-num.active { background:#007bff; color:#fff; border-color:#007bff; }
+        body.theme-dark .step-num { background:#1a1a1a; color:#888; border-color:#333; }
+        body.theme-dark .step-num.done { background:#003d18; color:#4dc87a; border-color:#1a6b30; }
+        body.theme-dark .step-num.active { background:#001a3d; color:#7ab8f5; border-color:#1a4a7a; }
+
+        /* ── 泡泡統計徽章 ── */
+        .spec-panel-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+        .tag-progress-badge { font-size:11px; padding:3px 8px; border-radius:999px; background:#e9f3ff; color:#0056b3; border:1px solid #b9d6ff; font-weight:700; cursor:pointer; white-space:nowrap; }
+        .tag-progress-badge:hover { background:#d0e8ff; }
+        body.theme-dark .tag-progress-badge { background:#0f2a4a; color:#90caf9; border-color:#1a4a7a; }
+        #specGrid tr.row-untagged { background:rgba(255,220,100,0.13) !important; }
+        body.theme-dark #specGrid tr.row-untagged { background:rgba(200,160,0,0.12) !important; }
+
+        /* ── 匯出模式切換列 ── */
+        .export-mode-bar { display:flex; align-items:center; gap:10px; padding:7px 12px; background:var(--th-bg-layer-item); border:1px solid var(--th-border); border-radius:7px; margin-bottom:8px; flex-wrap:wrap; }
+        .export-mode-label { font-weight:700; font-size:13px; color:var(--th-text-main); white-space:nowrap; }
+        .export-mode-desc { font-size:12px; color:var(--th-text-muted); }
+
+        /* ── 匯出結果 toast 通知 ── */
+        #exportToast { position:fixed; bottom:80px; right:20px; min-width:300px; max-width:500px; padding:14px 18px; border-radius:12px; font-size:13px; line-height:1.6; z-index:99999; box-shadow:0 6px 28px rgba(0,0,0,.28); display:none; animation:slideUp .25s ease; }
+        @keyframes slideUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+        #exportToast.toast-ok  { background:#d4edda; border:1px solid #28a745; color:#155724; }
+        #exportToast.toast-err { background:#f8d7da; border:1px solid #dc3545; color:#721c24; }
+        #exportToast .toast-close { float:right; cursor:pointer; opacity:.6; margin-left:10px; font-size:15px; line-height:1; }
+        #exportToast .toast-close:hover { opacity:1; }
+        #exportToast .toast-file-list { margin-top:8px; padding:6px 10px; background:rgba(0,0,0,.06); border-radius:6px; font-size:12px; font-family:var(--font-mono,monospace); }
+        #exportToast .toast-file-list div { padding:1px 0; }
+        body.theme-dark #exportToast.toast-ok  { background:#003d18; border-color:#1a6b30; color:#5ccf85; }
+        body.theme-dark #exportToast.toast-err { background:#3d0010; border-color:#7a1b2a; color:#f08090; }
+        body.theme-dark #exportToast .toast-file-list { background:rgba(255,255,255,.07); }
+
+        .theme-switcher { position: relative; display: inline-flex; align-items: center; }
+        .theme-switcher-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 7px 12px; background: var(--th-bg-input); color: var(--th-text-main);
+            border: 1px solid var(--th-border); border-radius: 6px;
+            cursor: pointer; font-weight: bold; font-size: 13px; white-space: nowrap;
+        }
+        .theme-switcher-btn:hover { filter: brightness(1.08); }
+        .theme-dropdown {
+            display: none; position: absolute; top: calc(100% + 6px); right: 0;
+            background: var(--th-bg-panel); border: 1px solid var(--th-border);
+            border-radius: 10px; box-shadow: 0 8px 24px var(--th-shadow);
+            min-width: 130px; z-index: 9999; overflow: hidden;
+            animation: dropIn 0.15s ease;
+        }
+        .theme-dropdown.open { display: block; }
+        @keyframes dropIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        .theme-option {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 11px 16px; cursor: pointer; font-size: 14px;
+            color: var(--th-text-main); transition: background 0.1s;
+        }
+        .theme-option:hover { background: var(--th-bg-spec-row-hover); }
+        .theme-option .check { opacity: 0; font-size: 13px; color: #007bff; }
+        .theme-option.active .check { opacity: 1; }
+        .theme-dropdown-divider { height: 1px; background: var(--th-border-light); margin: 4px 0; }
+    </style>
+</head>
+<body class="controls-collapsed">
+
+    <div class="function-bar">
+        <button id="functionToggleBtn" class="function-toggle-btn" onclick="toggleFunctionPanel()">☰ 功能選單</button>
+        <span class="function-bar-title">圖面定位工作區</span>
+
+        <span class="fbar-sep"></span>
+        <span id="systemVersionBadge" class="system-version-badge">系統版次讀取中...</span>
+        <span id="draftStatusBadge" class="draft-badge draft-none">草稿尚未儲存</span>
+
+        <span class="fbar-sep"></span>
+        <label for="bubbleSizeSelect" class="fbar-label">泡泡</label>
+        <select id="bubbleSizeSelect" class="spec-stage-select fbar-select">
+            <option value="small">小</option>
+            <option value="medium" selected>中</option>
+            <option value="large">大</option>
+            <option value="xlarge">特大</option>
+        </select>
+
+        <!-- 外觀切換 -->
+        <div class="theme-switcher" id="themeSwitcher">
+            <button class="theme-switcher-btn" onclick="toggleThemeDropdown(event)" id="themeSwitcherBtn">
+                <span id="themeIcon">⚙️</span> 外觀 <span style="font-size:10px;">▾</span>
+            </button>
+            <div class="theme-dropdown" id="themeDropdown">
+                <div class="theme-option" id="themeOpt-system" onclick="setTheme('system')">
+                    <span>⚙️ 系統</span><span class="check">✓</span>
+                </div>
+                <div class="theme-dropdown-divider"></div>
+                <div class="theme-option" id="themeOpt-dark" onclick="setTheme('dark')">
+                    <span>🌙 深色</span><span class="check">✓</span>
+                </div>
+                <div class="theme-dropdown-divider"></div>
+                <div class="theme-option" id="themeOpt-light" onclick="setTheme('light')">
+                    <span>☀️ 淺色</span><span class="check">✓</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="function-mini-btn fbar-util" onclick="clearDraftManually()" title="清除本機草稿">🗑 草稿</button>
+    </div>
+
+    <div id="functionPanel" class="controls is-collapsed">
+        <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:-6px;">
+            <strong style="font-size:16px; color:#333;">功能設定</strong>
+            <button class="function-mini-btn" onclick="toggleFunctionPanel(false)">收合功能列 ✕</button>
+        </div>
+        <div class="control-group" style="min-width: 340px;">
+            <div class="step-label"><span class="step-num" id="step1num">1</span><label style="font-weight: bold; color: #0056b3;">圖面建檔 / 規格查詢：</label></div>
+
+            <div style="display: grid; grid-template-columns: 58px 1fr; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <span style="font-weight: bold;">圖號：</span>
+                <input type="text" id="drawingNumber" placeholder="例如: V3005-01-01-1" style="width: 100%; box-sizing: border-box;">
+
+                <span style="font-weight: bold;">版次：</span>
+                <input type="text" id="revisionInput" placeholder="例如: R4" style="width: 100%; box-sizing: border-box; padding: 5px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; font-weight: bold;">
+
+                <span style="font-weight: bold; color:#004085;">規格：</span>
+                <select id="inspectionStage" class="spec-stage-select" style="width: 100%; box-sizing: border-box;">
+                    <option value="首件">首件</option>
+                    <option value="製程中">製程中</option>
+                    <option value="終檢" selected>終檢</option>
+                </select>
+            </div>
+
+            <button class="btn-primary" onclick="loadSpecFromDatabase()" style="width:100%; margin-bottom:8px;">🔄 從資料庫載入規格</button>
+            <small style="color:#0056b3; margin-top:0; margin-bottom:8px; display:block;">* 操作順序：圖號 → 版次 → 規格 → 載入規格</small>
+
+            <hr style="width: 100%; border: 0.5px solid #ddd; margin: 6px 0;">
+            <div class="file-upload-wrapper">
+                <button class="btn-success" style="width: 100%;">📁 載入已存的 .json 模板</button>
+                <input type="file" id="projectInput" accept=".json">
+            </div>
+        </div>
+
+        <div class="control-group" style="flex: 0 0 220px; min-width: 220px; max-width: 220px;">
+            <div class="step-label"><span class="step-num" id="step2num">2</span><label style="font-weight:bold; color:#333;">載入 PDF / 圖面：</label></div>
+            <details>
+                <summary style="cursor:pointer; font-weight:bold; color:#555;">挑選檔案</summary>
+                <input type="file" id="imageInput" accept="image/png, image/jpeg, application/pdf" title="載入圖面 (PDF/JPG/PNG)" style="margin-top:8px;">
+                <small style="color: #666; margin-top: 5px; display:block;">* 支援直接上傳 PDF 工程圖（自動擷取首頁）</small>
+            </details>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:8px;">
+                <label for="dbPdfSelect" style="font-weight:bold; color:#004085;">資料庫 PDF 路徑：</label>
+                <select id="dbPdfSelect" class="spec-stage-select" style="width:100%; box-sizing:border-box;" disabled>
+                    <option value="">請先從資料庫載入規格</option>
+                </select>
+                <button type="button" class="btn-primary" onclick="loadSelectedPdfFromDatabase()" style="width:100%;" disabled id="loadDbPdfBtn">📄 載入資料庫 PDF</button>
+                <small id="dbPdfHint" style="color:#666;">* Stored Procedure 第二個結果集若有回傳 PDF 路徑，會顯示在這裡供選取。</small>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <div class="step-label"><span class="step-num" id="step3num">3</span><label style="font-weight: bold; color: #d32f2f;">🎯 定義座標：</label></div>
+            <div class="seq-input-container">
+                <label>下次點擊序號：</label>
+                <input type="number" id="currentSeq" value="1" min="1">
+            </div>
+            <small style="color: #666; margin-top: 5px;">* 左鍵按住拖曳圖面：平移 PDF/圖面<br>* 左鍵按住後放開且未拖曳：新增定位<br>* 標籤左鍵拖曳：移動標籤<br>* 標籤上右鍵：刪除該標註</small>
+        </div>
+
+        <div class="control-group" style="background: #f8f9fa; padding: 10px; border-radius: 6px; border: 1px solid #ddd; opacity:.85;">
+            <div class="step-label"><span class="step-num" id="step4num">4</span><label style="font-weight: bold; color: #555;">備用功能：</label></div>
+            <details>
+                <summary style="cursor:pointer; font-weight:bold; color:#555;">手動載入 Excel 規格表</summary>
+                <input type="file" id="excelInput" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" title="載入規格表" style="margin-top:8px;">
+                <small style="color: #555; margin-top: 5px; display:block;">* 正常流程請使用「圖號 → 版次 → 規格 → 從資料庫載入規格」。</small>
+            </details>
+        </div>
+
+        <div class="control-group">
+            <div class="step-label"><span class="step-num" id="step5num">5</span><label style="font-weight: bold;">製程圖層獨立匯出：</label></div>
+
+            <!-- 匯出目標切換 -->
+            <div class="export-mode-bar">
+                <span class="export-mode-label">🖥️ 匯出至伺服器</span>
+                <span class="export-mode-desc">存檔完成後將顯示已儲存的檔案清單</span>
+            </div>
+
+            <div class="layer-list">
+                <div class="layer-item">
+                    <label class="checkbox-label"><input type="checkbox" class="filter-cb" value="CMM" checked><span class="color-dot" style="background-color: #00AA00;"></span> CMM</label>
+                    <button class="btn-export-sm" onclick="exportSingleLayer('CMM')">📥 匯出此層</button>
+                </div>
+                <div class="layer-item">
+                    <label class="checkbox-label"><input type="checkbox" class="filter-cb" value="PM" checked><span class="color-dot" style="background-color: #FFFF00;"></span> PM</label>
+                    <button class="btn-export-sm" onclick="exportSingleLayer('PM')">📥 匯出此層</button>
+                </div>
+                <div class="layer-item">
+                    <label class="checkbox-label"><input type="checkbox" class="filter-cb" value="GI" checked><span class="color-dot" style="background-color: #0000FF;"></span> GI</label>
+                    <button class="btn-export-sm" onclick="exportSingleLayer('GI')">📥 匯出此層</button>
+                </div>
+                <div class="layer-item">
+                    <label class="checkbox-label"><input type="checkbox" class="filter-cb" value="HM" checked><span class="color-dot" style="background-color: #FF0000;"></span> HM</label>
+                    <button class="btn-export-sm" onclick="exportSingleLayer('HM')">📥 匯出此層</button>
+                </div>
+                <div class="layer-item" style="opacity: 0.7;">
+                    <label class="checkbox-label"><input type="checkbox" class="filter-cb" value="UNASSIGNED" checked><span class="color-dot" style="background-color: #6c757d;"></span> 未分配/預設</label>
+                </div>
+            </div>
+            <div class="layer-actions">
+                <button class="btn-primary" type="button" onclick="exportCheckedLayers()">📦 一次匯出勾選圖層</button>
+            </div>
+        </div>
+
+        <div class="control-group" style="justify-content: flex-end;">
+            <div class="step-label"><span class="step-num" id="step6num">6</span><label style="font-weight: bold;">專案全域操作：</label></div>
+            <div style="display:flex; flex-direction: column; gap:10px;">
+                <button class="btn-success" onclick="saveProject()">💾 儲存模板/專案 (.json)</button>
+                <button class="btn-success" onclick="saveToDatabase()">🗂️ 存入資料庫新版本</button>
+                <button class="btn-primary" onclick="loadLatestFromDatabase()">📂 載入資料庫最新版本</button>
+                <button id="exportBtn" class="btn-primary" onclick="exportToPDF()">📄 匯出全開綜合圖面</button>
+                <button class="btn-primary" onclick="undoLastAction()">↩️ 復原上一個動作</button>
+                <button class="btn-danger" onclick="clearTags()">🗑️ 清空畫面重來</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-bar">💡 請載入 PDF 或是 JPG 工程圖，然後直接點擊圖面定義座標。</div>
+
+    <div class="work-layout">
+        <div class="main-editor-area">
+            <div class="floating-toolbar" id="floatingToolbar">
+                <button onclick="toggleFloatingToolbar()" id="floatCollapseBtn" title="收合工具列" class="btn-collapse">‹</button>
+                <div id="floatToolbarBody">
+                    <button onclick="undoLastAction()" title="復原上一步 (Ctrl+Z)" class="btn-undo">↩</button>
+                    <div class="ft-sep"></div>
+                    <button onclick="zoomOut()" title="縮小 (-)">−</button>
+                    <span id="zoom-display">100%</span>
+                    <button onclick="zoomIn()" title="放大 (+)">+</button>
+                    <div class="ft-sep"></div>
+                    <button onclick="fitToScreen()" class="btn-wide" title="顯示整張圖面 (F)">全景</button>
+                    <button onclick="setMarkZoom()" class="btn-reset" title="放大到標註比例 (M)">標註</button>
+                    <button id="panModeBtn" class="btn-mode" title="切換純平移／標註模式" onclick="togglePanMode()">標註中</button>
+                    <button onclick="resetZoom()" class="btn-wide" title="還原 100%">100%</button>
+                </div>
+                <!-- 多頁 PDF 頁碼指示器 -->
+                <div id="pageIndicator" class="page-indicator" style="display:none">
+                    第 <span id="pageIndicatorCurrent">1</span> / <span id="pageIndicatorTotal">1</span> 頁
+                </div>
+            </div>
+
+            <div id="workspace-viewport">
+                <div id="workspace-aligner">
+                    <div id="workspace-sizer">
+                        <div id="workspace">
+                            <div id="drawing-surface">
+                                <img id="bg-image" src="" alt="">
+                                <div id="pdf-pages"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="spec-side-panel">
+            <div class="spec-panel-header">
+                <h3>📋 規格資料</h3>
+                <span id="tagProgressBadge" class="tag-progress-badge" onclick="highlightUntaggedRows()" title="點擊高亮未標記列">已標 0 / 共 0</span>
+            </div>
+            <button type="button" class="btn-export-sm" onclick="toggleSpecGridWidth()" style="margin-bottom:8px;">展開/縮小 Grid</button>
+
+            <!-- 折疊式圖例 -->
+            <div class="equip-legend-collapsed" onclick="toggleEquipLegend(this)" title="點擊展開/折疊圖例">
+                <div class="equip-legend-dots">
+                    <span class="legend-dot" style="background:#00AA00;"></span>
+                    <span class="legend-dot legend-dot-pm" style="background:#FFFF00;"></span>
+                    <span class="legend-dot legend-dot-gi" style="background:#0000FF;"></span>
+                    <span class="legend-dot" style="background:#FF0000;"></span>
+                </div>
+                <span style="font-size:12px;font-weight:600;color:var(--th-text-main);">EQUIP 圖例</span>
+                <span class="legend-expand-hint">▾ 展開</span>
+            </div>
+            <div class="equip-legend equip-legend-full" id="equipLegendFull">
+                <div class="equip-legend-item"><span class="legend-dot" style="background:#00AA00;"></span>CMM 綠色</div>
+                <div class="equip-legend-item"><span class="legend-dot legend-dot-pm" style="background:#FFFF00;"></span>PM 黃色</div>
+                <div class="equip-legend-item"><span class="legend-dot legend-dot-gi" style="background:#0000FF;"></span>GI 藍色</div>
+                <div class="equip-legend-item"><span class="legend-dot" style="background:#FF0000;"></span>HM 紅色</div>
+            </div>
+            <div id="specGridSummary" class="spec-summary">尚未載入規格資料。請輸入圖號、版次、規格後按「從資料庫載入規格」。</div>
+            <div class="spec-grid-wrap">
+                <table id="specGrid">
+                    <thead><tr><th>狀態</th></tr></thead>
+                    <tbody><tr><td>等待查詢資料...</td></tr></tbody>
+                </table>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // 設定 PDF.js Worker 核心路徑 (必須設定才能運作)
+        pdfjsLib.GlobalWorkerOptions.workerSrc = './lib/pdf.worker.min.js';
+
+        // 加入 UNASSIGNED 預設狀態 (灰色)
+        const colorMapping = {
+            'CMM': { bg: '#00FF00', color: '#000' }, // CMM：綠色
+            'PM':  { bg: '#FFFF00', color: '#000' }, // PM：黃色
+            'GI':  { bg: '#0000FF', color: '#fff' }, // GI：藍色
+            'HM':  { bg: '#FF0000', color: '#fff' }, // HM：紅色
+            'UNASSIGNED': { bg: '#6c757d', color: '#fff' } 
+        };
+
+        let specDataMap = {}; // key=圈圈項次, value=EQUIP(CMM/PM/GI/HM)
+        let specRowMap = {};  // key=圈圈項次, value=SP完整資料列
+        let pdfOptions = [];  // 資料庫回傳的 PDF 路徑清單
+        let currentZoom = 1;
+        let undoStack = []; // 記錄可復原動作，目前支援：刪除標籤
+        let hasAutoZoomed = false; // 第一次標註時自動放大一次
+        let panMode = false;       // 預設進入標註模式；左鍵按住拖曳 = 平移，放開未拖曳 = 新增標籤
+        let pdfLoadingSettings = {
+            maxPagesToRender: 10,
+            maxTotalPixels: 35000000,
+            renderScale: 2.2
+        };
+        let currentDrawingSourceType = 'none';
+        let pdfRenderState = null;
+        let currentDrawingDescriptor = { type: 'none', origin: 'none' };
+        let autosaveTimer = null;
+        let autosaveInFlight = false;
+        let currentBubbleSize = 'medium';
+
+        const DRAFT_STORAGE_KEY = 'drawing-tag-vs2022-draft';
+        const BUBBLE_SIZE_PREFS_KEY = 'drawing-tag-vs2022-bubble-size-prefs';
+        const MAX_DRAFT_INLINE_IMAGE_LENGTH = 3500000;
+        const AUTOSAVE_DELAY_MS = 2500;
+        const BUBBLE_SIZE_CLASS_PREFIX = 'bubble-size-';
+        const SAVE_DIFF_MOVED_THRESHOLD = 0.5;
+        const BUBBLE_SIZE_PRESETS = {
+            small:  { minWidth: '20px', height: '20px', padding: '1px 2px',  radius: '10px', fontSize: '9px'  },
+            medium: { minWidth: '24px', height: '24px', padding: '2px 3px',  radius: '12px', fontSize: '10px' },
+            large:  { minWidth: '28px', height: '28px', padding: '2px 4px',  radius: '14px', fontSize: '11px' },
+            xlarge: { minWidth: '32px', height: '32px', padding: '3px 5px',  radius: '16px', fontSize: '13px' }
+        };
+
+        // ====== API 路徑設定：後端可依實際 ASP.NET Route 調整 ======
+        const API_SYSTEM_INFO_URL = '/api/system-info';
+        const API_SPEC_URL = (indwg, dwgrev, option) => `/api/drawing-spec?indwg=${encodeURIComponent(indwg)}&dwgrev=${encodeURIComponent(dwgrev)}&option=${encodeURIComponent(option)}`;
+        const API_PDF_FILE_URL = (path) => `/api/drawing-spec/pdf-file?path=${encodeURIComponent(path)}`;
+        const API_SAVE_PROJECT_URL = '/api/drawing-project/save';
+        const API_LOAD_LATEST_URL = (drawingNumber) => `/api/drawing-project/latest/${encodeURIComponent(drawingNumber)}`;
+        const API_LOAD_LATEST_META_URL = (drawingNumber) => `/api/drawing-project/latest-meta/${encodeURIComponent(drawingNumber)}`;
+
+        const statusBar = document.getElementById('status-bar');
+        const seqInput = document.getElementById('currentSeq');
+        const drawingNumberInput = document.getElementById('drawingNumber');
+        const revisionInput = document.getElementById('revisionInput');
+        const workspace = document.getElementById('workspace');
+        const drawingSurface = document.getElementById('drawing-surface');
+        const bgImage = document.getElementById('bg-image');
+        const pdfPages = document.getElementById('pdf-pages');
+        const sizer = document.getElementById('workspace-sizer');
+        const viewport = document.getElementById('workspace-viewport');
+        const systemVersionBadge = document.getElementById('systemVersionBadge');
+        const draftStatusBadge = document.getElementById('draftStatusBadge');
+        const bubbleSizeSelect = document.getElementById('bubbleSizeSelect');
+        const inspectionStageInput = document.getElementById('inspectionStage');
+        const specGrid = document.getElementById('specGrid');
+        const specGridSummary = document.getElementById('specGridSummary');
+        const dbPdfSelect = document.getElementById('dbPdfSelect');
+        const loadDbPdfBtn = document.getElementById('loadDbPdfBtn');
+        const dbPdfHint = document.getElementById('dbPdfHint');
+        const functionPanel = document.getElementById('functionPanel');
+        const functionToggleBtn = document.getElementById('functionToggleBtn');
+
+        function scheduleDraftAutosave() {
+            if (draftStatusBadge) {
+                draftStatusBadge.innerText = '草稿待自動儲存...';
+                draftStatusBadge.className = 'draft-badge draft-pending';
+            }
+            if (autosaveTimer) {
+                clearTimeout(autosaveTimer);
+            }
+
+            autosaveTimer = setTimeout(() => {
+                autosaveTimer = null;
+                saveDraftToLocalStorage().catch(error => console.error(error));
+            }, AUTOSAVE_DELAY_MS);
+        }
+        function normalizeDrawingNumberKey(value) {
+            return (value || '').trim().toUpperCase();
+        }
+        function loadBubbleSizePreferences() {
+            try {
+                const raw = localStorage.getItem(BUBBLE_SIZE_PREFS_KEY);
+                if (!raw) {
+                    return {};
+                }
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch {
+                return {};
+            }
+        }
+        function saveBubbleSizePreferences(preferences) {
+            localStorage.setItem(BUBBLE_SIZE_PREFS_KEY, JSON.stringify(preferences));
+        }
+        function rememberBubbleSizeForCurrentDrawing() {
+            const drawingKey = normalizeDrawingNumberKey(drawingNumberInput.value);
+            if (!drawingKey) {
+                return;
+            }
+            const preferences = loadBubbleSizePreferences();
+            preferences[drawingKey] = currentBubbleSize;
+            saveBubbleSizePreferences(preferences);
+        }
+        function getRememberedBubbleSizeForDrawing(drawingNumber) {
+            const drawingKey = normalizeDrawingNumberKey(drawingNumber);
+            if (!drawingKey) {
+                return '';
+            }
+            const preferences = loadBubbleSizePreferences();
+            const remembered = preferences[drawingKey];
+            return BUBBLE_SIZE_PRESETS[remembered] ? remembered : '';
+        }
+        function applyRememberedBubbleSizeForCurrentDrawing() {
+            const remembered = getRememberedBubbleSizeForDrawing(drawingNumberInput.value);
+            if (!remembered || remembered === currentBubbleSize) {
+                return false;
+            }
+            applyBubbleSize(remembered);
+            return true;
+        }
+        function applyBubbleSize(sizeKey) {
+            currentBubbleSize = BUBBLE_SIZE_PRESETS[sizeKey] ? sizeKey : 'medium';
+            Object.keys(BUBBLE_SIZE_PRESETS).forEach(key => {
+                document.body.classList.remove(`${BUBBLE_SIZE_CLASS_PREFIX}${key}`);
+            });
+            document.body.classList.add(`${BUBBLE_SIZE_CLASS_PREFIX}${currentBubbleSize}`);
+            if (bubbleSizeSelect && bubbleSizeSelect.value !== currentBubbleSize) {
+                bubbleSizeSelect.value = currentBubbleSize;
+            }
+            rememberBubbleSizeForCurrentDrawing();
+        }
+        async function buildDraftPayload(includePreviewFallback) {
+            const tagsData = Array.from(document.querySelectorAll('.circle-tag')).map(tag => {
+                const itemKey = getTagItemKey(tag);
+                return {
+                    id: itemKey,
+                    itemNo: parseInt(itemKey, 10) || 0,
+                    method: tag.dataset.method || 'UNASSIGNED',
+                    inspectionMethod: tag.dataset.method || 'UNASSIGNED',
+                    x: parseFloat(tag.style.left),
+                    y: parseFloat(tag.style.top)
+                };
+            });
+
+            const descriptor = {
+                type: currentDrawingDescriptor.type || 'none',
+                origin: currentDrawingDescriptor.origin || 'none',
+                fileName: currentDrawingDescriptor.fileName || '',
+                pdfPath: currentDrawingDescriptor.pdfPath || '',
+                pdfDisplayName: currentDrawingDescriptor.pdfDisplayName || '',
+                imageSrc: '',
+                previewImageSrc: ''
+            };
+
+            if (descriptor.type === 'image' && bgImage.src && bgImage.src !== window.location.href && bgImage.src.length <= MAX_DRAFT_INLINE_IMAGE_LENGTH) {
+                descriptor.imageSrc = bgImage.src;
+            }
+
+            if (includePreviewFallback && !descriptor.imageSrc && hasDrawingContent()) {
+                try {
+                    const previewImage = await buildPersistedDrawingImage();
+                    if (previewImage && previewImage.length <= MAX_DRAFT_INLINE_IMAGE_LENGTH) {
+                        descriptor.previewImageSrc = previewImage;
+                    }
+                } catch { /* 預覽圖失敗不影響草稿主體 */ }
+            }
+
+            return {
+                savedAt: new Date().toISOString(),
+                drawingNumber: drawingNumberInput.value.trim(),
+                revision: revisionInput.value.trim(),
+                inspectionStage: inspectionStageInput.value,
+                bubbleSize: currentBubbleSize,
+                currentSeq: seqInput.value,
+                currentZoom: currentZoom,
+                specDataMap: specDataMap,
+                // specRowMap 刻意不存入草稿，避免 SP 大量欄位撐爆 localStorage 5MB 上限
+                pdfOptions: pdfOptions,
+                drawingDescriptor: descriptor,
+                tags: tagsData
+            };
+        }
+        async function saveDraftToLocalStorage() {
+            if (autosaveInFlight) {
+                return;
+            }
+
+            autosaveInFlight = true;
+            try {
+                const draftPayload = await buildDraftPayload(true);
+                try {
+                    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPayload));
+                } catch (error) {
+                    const fallbackPayload = await buildDraftPayload(false);
+                    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(fallbackPayload));
+                }
+                const savedAt = new Date();
+                if (draftStatusBadge) {
+                    draftStatusBadge.innerText = `✓ 已儲存 ${savedAt.toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit' })}`;
+                    draftStatusBadge.className = 'draft-badge draft-saved';
+                }
+            } finally {
+                autosaveInFlight = false;
+            }
+        }
+        function clearSavedDraft() {
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            if (draftStatusBadge) {
+                draftStatusBadge.innerText = '草稿尚未儲存';
+                draftStatusBadge.className = 'draft-badge draft-none';
+            }
+        }
+        function clearDraftManually() {
+            const hasDraft = !!localStorage.getItem(DRAFT_STORAGE_KEY);
+            if (!hasDraft) {
+                alert('目前沒有可清除的本機草稿。');
+                return;
+            }
+            const confirmed = confirm('要清除目前瀏覽器儲存的本機草稿嗎？\n\n這只會刪除草稿，不會刪除資料庫版本。');
+            if (!confirmed) {
+                return;
+            }
+            clearSavedDraft();
+            statusBar.className = 'status-sync';
+            statusBar.innerText = '🧹 本機草稿已清除。';
+        }
+        function applyProjectState(projectData) {
+            specDataMap = projectData.specDataMap || projectData.SpecDataMap || specDataMap || {};
+            specRowMap = projectData.specRowMap || projectData.SpecRowMap || {};
+            drawingNumberInput.value = projectData.drawingNumber || projectData.DrawingNumber || drawingNumberInput.value || "";
+            revisionInput.value = projectData.revision || projectData.Revision || revisionInput.value || "";
+            inspectionStageInput.value = projectData.inspectionStage || projectData.InspectionStage || inspectionStageInput.value || inspectionStageInput.options[0]?.value || '終檢';
+            applyBubbleSize(projectData.bubbleSize || projectData.BubbleSize || getRememberedBubbleSizeForDrawing(drawingNumberInput.value) || currentBubbleSize);
+            seqInput.value = projectData.currentSeq || projectData.CurrentSeq || 1;
+
+            document.querySelectorAll('.circle-tag').forEach(el => el.remove());
+            const tags = projectData.tags || projectData.Tags || [];
+            tags.forEach(t => {
+                const id = t.id ?? t.itemNo ?? t.ItemNo;
+                const method = t.method ?? t.inspectionMethod ?? t.InspectionMethod ?? 'UNASSIGNED';
+                const x = t.x ?? t.X;
+                const y = t.y ?? t.Y;
+                if (id !== undefined && x !== undefined && y !== undefined) {
+                    createTagAt(id.toString(), colorMapping[normalizeEquip(method)] ? normalizeEquip(method) : 'UNASSIGNED', parseFloat(x), parseFloat(y));
+                }
+            });
+
+            const draftPdfOptions = projectData.pdfOptions || projectData.PdfOptions || [];
+            if (Array.isArray(draftPdfOptions) && draftPdfOptions.length > 0) {
+                populatePdfOptions(draftPdfOptions);
+            }
+        }
+        async function tryRestoreDraft() {
+            const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+            if (!raw) {
+                return;
+            }
+
+            let draft;
+            try {
+                draft = JSON.parse(raw);
+            } catch {
+                clearSavedDraft();
+                return;
+            }
+
+            const savedAtText = draft?.savedAt ? new Date(draft.savedAt).toLocaleString('zh-TW') : '未知時間';
+            const shouldRestore = confirm(`偵測到未完成草稿（${savedAtText}）。\n\n要還原上次編輯內容嗎？`);
+            if (!shouldRestore) {
+                return;
+            }
+
+            const descriptor = draft?.drawingDescriptor || {};
+
+            if (descriptor.type === 'image' && descriptor.imageSrc) {
+                showImageSurface(descriptor.imageSrc, function() {
+                    currentDrawingDescriptor = {
+                        type: 'image',
+                        origin: descriptor.origin || 'draft-image',
+                        fileName: descriptor.fileName || ''
+                    };
+                    fitToScreen();
+                    hasAutoZoomed = false;
+                });
+            } else if (descriptor.type === 'pdf' && descriptor.pdfPath) {
+                await loadPdfFromDatabasePath(descriptor.pdfPath, descriptor.pdfDisplayName || descriptor.pdfPath);
+                currentDrawingDescriptor = {
+                    type: 'pdf',
+                    origin: descriptor.origin || 'draft-db-pdf',
+                    pdfPath: descriptor.pdfPath,
+                    pdfDisplayName: descriptor.pdfDisplayName || descriptor.pdfPath,
+                    fileName: descriptor.fileName || ''
+                };
+            } else if (descriptor.previewImageSrc) {
+                showImageSurface(descriptor.previewImageSrc, function() {
+                    currentDrawingDescriptor = {
+                        type: 'image',
+                        origin: 'draft-preview',
+                        fileName: descriptor.fileName || ''
+                    };
+                    fitToScreen();
+                    hasAutoZoomed = false;
+                });
+            }
+
+            applyProjectState(draft);
+            if (draft.currentZoom) {
+                setTimeout(() => setZoom(parseFloat(draft.currentZoom)), 80);
+            }
+
+            hasAutoZoomed = false;
+            updatePanModeButton();
+            updateStatus();
+            statusBar.className = "status-sync";
+            statusBar.innerText = `📝 已還原本機草稿（${savedAtText}）。`;
+            if (draftStatusBadge) {
+                draftStatusBadge.innerText = `✓ 已還原 ${savedAtText}`;
+                draftStatusBadge.className = 'draft-badge draft-saved';
+            }
+        }
+
+        function toggleFunctionPanel(forceOpen) {
+            const shouldOpen = typeof forceOpen === 'boolean'
+                ? forceOpen
+                : functionPanel.classList.contains('is-collapsed');
+
+            functionPanel.classList.toggle('is-collapsed', !shouldOpen);
+            document.body.classList.toggle('controls-collapsed', !shouldOpen);
+            document.body.classList.toggle('controls-expanded', shouldOpen);
+            functionToggleBtn.innerText = shouldOpen ? '☰ 收合功能' : '☰ 功能選單';
+
+            // 收合/展開後重新計算縮放外框，避免圖面尺寸殘留
+            setTimeout(() => setZoom(currentZoom), 80);
+
+        }
+        function getFormattedDate() {
+            const d = new Date();
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}${mm}${dd}`;
+
+        }
+        function hasDrawingContent() {
+            return currentDrawingSourceType !== 'none';
+        }
+        function getDrawingWidth() {
+            return Math.ceil(drawingSurface.offsetWidth || bgImage.offsetWidth || 0);
+        }
+        function getDrawingHeight() {
+            return Math.ceil(drawingSurface.offsetHeight || bgImage.offsetHeight || 0);
+        }
+        function getDrawingRect() {
+            return drawingSurface.getBoundingClientRect();
+        }
+        function updateWorkspaceSize() {
+            const width = getDrawingWidth();
+            const height = getDrawingHeight();
+            if (width > 0 && height > 0) {
+                sizer.style.width = (width * currentZoom) + 'px';
+                sizer.style.height = (height * currentZoom) + 'px';
+            }
+        }
+        function disposePdfRenderState() {
+            if (pdfRenderState?.pdfDocument && typeof pdfRenderState.pdfDocument.destroy === 'function') {
+                try {
+                    pdfRenderState.pdfDocument.destroy();
+                } catch {
+                }
+            }
+            pdfRenderState = null;
+        }
+        function clearDrawingSurface() {
+            disposePdfRenderState();
+            currentDrawingSourceType = 'none';
+            currentDrawingDescriptor = { type: 'none', origin: 'none' };
+            bgImage.onload = null;
+            bgImage.src = '';
+            bgImage.style.display = 'none';
+            pdfPages.innerHTML = '';
+            pdfPages.style.display = 'none';
+            drawingSurface.style.width = '';
+            sizer.style.width = '0px';
+            sizer.style.height = '0px';
+        }
+        function showImageSurface(imageSrc, onReady) {
+            clearDrawingSurface();
+            currentDrawingSourceType = 'image';
+            pdfPages.innerHTML = '';
+            pdfPages.style.display = 'none';
+            bgImage.style.display = 'block';
+            bgImage.onload = function() {
+                updateWorkspaceSize();
+                if (typeof onReady === 'function') {
+                    onReady();
+                }
+                updateStepProgress();
+            };
+            bgImage.src = imageSrc;
+        }
+        function scheduleVisiblePdfRendering() {
+            if (!pdfRenderState || pdfRenderState.renderScheduled) return;
+            pdfRenderState.renderScheduled = true;
+            requestAnimationFrame(() => {
+                if (!pdfRenderState) return;
+                pdfRenderState.renderScheduled = false;
+                ensureVisiblePdfPages().catch(error => console.error(error));
+            });
+        }
+        async function renderPdfPage(meta, forceKeep = false) {
+            if (!pdfRenderState || meta.status === 'rendered' || meta.status === 'rendering') {
+                if (forceKeep) meta.keepAlive = true;
+                return meta.renderPromise || Promise.resolve();
+            }
+
+            meta.status = 'rendering';
+            meta.keepAlive = forceKeep;
+            meta.placeholder.innerText = `第 ${meta.pageNo} 頁載入中...`;
+            meta.placeholder.style.display = 'flex';
+            meta.image.style.display = 'none';
+
+            meta.renderPromise = (async () => {
+                const page = await pdfRenderState.pdfDocument.getPage(meta.pageNo);
+                const viewportPage = page.getViewport({ scale: pdfRenderState.scale });
+                const pageCanvas = document.createElement('canvas');
+                const pageContext = pageCanvas.getContext('2d');
+                pageCanvas.width = Math.ceil(viewportPage.width);
+                pageCanvas.height = Math.ceil(viewportPage.height);
+
+                await page.render({
+                    canvasContext: pageContext,
+                    viewport: viewportPage
+                }).promise;
+
+                meta.image.src = pageCanvas.toDataURL('image/jpeg', 0.92);
+                meta.image.width = meta.width;
+                meta.image.height = meta.height;
+                meta.image.style.display = 'block';
+                meta.placeholder.style.display = 'none';
+                meta.status = 'rendered';
+                meta.lastUsedAt = Date.now();
+
+                pageCanvas.width = 0;
+                pageCanvas.height = 0;
+            })().catch(error => {
+                meta.status = 'error';
+                meta.placeholder.innerText = `第 ${meta.pageNo} 頁載入失敗`;
+                meta.placeholder.style.display = 'flex';
+                throw error;
+            }).finally(() => {
+                meta.renderPromise = null;
+            });
+
+            return meta.renderPromise;
+        }
+        function unloadPdfPage(meta) {
+            if (!pdfRenderState || meta.status !== 'rendered' || meta.keepAlive) {
+                return;
+            }
+
+            meta.image.removeAttribute('src');
+            meta.image.style.display = 'none';
+            meta.placeholder.innerText = `第 ${meta.pageNo} 頁待顯示`;
+            meta.placeholder.style.display = 'flex';
+            meta.status = 'idle';
+        }
+        async function ensureVisiblePdfPages() {
+            if (!pdfRenderState || currentDrawingSourceType !== 'pdf') {
+                return;
+            }
+
+            const visibleTop = viewport.scrollTop / currentZoom;
+            const visibleBottom = (viewport.scrollTop + viewport.clientHeight) / currentZoom;
+            const preloadMargin = Math.max(viewport.clientHeight / currentZoom, 800);
+            const keepMargin = preloadMargin * 2;
+            const renderTasks = [];
+
+            for (const meta of pdfRenderState.pageMetas) {
+                const pageBottom = meta.top + meta.heightWithFrame;
+                const shouldRender = pageBottom >= (visibleTop - preloadMargin) && meta.top <= (visibleBottom + preloadMargin);
+                meta.keepAlive = pageBottom >= (visibleTop - keepMargin) && meta.top <= (visibleBottom + keepMargin);
+
+                if (shouldRender) {
+                    renderTasks.push(renderPdfPage(meta, true));
+                } else if (!meta.keepAlive && meta.status === 'rendered') {
+                    unloadPdfPage(meta);
+                }
+            }
+
+            if (renderTasks.length > 0) {
+                await Promise.all(renderTasks);
+            }
+        }
+        async function ensureAllPdfPagesRendered() {
+            if (!pdfRenderState) {
+                return;
+            }
+
+            for (const meta of pdfRenderState.pageMetas) {
+                meta.keepAlive = true;
+                await renderPdfPage(meta, true);
+            }
+        }
+        function updateStatus() {
+            const hasImg = hasDrawingContent();
+            if (hasImg) {
+                statusBar.className = "status-ready";
+                statusBar.innerText = "⚡ 圖面就緒！可按「全景」看整張圖，或按「標註」放大後開始定義圈圈座標。";
+            } else {
+                statusBar.className = "";
+                statusBar.innerText = "等待載入圖面...";
+            }
+
+        }
+        async function loadSystemVersion() {
+            if (!systemVersionBadge) return;
+
+            try {
+                const response = await fetch(API_SYSTEM_INFO_URL, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const version = data?.version || data?.Version || 'UNKNOWN';
+                const pdfLoading = data?.pdfLoading || data?.PdfLoading || {};
+                pdfLoadingSettings = {
+                    maxPagesToRender: Number(pdfLoading.maxPagesToRender || pdfLoading.MaxPagesToRender || pdfLoadingSettings.maxPagesToRender),
+                    maxTotalPixels: Number(pdfLoading.maxTotalPixels || pdfLoading.MaxTotalPixels || pdfLoadingSettings.maxTotalPixels),
+                    renderScale: Number(pdfLoading.renderScale || pdfLoading.RenderScale || pdfLoadingSettings.renderScale)
+                };
+                systemVersionBadge.innerText = `系統版次 ${version}`;
+            } catch (error) {
+                console.error(error);
+                systemVersionBadge.innerText = '系統版次讀取失敗';
+            }
+        }
+        // ====== UX 強化：縮放、全景、標註放大、滑鼠滾輪縮放 ======
+        function setZoom(level) {
+            currentZoom = level;
+            if (currentZoom < 0.1) currentZoom = 0.1;
+            if (currentZoom > 6) currentZoom = 6;
+            workspace.style.transform = `scale(${currentZoom})`;
+            updateWorkspaceSize();
+            document.getElementById('zoom-display').innerText = Math.round(currentZoom * 100) + '%';
+
+        }
+        function zoomIn() { zoomAtViewportCenter(currentZoom + 0.2); }
+        function zoomOut() { zoomAtViewportCenter(currentZoom - 0.2); }
+        function resetZoom() { setZoom(1); centerWorkspace(); }
+        function centerWorkspace() {
+            setTimeout(() => {
+                viewport.scrollLeft = Math.max(0, (sizer.offsetWidth - viewport.clientWidth) / 2);
+                viewport.scrollTop = Math.max(0, (sizer.offsetHeight - viewport.clientHeight) / 2);
+            }, 30);
+        }
+        function zoomAtViewportCenter(newZoom) {
+            const centerX = viewport.scrollLeft + viewport.clientWidth / 2;
+            const centerY = viewport.scrollTop + viewport.clientHeight / 2;
+            const imageX = centerX / currentZoom;
+            const imageY = centerY / currentZoom;
+            setZoom(newZoom);
+            viewport.scrollLeft = imageX * currentZoom - viewport.clientWidth / 2;
+            viewport.scrollTop = imageY * currentZoom - viewport.clientHeight / 2;
+        }
+        function fitToScreen() {
+            if (!hasDrawingContent()) { alert("請先載入圖面！"); return; }
+            const padding = 60;
+            const scaleX = (viewport.clientWidth - padding) / getDrawingWidth();
+            const scaleY = (viewport.clientHeight - padding) / getDrawingHeight();
+            const fitZoom = Math.min(scaleX, scaleY);
+            setZoom(Math.max(0.1, Math.min(fitZoom, 1)));
+            centerWorkspace();
+            statusBar.innerText = "🗺️ 已切換全景工作模式，可先看整張圖面位置。";
+        }
+        function setMarkZoom() {
+            if (!hasDrawingContent()) { alert('請先載入圖面！'); return; }
+            zoomAtViewportCenter(1.6);
+            panMode = false;  // 切換到標註模式：點擊新增泡泡
+            updatePanModeButton();
+            statusBar.innerText = '🎯 已切換標註模式，可直接點擊圖面新增泡泡。左鍵按住拖曳仍可平移。';
+        }
+        function togglePanMode() {
+            panMode = !panMode;
+            updatePanModeButton();
+            if (panMode) {
+                statusBar.innerText = '✋ 已切換為純平移模式，點擊圖面不新增泡泡。';
+            } else {
+                statusBar.innerText = '🎯 已切換為標註模式，點擊圖面（放開後未拖曳）即新增泡泡。';
+            }
+        }
+        function updatePanModeButton() {
+            const btn = document.getElementById('panModeBtn');
+            if (btn) {
+                if (panMode) {
+                    btn.innerText = '純平移';
+                    btn.style.background = '#6c757d';
+                    btn.style.color = '#fff';
+                } else {
+                    btn.innerText = '標註中';
+                    btn.style.background = '#28a745';
+                    btn.style.color = '#fff';
+                }
+            }
+            drawingSurface.style.cursor = 'grab';
+            bgImage.style.cursor = 'grab';
+        }
+        viewport.addEventListener('wheel', function(e) {
+            if (!hasDrawingContent()) return;
+            e.preventDefault();
+            const oldZoom = currentZoom;
+            const zoomDelta = e.deltaY < 0 ? 0.15 : -0.15;
+            const newZoom = currentZoom + zoomDelta;
+            const rect = viewport.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left + viewport.scrollLeft;
+            const mouseY = e.clientY - rect.top + viewport.scrollTop;
+            const imageX = mouseX / oldZoom;
+            const imageY = mouseY / oldZoom;
+            setZoom(newZoom);
+            viewport.scrollLeft = imageX * currentZoom - (e.clientX - rect.left);
+            viewport.scrollTop = imageY * currentZoom - (e.clientY - rect.top);
+        }, { passive: false });
+        viewport.addEventListener('scroll', function() {
+            if (currentDrawingSourceType === 'pdf') {
+                scheduleVisiblePdfRendering();
+            }
+        }, { passive: true });
+        // ====== 載入圖面檔案 (支援 PDF 與 圖片) ======
+        async function renderPdfArrayBuffer(arrayBuffer, sourceLabel) {
+            statusBar.className = "status-working";
+            statusBar.innerText = `⏳ 正在解析 ${sourceLabel}，請稍候...`;
+
+            try {
+                const typedArray = new Uint8Array(arrayBuffer);
+                const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+                const scale = Math.max(0.5, Number(pdfLoadingSettings.renderScale) || 2.2);
+                const maxPagesToRender = Math.max(1, parseInt(pdfLoadingSettings.maxPagesToRender, 10) || 10);
+                const maxTotalPixels = Math.max(1000000, Number(pdfLoadingSettings.maxTotalPixels) || 35000000);
+                let totalPixels = 0;
+                let widestPage = 0;
+                let totalHeight = 0;
+                const pageMetas = [];
+                const pageGap = 10;
+                const framePadding = 12;
+                const outerPadding = 8;
+
+                if (pdf.numPages > maxPagesToRender) {
+                    throw new Error(`PDF 共 ${pdf.numPages} 頁，超過系統限制 ${maxPagesToRender} 頁，已停止載入。`);
+                }
+
+                clearDrawingSurface();
+                currentDrawingSourceType = 'pdf';
+                currentDrawingDescriptor = {
+                    type: 'pdf',
+                    origin: sourceLabel.startsWith('資料庫 PDF') ? 'db-pdf' : 'local-pdf',
+                    fileName: sourceLabel,
+                    pdfPath: '',
+                    pdfDisplayName: sourceLabel
+                };
+                pdfPages.style.display = 'flex';
+
+                for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+                    const page = await pdf.getPage(pageNo);
+                    const viewportPage = page.getViewport({ scale: scale });
+                    const pageWidth = Math.ceil(viewportPage.width);
+                    const pageHeight = Math.ceil(viewportPage.height);
+                    totalPixels += pageWidth * pageHeight;
+
+                    if (totalPixels > maxTotalPixels) {
+                        throw new Error(`PDF 預估總像素 ${totalPixels.toLocaleString()} 超過系統限制 ${maxTotalPixels.toLocaleString()}，已停止載入。`);
+                    }
+
+                    const pageFrame = document.createElement('div');
+                    pageFrame.className = 'pdf-page-frame';
+                    pageFrame.style.width = `${pageWidth}px`;
+
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'pdf-page-placeholder';
+                    placeholder.style.width = `${pageWidth}px`;
+                    placeholder.style.height = `${pageHeight}px`;
+                    placeholder.innerText = `第 ${pageNo} 頁待顯示`;
+
+                    const pageImage = document.createElement('img');
+                    pageImage.className = 'pdf-page-image';
+                    pageImage.alt = `PDF page ${pageNo}`;
+                    pageImage.width = pageWidth;
+                    pageImage.height = pageHeight;
+                    pageImage.style.display = 'none';
+
+                    pageFrame.appendChild(placeholder);
+                    pageFrame.appendChild(pageImage);
+                    pdfPages.appendChild(pageFrame);
+                    widestPage = Math.max(widestPage, pageWidth);
+                    const heightWithFrame = pageHeight + framePadding;
+                    pageMetas.push({
+                        pageNo,
+                        width: pageWidth,
+                        height: pageHeight,
+                        top: totalHeight,
+                        heightWithFrame: heightWithFrame,
+                        frame: pageFrame,
+                        placeholder,
+                        image: pageImage,
+                        status: 'idle',
+                        renderPromise: null,
+                        keepAlive: false,
+                        lastUsedAt: 0
+                    });
+                    totalHeight += heightWithFrame + (pageNo < pdf.numPages ? pageGap : 0);
+                }
+
+                bgImage.style.display = 'none';
+                drawingSurface.style.width = widestPage > 0 ? `${widestPage + 28}px` : '';
+                pdfRenderState = {
+                    pdfDocument: pdf,
+                    scale,
+                    pageMetas,
+                    renderScheduled: false,
+                    pageGap,
+                    framePadding,
+                    outerPadding
+                };
+
+                updateWorkspaceSize();
+                fitToScreen();
+                scheduleVisiblePdfRendering();
+                hasAutoZoomed = false;
+                statusBar.className = "status-ready";
+                statusBar.innerText = `✅ 已載入 ${sourceLabel}，共 ${pdf.numPages} 頁，可開始定位。`;
+                scheduleDraftAutosave();
+                updatePageIndicator();
+                updateStepProgress();
+            } catch (error) {
+                alert(`${sourceLabel} 讀取失敗。\n\n${error.message || '請確認檔案可正常開啟且未加密。'}`);
+                console.error(error);
+                clearDrawingSurface();
+                clearSavedDraft();
+                updateStatus();
+            }
+        }
+
+        async function loadLocalFile(file) {
+            if (!file) return;
+
+            clearTagOverlaysForNewDrawing();
+
+            if (file.type === 'application/pdf') {
+                const arrayBuffer = await file.arrayBuffer();
+                await renderPdfArrayBuffer(arrayBuffer, `PDF「${file.name}」`);
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                showImageSurface(event.target.result, function() {
+                    currentDrawingDescriptor = {
+                        type: 'image',
+                        origin: 'local-image',
+                        fileName: file.name || ''
+                    };
+                    fitToScreen();
+                    hasAutoZoomed = false;
+                    statusBar.className = "status-ready";
+                    statusBar.innerText = `✅ 已載入圖面「${file.name}」，可開始定位。`;
+                    scheduleDraftAutosave();
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        document.getElementById('imageInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            await loadLocalFile(file);
+        });
+
+        function getFieldValue(row, names) {
+            for (const name of names) {
+                if (row[name] !== undefined && row[name] !== null) return row[name];
+            }
+            const lowerMap = {};
+            Object.keys(row).forEach(k => lowerMap[k.toLowerCase()] = k);
+            for (const name of names) {
+                const actualKey = lowerMap[name.toLowerCase()];
+                if (actualKey && row[actualKey] !== undefined && row[actualKey] !== null) return row[actualKey];
+            }
+            return null;
+
+        }
+
+        function getFirstValue(row, names) {
+            return getFieldValue(row, names);
+        }
+
+        function extractSpecRows(apiPayload) {
+            if (Array.isArray(apiPayload)) {
+                return apiPayload;
+            }
+            return apiPayload?.specRows || apiPayload?.SpecRows || [];
+        }
+
+        function extractPdfOptions(apiPayload) {
+            if (Array.isArray(apiPayload)) {
+                return [];
+            }
+
+            const rawOptions = apiPayload?.pdfOptions || apiPayload?.PdfOptions || [];
+            return rawOptions
+                .map(option => ({
+                    filePath: option?.filePath || option?.FilePath || '',
+                    displayName: option?.displayName || option?.DisplayName || option?.filePath || option?.FilePath || ''
+                }))
+                .filter(option => option.filePath);
+        }
+
+        function populatePdfOptions(options) {
+            pdfOptions = Array.isArray(options) ? options : [];
+            dbPdfSelect.innerHTML = '';
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+
+            if (pdfOptions.length === 0) {
+                placeholder.textContent = '目前沒有可選的資料庫 PDF';
+                dbPdfSelect.appendChild(placeholder);
+                dbPdfSelect.disabled = true;
+                loadDbPdfBtn.disabled = true;
+                dbPdfHint.innerText = '＊ Stored Procedure 第二個結果集目前未回傳 PDF 路徑。';
+                return;
+            }
+
+            placeholder.textContent = `請選擇 PDF（共 ${pdfOptions.length} 筆）`;
+            dbPdfSelect.appendChild(placeholder);
+
+            pdfOptions.forEach((option, index) => {
+                const node = document.createElement('option');
+                node.value = option.filePath;
+                node.textContent = option.displayName || `PDF ${index + 1}`;
+                dbPdfSelect.appendChild(node);
+            });
+
+            dbPdfSelect.disabled = false;
+            loadDbPdfBtn.disabled = false;
+            dbPdfHint.innerText = '＊ 可選擇 Stored Procedure 第二個結果集回傳的 PDF 路徑並直接載入首頁。';
+        }
+
+        async function loadPdfFromDatabasePath(selectedPath, displayName) {
+            if (!selectedPath) {
+                throw new Error('未指定 PDF 路徑。');
+            }
+
+            try {
+                clearTagOverlaysForNewDrawing();
+                statusBar.className = 'status-working';
+                statusBar.innerText = `⏳ 正在從資料庫路徑載入 PDF：${selectedPath}`;
+
+                const response = await fetch(API_PDF_FILE_URL(selectedPath), {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/pdf' }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || `HTTP ${response.status}`);
+                }
+
+                const arrayBuffer = await response.arrayBuffer();
+                await renderPdfArrayBuffer(arrayBuffer, `資料庫 PDF「${displayName || selectedPath}」`);
+                currentDrawingDescriptor = {
+                    type: 'pdf',
+                    origin: 'db-pdf',
+                    fileName: displayName || selectedPath,
+                    pdfPath: selectedPath,
+                    pdfDisplayName: displayName || selectedPath
+                };
+                scheduleDraftAutosave();
+            } catch (error) {
+                console.error(error);
+                alert('載入資料庫 PDF 失敗。請確認後端主機能存取該路徑，且檔案確實存在。\n\n錯誤：' + error.message);
+                updateStatus();
+            }
+        }
+
+        async function loadSelectedPdfFromDatabase() {
+            const selectedPath = dbPdfSelect.value;
+            if (!selectedPath) {
+                alert('請先選擇要載入的 PDF 路徑。');
+                dbPdfSelect.focus();
+                return;
+            }
+
+            const displayName = dbPdfSelect.options[dbPdfSelect.selectedIndex]?.text || selectedPath;
+            await loadPdfFromDatabasePath(selectedPath, displayName);
+        }
+
+
+        const ITEM_FIELD_NAMES = ['itemNo', 'ItemNo', 'ITEMNO', '項次', '檢驗項次', '序號', 'SEQ', 'Seq', 'NO', 'No', 'ITEM', 'Item', '項目'];
+        const EQUIP_FIELD_NAMES = ['EQUIP', 'equip', 'Equip', 'inspectionMethod', 'InspectionMethod', '檢驗方式', '量測方式', 'METHOD', 'Method'];
+
+        function normalizeItemKey(value) {
+            if (value === undefined || value === null) return '';
+            let text = value.toString().trim();
+            if (!text) return '';
+            if (/^\d+(\.0+)?$/.test(text)) {
+                text = String(parseInt(text, 10));
+            }
+            return text;
+
+        }
+        function normalizeEquip(value) {
+            if (value === undefined || value === null) return '';
+            return value.toString().trim().toUpperCase();
+
+        }
+        function findFieldName(row, names) {
+            if (!row) return null;
+            return names.find(name => Object.prototype.hasOwnProperty.call(row, name)) || null;
+
+        }
+        function renderSpecGrid(rows, drawingNumber, revision, inspectionStage) {
+            if (!specGrid || !specGridSummary) return;
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                specGrid.innerHTML = '<thead><tr><th>狀態</th></tr></thead><tbody><tr><td>查無資料</td></tr></tbody>';
+                specGridSummary.innerText = `圖號 ${drawingNumber}｜版次 ${revision}｜${inspectionStage}：查無規格資料。`;
+                return;
+            }
+
+            // 右側 GridView 縮小版：只顯示「項次」與「EQUIP」，避免佔用圖面工作區。
+            // SP 其他欄位仍保留在資料中，圈圈套色邏輯不受影響。
+            const itemField = findFieldName(rows[0], ITEM_FIELD_NAMES);
+            const equipField = findFieldName(rows[0], EQUIP_FIELD_NAMES);
+            const columns = [
+                { header: '泡泡', getter: row => getFirstValue(row, ITEM_FIELD_NAMES) },
+                { header: '量測設備', getter: row => getFirstValue(row, EQUIP_FIELD_NAMES) }
+            ];
+
+            const thead = '<thead><tr>' + columns.map(c => `<th>${escapeHtml(c.header)}</th>`).join('') + '</tr></thead>';
+            const tbody = '<tbody>' + rows.map(row => {
+                const itemKey = normalizeItemKey(getFirstValue(row, ITEM_FIELD_NAMES));
+                const equip = normalizeEquip(getFirstValue(row, EQUIP_FIELD_NAMES));
+                const equipColor = colorMapping[equip] ? colorMapping[equip].bg : '';
+                const equipTextColor = colorMapping[equip] ? colorMapping[equip].color : '';
+                return '<tr data-item="' + escapeHtml(itemKey) + '">' + columns.map((c, index) => {
+                    const val = c.getter(row) ?? '';
+                    if (index === 1 && equipColor) {
+                        return `<td style="background:${equipColor};color:${equipTextColor};font-weight:bold;">${escapeHtml(val)}</td>`;
+                    }
+                    return `<td>${escapeHtml(val)}</td>`;
+                }).join('') + '</tr>';
+            }).join('') + '</tbody>';
+
+            specGrid.innerHTML = thead + tbody;
+            bindSpecGridRowClick();
+            specGridSummary.innerText = `圖號 ${drawingNumber}｜版次 ${revision}｜${inspectionStage}：共 ${rows.length} 筆。Grid 僅顯示泡泡與量測設備。`;
+
+        }
+        function bindSpecGridRowClick() {
+            if (!specGrid) return;
+            specGrid.querySelectorAll('tbody tr[data-item]').forEach(row => {
+                row.addEventListener('click', function() {
+                    const item = this.dataset.item;
+                    selectGridRow(item);
+                    focusTagByItem(item);
+                });
+            });
+
+        }
+        function selectGridRow(itemKey) {
+            if (!specGrid || !itemKey) return;
+            specGrid.querySelectorAll('tr.grid-selected').forEach(r => r.classList.remove('grid-selected'));
+            const row = specGrid.querySelector(`tbody tr[data-item="${CSS.escape(itemKey)}"]`);
+            if (row) {
+                row.classList.add('grid-selected');
+                row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+        }
+        function focusTagByItem(itemKey) {
+            const tag = document.querySelector(`.circle-tag[data-id="${CSS.escape(itemKey)}"]`);
+            clearSelectedTags();
+            if (!tag) {
+                statusBar.innerText = `⚠️ Grid 泡泡 ${itemKey} 尚未在圖面上建立定位圈圈。`;
+                return;
+            }
+            tag.classList.add('tag-selected');
+            const x = parseFloat(tag.style.left) || 0;
+            const y = parseFloat(tag.style.top) || 0;
+            viewport.scrollLeft = (x * currentZoom) - (viewport.clientWidth / 2);
+            viewport.scrollTop = (y * currentZoom) - (viewport.clientHeight / 2);
+            statusBar.innerText = `🎯 已定位到泡泡 ${itemKey}。`;
+
+        }
+        function toggleSpecGridWidth() {
+            const layout = document.querySelector('.work-layout');
+            if (layout) layout.classList.toggle('spec-expanded');
+
+        }
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+
+        }
+        function getTagItemKey(tag) {
+            if (!tag) return '';
+            const raw = tag.dataset.id || tag.getAttribute('data-id') || tag.textContent || '';
+            const firstLine = raw.toString().trim().split(/\s+/)[0];
+            return normalizeItemKey(firstLine);
+
+        }
+        function clearSelectedTags() {
+            document.querySelectorAll('.circle-tag.tag-selected').forEach(t => t.classList.remove('tag-selected'));
+
+        }
+        function renderTagContent(tag, itemKey, method) {
+            // 泡泡內只顯示序號；量測設備/EQUIP 顯示在右側 GridView。
+            const safeItem = escapeHtml(itemKey || '');
+            tag.innerHTML = `<span class="tag-item">${safeItem}</span>`;
+
+        }
+        function updateTagVisual(tag, itemKey, method) {
+            const equip = normalizeEquip(method);
+            const finalMethod = colorMapping[equip] ? equip : 'UNASSIGNED';
+            tag.dataset.id = itemKey;
+            tag.dataset.method = finalMethod;
+            renderTagContent(tag, itemKey, finalMethod);
+            tag.title = finalMethod === 'UNASSIGNED'
+                ? `泡泡 ${itemKey}｜尚未對應到量測設備`
+                : `泡泡 ${itemKey}｜量測設備：${finalMethod}`;
+            tag.style.backgroundColor = colorMapping[finalMethod].bg;
+            tag.style.color = colorMapping[finalMethod].color;
+
+        }
+        // ====== 從資料庫 API 載入規格並執行【瞬間自動套色】 ======
+        async function loadSpecFromDatabase() {
+            const drawingNumber = drawingNumberInput.value.trim();
+            const revision = revisionInput.value.trim();
+            const inspectionStage = inspectionStageInput.value;
+
+            if (!drawingNumber) {
+                alert("請先輸入圖號，系統會用圖號去資料庫查詢規格表！");
+                drawingNumberInput.focus();
+                return;
+            }
+
+            if (!revision) {
+                alert("請先輸入版次，例如：A / B / 01。");
+                revisionInput.focus();
+                return;
+            }
+
+            try {
+                statusBar.className = "status-working";
+                statusBar.innerText = `⏳ 正在從資料庫載入圖號 ${drawingNumber} / 版次 ${revision} / ${inspectionStage} 的規格資料...`;
+
+                const apiUrl = API_SPEC_URL(drawingNumber, revision, inspectionStage);
+                const response = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) {
+                    let serverMsg = '';
+                    try {
+                        const errBody = await response.json();
+                        serverMsg = errBody.error || errBody.message || JSON.stringify(errBody);
+                    } catch {
+                        serverMsg = await response.text().catch(() => '');
+                    }
+                    throw new Error(`HTTP ${response.status}：${serverMsg || '後端未回傳錯誤說明'}`);
+                }
+
+                const payload = await response.json();
+                const json = extractSpecRows(payload);
+                const availablePdfOptions = extractPdfOptions(payload);
+                if (!Array.isArray(json)) {
+                    throw new Error("API 回傳格式錯誤，第一個結果集應為 JSON 陣列。");
+                }
+
+                specDataMap = {};
+                specRowMap = {};
+
+                json.forEach(row => {
+                    // 用 SP 回傳資料的「項次/序號」對應圖面上的圈圈數字，再用 EQUIP 決定顏色
+                    const itemNo = getFieldValue(row, ITEM_FIELD_NAMES);
+                    const method = getFieldValue(row, EQUIP_FIELD_NAMES);
+                    const itemKey = normalizeItemKey(itemNo);
+                    const equip = normalizeEquip(method);
+
+                    if (itemKey && equip) {
+                        specDataMap[itemKey] = equip;
+                        specRowMap[itemKey] = row;
+                    }
+                });
+
+                populatePdfOptions(availablePdfOptions);
+                refreshTagsColor();
+                renderSpecGrid(json, drawingNumber, revision, inspectionStage);
+
+                if (availablePdfOptions.length > 0) {
+                    const firstPdf = availablePdfOptions[0];
+                    dbPdfSelect.value = firstPdf.filePath;
+                    await loadPdfFromDatabasePath(firstPdf.filePath, firstPdf.displayName);
+                }
+
+                statusBar.className = "status-sync";
+                statusBar.innerText = availablePdfOptions.length > 0
+                    ? `✨ 資料庫規格載入成功！${inspectionStage} 共載入 ${Object.keys(specDataMap).length} 筆，並已自動載入第一筆 PDF。`
+                    : `✨ 資料庫規格載入成功！${inspectionStage} 共載入 ${Object.keys(specDataMap).length} 筆，PDF 路徑 0 筆。`;
+                scheduleDraftAutosave();
+                updateTagProgress();
+                updateStepProgress();
+
+            } catch (error) {
+                console.error(error);
+                alert('從資料庫載入規格失敗。\n\n' + (error.message || error));
+                updateStatus();
+            }
+
+        }
+        // ====== 載入 Excel 並執行【瞬間自動套色】 ======
+        document.getElementById('excelInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                
+                specDataMap = {};
+                specRowMap = {};
+                json.forEach(row => {
+                    const itemNo = getFieldValue(row, ITEM_FIELD_NAMES);
+                    const method = getFieldValue(row, EQUIP_FIELD_NAMES);
+                    const itemKey = normalizeItemKey(itemNo);
+                    const equip = normalizeEquip(method);
+                    if (itemKey && equip) {
+                        specDataMap[itemKey] = equip;
+                        specRowMap[itemKey] = row;
+                    }
+                });
+                
+                refreshTagsColor();
+                
+                statusBar.className = "status-sync";
+                statusBar.innerText = `✨ 規格表載入成功！已為畫面上現有的圈圈完成製程自動套色。`;
+                scheduleDraftAutosave();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // 掃描畫面上的圈圈，依照 Excel 賦予新顏色
+        function refreshTagsColor() {
+            let updatedCount = 0;
+            document.querySelectorAll('.circle-tag').forEach(tag => {
+                const itemKey = getTagItemKey(tag);
+                const method = specDataMap[itemKey] ? normalizeEquip(specDataMap[itemKey]) : 'UNASSIGNED';
+                updateTagVisual(tag, itemKey, method);
+                if (method && colorMapping[method]) updatedCount++;
+            });
+
+        }
+        // ====== 畫布/PDF 拖拉平移功能 ======
+        // 左鍵按住不放並移動 = 平移 PDF/圖面；左鍵按住後放開且未拖曳 = 新增定位。
+        // 標籤本身仍保留左鍵拖曳移動、右鍵刪除。
+        let isPanning = false;
+        let hasMovedWhilePanning = false;
+        let panStartedOnImage = false;
+        let startPanX = 0, startPanY = 0, startScrollLeft = 0, startScrollTop = 0;
+        const panMoveThreshold = 5;
+
+        function setPanCursor(isDraggingNow) {
+            const cursor = isDraggingNow ? 'grabbing' : 'grab';
+            viewport.style.cursor = cursor;
+            workspace.style.cursor = cursor;
+            drawingSurface.style.cursor = cursor;
+            bgImage.style.cursor = cursor;
+
+        }
+        function isPointInsideBgImage(clientX, clientY) {
+            const rect = getDrawingRect();
+            return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+
+        }
+        function addTagFromClientPoint(clientX, clientY) {
+            if (!hasDrawingContent()) {
+                alert('請先載入圖面！');
+                return;
+            }
+            if (!isPointInsideBgImage(clientX, clientY)) return;
+
+            const currentNumber = seqInput.value.trim();
+            if (!currentNumber) return;
+
+            // 驗證：項次必須是正整數
+            const parsedSeq = parseInt(currentNumber, 10);
+            if (isNaN(parsedSeq) || parsedSeq <= 0 || String(parsedSeq) !== currentNumber.replace(/^0+/, '') && currentNumber !== '0') {
+                alert(`項次「${currentNumber}」不是有效的正整數，請重新輸入。`);
+                seqInput.focus();
+                return;
+            }
+
+            const itemKey = normalizeItemKey(currentNumber);
+
+            // 防止重複：同一項次已存在時詢問
+            const existing = document.querySelector(`.circle-tag[data-id="${CSS.escape(itemKey)}"]`);
+            if (existing) {
+                const confirmDup = confirm(`項次 ${itemKey} 的泡泡已存在。\n\n要建立第二個同項次泡泡嗎？（通常不建議）`);
+                if (!confirmDup) return;
+            }
+
+            let method = specDataMap[itemKey] ? normalizeEquip(specDataMap[itemKey]) : '';
+            if (!method || !colorMapping[method]) {
+                method = 'UNASSIGNED';
+            }
+
+            const rect = getDrawingRect();
+            const clickX = (clientX - rect.left) / currentZoom;
+            const clickY = (clientY - rect.top) / currentZoom;
+
+            const createdTag = createTagAt(currentNumber, method, clickX, clickY);
+            selectGridRow(itemKey);
+            clearSelectedTags();
+            createdTag.classList.add('tag-selected');
+
+            const nextNumber = parsedSeq + 1;
+            seqInput.value = nextNumber;
+
+            if (method === 'UNASSIGNED') {
+                statusBar.innerText = `✅ 已定義項次 ${currentNumber} 座標，右側規格已同步選取 (等待套色)。 👉 下一步：按住放開定位 ${nextNumber}`;
+            } else {
+                statusBar.innerText = `✅ 已標註項次 ${currentNumber} (${method})，右側規格已同步選取。 👉 下一步：按住放開定位 ${nextNumber}`;
+            }
+            scheduleDraftAutosave();
+            updateTagProgress();
+            updateStepProgress();
+        }
+
+        viewport.addEventListener('mousedown', function(e) {
+            // 不要搶走標籤拖曳/刪除事件
+            if (e.target.closest && e.target.closest('.circle-tag')) return;
+
+            // 左鍵：拖拉圖面 / 放開新增定位。右鍵保留為拖拉平移，不新增定位。
+            if (e.button === 0 || e.button === 2) {
+                isPanning = true;
+                hasMovedWhilePanning = false;
+                panStartedOnImage = drawingSurface.contains(e.target);
+                startPanX = e.clientX;
+                startPanY = e.clientY;
+                startScrollLeft = viewport.scrollLeft;
+                startScrollTop = viewport.scrollTop;
+                setPanCursor(true);
+                e.preventDefault();
+            }
+        });
+
+        window.addEventListener('mousemove', function(e) {
+            if (!isPanning) return;
+
+            const dx = e.clientX - startPanX;
+            const dy = e.clientY - startPanY;
+
+            if (Math.abs(dx) > panMoveThreshold || Math.abs(dy) > panMoveThreshold) {
+                hasMovedWhilePanning = true;
+            }
+
+            if (hasMovedWhilePanning) {
+                viewport.scrollLeft = startScrollLeft - dx;
+                viewport.scrollTop = startScrollTop - dy;
+            }
+        });
+
+        window.addEventListener('mouseup', function(e) {
+            if (!isPanning) return;
+
+            // 左鍵按住後放開，且中間沒有拖曳，且 panMode 未鎖定，才新增定位。
+            const shouldAddTag = e.button === 0 && !hasMovedWhilePanning && panStartedOnImage && !panMode;
+
+            isPanning = false;
+            hasMovedWhilePanning = false;
+            const startedOnImage = panStartedOnImage;
+            panStartedOnImage = false;
+            setPanCursor(false);
+
+            if (shouldAddTag && startedOnImage) {
+                addTagFromClientPoint(e.clientX, e.clientY);
+            }
+        });
+        // ====== 建立與管理標籤 ======
+        function createTagAt(id, method, x, y) {
+            const tag = document.createElement('div');
+            tag.className = 'circle-tag';
+            const itemKey = normalizeItemKey(id);
+            const equip = normalizeEquip(method);
+            const finalMethod = colorMapping[equip] ? equip : 'UNASSIGNED';
+            updateTagVisual(tag, itemKey, finalMethod);
+
+            // ✕ hover 刪除按鈕
+            const delBtn = document.createElement('span');
+            delBtn.className = 'tag-del';
+            delBtn.textContent = '✕';
+            delBtn.title = `刪除項次 ${itemKey}`;
+            delBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                undoStack.push({
+                    action: 'delete',
+                    tagData: {
+                        id: getTagItemKey(tag),
+                        method: tag.dataset.method || 'UNASSIGNED',
+                        x: parseFloat(tag.style.left),
+                        y: parseFloat(tag.style.top)
+                    }
+                });
+                tag.remove();
+                statusBar.innerText = `🗑️ 已刪除項次 ${itemKey} 的標註。可按「↩ 復原」還原。`;
+                scheduleDraftAutosave();
+                updateTagProgress();
+            });
+            tag.appendChild(delBtn);
+            tag.addEventListener('click', function(ev) {
+                const item = getTagItemKey(this);
+                selectGridRow(item);
+                clearSelectedTags();
+                this.classList.add('tag-selected');
+                statusBar.innerText = `🔎 已選取泡泡 ${item}，右側 GridView 已同步到對應規格資料。`;
+            });
+            tag.style.left = x + 'px';
+            tag.style.top = y + 'px';
+
+            tag.addEventListener('contextmenu', function(e) {
+                e.preventDefault(); e.stopPropagation(); 
+
+                undoStack.push({
+                    action: 'delete',
+                    tagData: {
+                        id: getTagItemKey(this),
+                        method: this.dataset.method || 'UNASSIGNED',
+                        x: parseFloat(this.style.left),
+                        y: parseFloat(this.style.top)
+                    }
+                });
+
+                this.remove(); 
+                statusBar.innerText = `🗑️ 已刪除項次 ${id} 的標註。可按「↩ 復原」還原。`;
+                scheduleDraftAutosave();
+                updateTagProgress();
+            });
+
+            makeDraggable(tag);
+            workspace.appendChild(tag);
+            return tag;
+
+        }
+        function makeDraggable(element) {
+            element.addEventListener('mousedown', function(e) {
+                if (e.button !== 0) return;
+                e.stopPropagation();
+
+                const startX = parseFloat(element.style.left) || 0;
+                const startY = parseFloat(element.style.top) || 0;
+                let hasMoved = false;
+
+                element.style.zIndex = 1000;
+
+                function onMove(ev) {
+                    hasMoved = true;
+                    const rect = workspace.getBoundingClientRect();
+                    element.style.left = ((ev.clientX - rect.left) / currentZoom) + 'px';
+                    element.style.top  = ((ev.clientY - rect.top)  / currentZoom) + 'px';
+                }
+
+                function onUp() {
+                    document.removeEventListener('mousemove', onMove);
+                    document.removeEventListener('mouseup', onUp);
+                    element.style.zIndex = '10';
+                    if (hasMoved) {
+                        const endX = parseFloat(element.style.left);
+                        const endY = parseFloat(element.style.top);
+                        // 記錄移動，供復原使用
+                        undoStack.push({
+                            action: 'move',
+                            tagData: {
+                                id: getTagItemKey(element),
+                                method: element.dataset.method || 'UNASSIGNED',
+                                fromX: startX,
+                                fromY: startY,
+                                toX: endX,
+                                toY: endY
+                            }
+                        });
+                        scheduleDraftAutosave();
+                    }
+                }
+
+                document.addEventListener('mousemove', onMove);
+                document.addEventListener('mouseup', onUp);
+            });
+        }
+        // ====== 圖層顯示切換 ======
+        document.querySelectorAll('.filter-cb').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const method = this.value;
+                const isChecked = this.checked;
+                document.querySelectorAll(`.circle-tag[data-method="${method}"]`).forEach(tag => {
+                    tag.style.display = isChecked ? 'flex' : 'none';
+                });
+            });
+        });
+
+        // ====== 復原上一個動作 ======
+        function undoLastAction() {
+            if (undoStack.length === 0) {
+                alert('目前沒有可以復原的動作。');
+                return;
+            }
+
+            const lastAction = undoStack.pop();
+
+            if (lastAction.action === 'delete') {
+                const t = lastAction.tagData;
+                const method = colorMapping[t.method] ? t.method : 'UNASSIGNED';
+                createTagAt(t.id, method, t.x, t.y);
+                statusBar.innerText = `↩️ 已復原項次 ${t.id} 的標註。`;
+                scheduleDraftAutosave();
+                return;
+            }
+
+            if (lastAction.action === 'move') {
+                const t = lastAction.tagData;
+                const tag = document.querySelector(`.circle-tag[data-id="${CSS.escape(t.id)}"]`);
+                if (tag) {
+                    tag.style.left = t.fromX + 'px';
+                    tag.style.top  = t.fromY + 'px';
+                    statusBar.innerText = `↩️ 已復原項次 ${t.id} 的移動。`;
+                    scheduleDraftAutosave();
+                } else {
+                    statusBar.innerText = `⚠️ 找不到項次 ${t.id} 的泡泡，無法復原移動。`;
+                }
+                return;
+            }
+
+            alert('此動作目前不支援復原。');
+        }
+        function clearTagOverlaysForNewDrawing() {
+            document.querySelectorAll('.circle-tag').forEach(el => el.remove());
+            specGrid?.querySelectorAll('tr.grid-selected').forEach(r => r.classList.remove('grid-selected'));
+            clearSelectedTags();
+            undoStack = [];
+            seqInput.value = 1;
+        }
+        function clearTags() {
+            if(confirm("確定要清空畫面上所有的標籤與圖面嗎？")) {
+                clearTagOverlaysForNewDrawing();
+                clearDrawingSurface();
+                drawingNumberInput.value = "";
+                revisionInput.value = "";
+                document.getElementById('imageInput').value = "";
+                document.getElementById('excelInput').value = "";
+                document.getElementById('projectInput').value = "";
+                specDataMap = {};
+                specRowMap = {};
+                populatePdfOptions([]);
+                clearSavedDraft();
+                statusBar.className = "";
+                statusBar.innerText = "畫面已清空。請重新載入檔案。";
+                updateTagProgress();
+                updateStepProgress();
+            }
+        }
+        // ====== 專案資料序列化 / 還原，共用於 JSON 與 MSSQL ======
+        async function buildPersistedDrawingImage() {
+            if (currentDrawingSourceType === 'image' && bgImage.src && bgImage.src !== window.location.href) {
+                return bgImage.src;
+            }
+
+            if (currentDrawingSourceType !== 'pdf') {
+                return '';
+            }
+
+            await ensureAllPdfPagesRendered();
+
+            const pageImages = Array.from(pdfPages.querySelectorAll('.pdf-page-image'));
+            if (pageImages.length === 0) {
+                return '';
+            }
+
+            const frameGap = 10;
+            const framePadding = 12;
+            const widestPage = Math.max(...pageImages.map(image => image.naturalWidth || image.width || 0));
+            const totalHeight = pageImages.reduce((sum, image) => sum + (image.naturalHeight || image.height || 0), 0)
+                + (pageImages.length - 1) * frameGap
+                + pageImages.length * framePadding
+                + 16;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = widestPage + 28;
+            canvas.height = totalHeight;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#e9ecef';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+
+            let offsetY = 8;
+            for (const image of pageImages) {
+                const width = image.naturalWidth || image.width;
+                const height = image.naturalHeight || image.height;
+
+                context.fillStyle = '#ffffff';
+                context.fillRect(8, offsetY, width + framePadding, height + framePadding);
+                context.drawImage(image, 14, offsetY + 6, width, height);
+                offsetY += height + framePadding + frameGap;
+            }
+
+            return canvas.toDataURL('image/jpeg', 0.9);
+        }
+        async function collectProjectData() {
+            const persistedImage = await buildPersistedDrawingImage();
+            const tagsData = Array.from(document.querySelectorAll('.circle-tag')).map(tag => {
+                const itemKey = getTagItemKey(tag);
+                return {
+                    id: itemKey,
+                    itemNo: parseInt(itemKey, 10),
+                    method: tag.dataset.method || 'UNASSIGNED',
+                    inspectionMethod: tag.dataset.method || 'UNASSIGNED',
+                    x: parseFloat(tag.style.left),
+                    y: parseFloat(tag.style.top)
+                };
+            });
+
+            return {
+                drawingNumber: drawingNumberInput.value.trim(),
+                revision: revisionInput.value.trim(),
+                inspectionStage: inspectionStageInput.value,
+                bubbleSize: currentBubbleSize,
+                imageSrc: persistedImage,
+                image: persistedImage,
+                specDataMap: specDataMap,
+                specRowMap: specRowMap,
+                pdfOptions: pdfOptions,
+                currentSeq: seqInput.value,
+                currentZoom: currentZoom,
+                tags: tagsData
+            };
+
+        }
+        function buildTagMapFromArray(tags) {
+            const tagMap = new Map();
+            (Array.isArray(tags) ? tags : []).forEach(tag => {
+                const id = (tag?.id ?? tag?.itemNo ?? tag?.ItemNo ?? '').toString().trim();
+                if (!id) {
+                    return;
+                }
+                tagMap.set(id, {
+                    id,
+                    x: parseFloat(tag?.x ?? tag?.X ?? 0),
+                    y: parseFloat(tag?.y ?? tag?.Y ?? 0),
+                    method: tag?.method ?? tag?.inspectionMethod ?? tag?.InspectionMethod ?? 'UNASSIGNED'
+                });
+            });
+            return tagMap;
+        }
+        function summarizeProjectDiff(previousProjectData, currentProjectData) {
+            const previousMap = buildTagMapFromArray(previousProjectData?.tags || previousProjectData?.Tags || []);
+            const currentMap = buildTagMapFromArray(currentProjectData?.tags || currentProjectData?.Tags || []);
+            const added = [];
+            const removed = [];
+            const moved = [];
+
+            currentMap.forEach((currentTag, id) => {
+                const previousTag = previousMap.get(id);
+                if (!previousTag) {
+                    added.push(id);
+                    return;
+                }
+
+                const deltaX = Math.abs((currentTag.x || 0) - (previousTag.x || 0));
+                const deltaY = Math.abs((currentTag.y || 0) - (previousTag.y || 0));
+                if (deltaX > SAVE_DIFF_MOVED_THRESHOLD || deltaY > SAVE_DIFF_MOVED_THRESHOLD) {
+                    moved.push(id);
+                }
+            });
+
+            previousMap.forEach((_, id) => {
+                if (!currentMap.has(id)) {
+                    removed.push(id);
+                }
+            });
+
+            added.sort((a, b) => Number(a) - Number(b));
+            removed.sort((a, b) => Number(a) - Number(b));
+            moved.sort((a, b) => Number(a) - Number(b));
+
+            return {
+                added,
+                removed,
+                moved,
+                previousCount: previousMap.size,
+                currentCount: currentMap.size
+            };
+        }
+        function formatDiffIdList(items) {
+            if (!items.length) {
+                return '無';
+            }
+            const preview = items.slice(0, 12).join(', ');
+            return items.length > 12 ? `${preview} ... 共 ${items.length} 筆` : preview;
+        }
+        async function fetchLatestProjectSnapshotForCompare(drawingNumber) {
+            // 差異比對只需要 tags，不需要 ImageBase64，使用輕量 meta endpoint
+            const response = await fetch(API_LOAD_LATEST_META_URL(drawingNumber), {
+                method: 'GET',
+                headers: { 'Accept': 'application/json' }
+            });
+
+            if (response.status === 404) {
+                return null;
+            }
+            if (!response.ok) {
+                throw new Error(`比較基準載入失敗：HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        }
+        async function confirmDatabaseSaveWithDiff(projectData) {
+            const drawingNumber = projectData?.drawingNumber?.trim();
+            if (!drawingNumber) {
+                return true;
+            }
+
+            const latestSnapshot = await fetchLatestProjectSnapshotForCompare(drawingNumber);
+
+            if (!latestSnapshot) {
+                return confirm(`圖號 ${drawingNumber} 目前在資料庫沒有既有版本。\n\n將以新圖號建立第一個版本，是否繼續？`);
+            }
+
+            const diff = summarizeProjectDiff(latestSnapshot, projectData);
+            const latestVersion = latestSnapshot.version ?? latestSnapshot.VersionNo ?? latestSnapshot.versionNo ?? '未知';
+            const message = [
+                `即將存入圖號 ${drawingNumber} 的新版本。`,
+                `目前資料庫最新版本：${latestVersion}`,
+                '',
+                `新增泡泡：${diff.added.length} 筆`,
+                `刪除泡泡：${diff.removed.length} 筆`,
+                `移動泡泡：${diff.moved.length} 筆`,
+                '',
+                `新增項次：${formatDiffIdList(diff.added)}`,
+                `刪除項次：${formatDiffIdList(diff.removed)}`,
+                `移動項次：${formatDiffIdList(diff.moved)}`,
+                '',
+                '要繼續存入資料庫新版本嗎？'
+            ].join('\n');
+
+            return confirm(message);
+        }
+        function restoreProjectData(projectData) {
+            const image = projectData.imageSrc || projectData.image || projectData.ImageBase64 || projectData.imageBase64;
+            if (image) {
+                showImageSurface(image, function() {
+                    currentDrawingDescriptor = {
+                        type: 'image',
+                        origin: 'restored-project',
+                        fileName: ''
+                    };
+                    fitToScreen();
+                    hasAutoZoomed = false;
+                });
+            }
+
+            applyProjectState(projectData);
+
+            if (projectData.currentZoom || projectData.CurrentZoom) {
+                setTimeout(() => setZoom(parseFloat(projectData.currentZoom || projectData.CurrentZoom)), 80);
+            }
+            hasAutoZoomed = false;
+            updatePanModeButton();
+            updateStatus();
+            updateTagProgress();
+            updateStepProgress();
+        }
+        // ====== MSSQL 版本控管 API：存入新版本 / 載入最新版本 ======
+        async function saveToDatabase() {
+            if (!hasDrawingContent()) {
+                alert("目前沒有圖面可供儲存！");
+                return;
+            }
+
+            const projectData = await collectProjectData();
+            if (!projectData.drawingNumber) {
+                alert("請先輸入圖號，才能存入資料庫版本。");
+                drawingNumberInput.focus();
+                return;
+            }
+
+            try {
+                statusBar.className = "status-working";
+                statusBar.innerText = "⏳ 正在存入資料庫並建立新版本...";
+                const shouldContinue = await confirmDatabaseSaveWithDiff(projectData);
+                if (!shouldContinue) {
+                    statusBar.className = "status-sync";
+                    statusBar.innerText = "已取消存入資料庫。";
+                    scheduleVisiblePdfRendering();
+                    return;
+                }
+
+                const response = await fetch(API_SAVE_PROJECT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(projectData)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API 回應失敗：HTTP ${response.status}`);
+                }
+
+                const result = await response.json();
+                const version = result.version ?? result.VersionNo ?? result.versionNo ?? '';
+                statusBar.className = 'status-sync';
+                statusBar.innerText = version ? `✅ 已存入資料庫，建立 Version ${version}` : '✅ 已存入資料庫。';
+                await saveDraftToLocalStorage();
+                scheduleVisiblePdfRendering();
+            } catch (error) {
+                console.error(error);
+                alert("存入資料庫失敗。請確認後端 API 是否已啟動，以及路徑是否為 /api/drawing-project/save。\n\n錯誤：" + error.message);
+                scheduleVisiblePdfRendering();
+                updateStatus();
+            }
+
+        }
+        async function loadLatestFromDatabase() {
+            const drawingNumber = drawingNumberInput.value.trim();
+            if (!drawingNumber) {
+                alert('請先輸入圖號，才能載入資料庫最新版本。');
+                drawingNumberInput.focus();
+                return;
+            }
+
+            // 若畫面上已有圖面或泡泡，先詢問是否覆蓋
+            const hasTags = document.querySelectorAll('.circle-tag').length > 0;
+            if (hasDrawingContent() || hasTags) {
+                const confirmed = confirm(`目前畫面上已有圖面或標註資料。\n\n載入資料庫最新版本將覆蓋目前內容，是否繼續？`);
+                if (!confirmed) return;
+            }
+
+            try {
+                statusBar.className = 'status-working';
+                statusBar.innerText = `⏳ 正在載入圖號 ${drawingNumber} 的最新版本...`;
+
+                const response = await fetch(API_LOAD_LATEST_URL(drawingNumber), {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (response.status === 404) {
+                    alert('資料庫查無此圖號版本資料。');
+                    updateStatus();
+                    return;
+                }
+                if (!response.ok) {
+                    throw new Error(`API 回應失敗：HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                restoreProjectData(data);
+                const version = data.version ?? data.VersionNo ?? data.versionNo ?? '';
+                statusBar.className = 'status-sync';
+                statusBar.innerText = version ? `📂 已載入資料庫最新版本：Version ${version}` : '📂 已載入資料庫最新版本。';
+                scheduleDraftAutosave();
+            } catch (error) {
+                console.error(error);
+                alert('載入資料庫最新版本失敗。請確認後端 API 是否已啟動，以及路徑是否為 /api/drawing-project/latest/{圖號}。\n\n錯誤：' + error.message);
+                updateStatus();
+            }
+        }
+        // ====== 儲存/載入 JSON 專案檔 ======
+        function saveProject() {
+            saveProjectInternal();
+        }
+        async function saveProjectInternal() {
+            if (!hasDrawingContent()) {
+                alert("目前沒有圖面可供儲存！"); return;
+            }
+            
+            const projectData = await collectProjectData();
+
+            const jsonString = JSON.stringify(projectData);
+            const blob = new Blob([jsonString], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            const dNum = drawingNumberInput.value.trim() || '未命名模板';
+            const dateStr = getFormattedDate();
+            a.download = `${dNum}_${dateStr}_Project.json`;
+            
+            a.click();
+            URL.revokeObjectURL(url);
+            await saveDraftToLocalStorage();
+            scheduleVisiblePdfRendering();
+            
+            statusBar.innerText = `💾 專案「${dNum}」已成功儲存！`;
+
+        }
+        document.getElementById('projectInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const projectData = JSON.parse(event.target.result);
+                    restoreProjectData(projectData);
+                    scheduleDraftAutosave();
+                    document.getElementById('projectInput').value = "";
+                    alert("📂 模板載入成功！");
+                    
+                } catch (error) {
+                    alert("載入失敗！檔案可能已損毀。");
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // ====== 單獨圖層匯出（固定存至伺服器）======
+        const API_EXPORT_LAYER_URL = '/api/export/layer';
+        const currentExportMode = 'server'; // 固定存至伺服器
+
+        function showExportToast(ok, title, fileNames = [], autoDismissMs = 8000) {
+            const toast = document.getElementById('exportToast');
+            if (!toast) return;
+            toast.className = ok ? 'toast-ok' : 'toast-err';
+
+            const icon = ok ? '✅' : '❌';
+            let html = `<span class="toast-close" onclick="document.getElementById('exportToast').style.display='none'">✕</span>`;
+            html += `<b>${icon} ${title}</b>`;
+
+            if (fileNames.length > 0) {
+                html += `<div class="toast-file-list">`;
+                fileNames.forEach(f => { html += `<div>📄 ${f}</div>`; });
+                html += `</div>`;
+            }
+
+            toast.innerHTML = html;
+            toast.style.display = 'block';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => { toast.style.display = 'none'; }, autoDismissMs);
+        }
+
+        function getCheckedLayerMethods() {
+            return Array.from(document.querySelectorAll('.filter-cb:checked'))
+                .map(cb => cb.value)
+                .filter(value => !!value);
+        }
+        function getTagsByMethod(method) {
+            return Array.from(document.querySelectorAll(`.circle-tag[data-method="${method}"]`));
+        }
+        function withLayerVisibility(method, callback) {
+            const allTags = document.querySelectorAll('.circle-tag');
+            const originalStates = Array.from(allTags, tag => tag.style.display);
+            allTags.forEach(tag => {
+                tag.style.display = tag.dataset.method === method ? 'flex' : 'none';
+            });
+            const restore = () => {
+                allTags.forEach((tag, index) => {
+                    tag.style.display = originalStates[index];
+                });
+            };
+            return callback().finally(restore);
+        }
+
+        /**
+         * 匯出單一圖層 PDF。
+         * mode='download'：觸發瀏覽器下載。
+         * mode='server'：以 Base64 POST 至後端，後端存至網路磁碟。
+         */
+        async function exportLayerToPdf(method, exportFileName) {
+            if (currentExportMode === 'server') {
+                return await exportLayerToServer(method, exportFileName);
+            } else {
+                return await withLayerVisibility(method, () => executePDFExport(exportFileName));
+            }
+        }
+
+        async function exportLayerToServer(method, exportFileName) {
+            return withLayerVisibility(method, async () => {
+                // 先產生 PDF blob（不觸發下載）
+                const pdfBase64 = await generatePDFBase64();
+                const dNum = drawingNumberInput.value.trim() || '未命名';
+                const rev  = revisionInput.value.trim() || '';
+
+                const payload = {
+                    drawingNumber: dNum,
+                    revision: rev,
+                    layerMethod: method,
+                    pdfBase64: pdfBase64,
+                    fileName: exportFileName
+                };
+
+                const response = await fetch(API_EXPORT_LAYER_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || `HTTP ${response.status}`);
+                }
+                return result;
+            });
+        }
+
+        /**
+         * 產生目前 workspace 的 PDF 並回傳 Base64 字串（不觸發下載）。
+         */
+        function generatePDFBase64() {
+            return new Promise((resolve, reject) => {
+                const prevZoom = currentZoom;
+                setZoom(1);
+                setTimeout(async () => {
+                    try {
+                        if (currentDrawingSourceType === 'pdf') {
+                            await ensureAllPdfPagesRendered();
+                        }
+                        const w = getDrawingWidth();
+                        const h = getDrawingHeight();
+                        const opt = {
+                            margin: 0,
+                            image: { type: 'jpeg', quality: 1.0 },
+                            html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollX: 0, scrollY: 0, width: w, height: h },
+                            jsPDF: { unit: 'px', format: [w, h], orientation: w > h ? 'landscape' : 'portrait' }
+                        };
+                        const pdfDoc = html2pdf().set(opt).from(workspace);
+                        const blob = await pdfDoc.outputPdf('blob');
+                        const reader = new FileReader();
+                        reader.onload = () => resolve(reader.result); // data:application/pdf;base64,....
+                        reader.onerror = () => reject(new Error('Base64 轉換失敗'));
+                        reader.readAsDataURL(blob);
+                    } catch (err) {
+                        reject(err);
+                    } finally {
+                        setZoom(prevZoom);
+                        scheduleVisiblePdfRendering();
+                    }
+                }, 150);
+            });
+        }
+
+        function exportSingleLayer(method) {
+            if (!hasDrawingContent()) { alert('請先載入圖面！'); return; }
+            const targetTags = getTagsByMethod(method);
+            if (targetTags.length === 0) {
+                alert(`目前畫面上沒有任何 ${method} 的標註，無法匯出空白圖層！`);
+                return;
+            }
+            let dNum = drawingNumberInput.value.trim();
+            if (!dNum) {
+                dNum = prompt('尚未輸入圖號，請輸入圖號 (作為檔名使用)：', '未命名圖號');
+                if (!dNum) return;
+                drawingNumberInput.value = dNum;
+            }
+            const dateStr = getFormattedDate();
+            const exportFileName = `${dNum}_${dateStr}_${method}.pdf`;
+            statusBar.innerText = `⏳ 正在匯出 ${method} 圖層... 請稍候`;
+
+            exportLayerToPdf(method, exportFileName).then((result) => {
+                const savedFile = result?.savedPath
+                    ? result.savedPath.split('\\').pop()
+                    : exportFileName;
+                statusBar.innerText = `✅ ${method} 已儲存至伺服器`;
+                showExportToast(true, `${method} 圖層已儲存`, [savedFile]);
+            }).catch((err) => {
+                statusBar.innerText = `❌ 匯出失敗`;
+                showExportToast(false, `${method} 匯出失敗：${err.message || ''}`, [], 10000);
+            });
+        }
+
+        async function exportCheckedLayers() {
+            if (!hasDrawingContent()) { alert('請先載入圖面！'); return; }
+            const selectedMethods = getCheckedLayerMethods();
+            if (selectedMethods.length === 0) {
+                alert('請先勾選至少一個圖層再匯出。');
+                return;
+            }
+            let dNum = drawingNumberInput.value.trim();
+            if (!dNum) {
+                dNum = prompt('尚未輸入圖號，請輸入圖號 (作為檔名使用)：', '未命名圖號');
+                if (!dNum) return;
+                drawingNumberInput.value = dNum;
+            }
+            const exportTargets = selectedMethods.filter(method => getTagsByMethod(method).length > 0);
+            const skippedMethods = selectedMethods.filter(method => getTagsByMethod(method).length === 0);
+            if (exportTargets.length === 0) {
+                alert('目前勾選的圖層都沒有標註，無法匯出。');
+                return;
+            }
+            const dateStr = getFormattedDate();
+            const failedMethods = [];
+            const savedPaths = [];
+
+            for (const method of exportTargets) {
+                const exportFileName = `${dNum}_${dateStr}_${method}.pdf`;
+                statusBar.innerText = `⏳ 正在批次匯出 ${method} 圖層... (${exportTargets.indexOf(method)+1}/${exportTargets.length})`;
+                try {
+                    const result = await exportLayerToPdf(method, exportFileName);
+                    if (currentExportMode === 'server' && result?.savedPath) {
+                        savedPaths.push(result.savedPath);
+                    }
+                } catch (error) {
+                    console.error(error);
+                    failedMethods.push(method);
+                }
+            }
+
+            const successCount = exportTargets.length - failedMethods.length;
+            const summaryParts = [`✅ 批次匯出完成：成功 ${successCount} / ${exportTargets.length}`];
+            if (skippedMethods.length > 0) summaryParts.push(`略過空白圖層：${skippedMethods.join('、')}`);
+            if (failedMethods.length > 0) summaryParts.push(`失敗圖層：${failedMethods.join('、')}`);
+            statusBar.innerText = summaryParts.join(' ｜ ');
+
+            // 組成已存檔案名稱清單（只取檔名，不顯示路徑）
+            const savedFileNames = savedPaths.map(p => p.split('\\').pop()).filter(Boolean);
+
+            if (failedMethods.length === 0) {
+                showExportToast(true,
+                    `批次匯出完成（共 ${successCount} 個圖層）`,
+                    savedFileNames,
+                    10000
+                );
+            } else {
+                showExportToast(false,
+                    `部分匯出失敗：${failedMethods.join('、')}（成功 ${successCount} / ${exportTargets.length}）`,
+                    savedFileNames,
+                    12000
+                );
+            }
+        }
+        // ====== 綜合匯出 ======
+        function exportToPDF() {
+            if (!hasDrawingContent()) { alert("請先載入圖面！"); return; }
+            let dNum = drawingNumberInput.value.trim() || '未命名圖號';
+            const dateStr = getFormattedDate();
+            const exportFileName = `${dNum}_${dateStr}_綜合.pdf`;
+            statusBar.innerText = `⏳ 正在匯出 綜合圖面... 請稍候`;
+            
+            executePDFExport(exportFileName).then(() => {
+                statusBar.innerText = `✅ 已成功匯出：${exportFileName}`;
+            }).catch(() => {
+                statusBar.innerText = `❌ 匯出失敗`;
+            });
+
+        }
+        function executePDFExport(filename) {
+            return new Promise((resolve, reject) => {
+                const prevZoom = currentZoom;
+                setZoom(1);
+
+                setTimeout(async () => {
+                    try {
+                        if (currentDrawingSourceType === 'pdf') {
+                            await ensureAllPdfPagesRendered();
+                        }
+
+                        const w = getDrawingWidth();
+                        const h = getDrawingHeight();
+                        const opt = {
+                            margin: 0,
+                            filename: filename,
+                            image: { type: 'jpeg', quality: 1.0 },
+                            html2canvas: { scale: 2, useCORS: true, allowTaint: true, scrollX: 0, scrollY: 0, width: w, height: h },
+                            jsPDF: { unit: 'px', format: [w, h], orientation: w > h ? 'landscape' : 'portrait' }
+                        };
+
+                        await html2pdf().set(opt).from(workspace).save();
+                        resolve();
+                    } catch (err) {
+                        alert('匯出 PDF 發生錯誤，請檢查圖檔格式。');
+                        console.error(err);
+                        reject(err);
+                    } finally {
+                        setZoom(prevZoom);
+                        scheduleVisiblePdfRendering();
+                    }
+                }, 150);
+            });
+        }
+        [drawingNumberInput, revisionInput, inspectionStageInput, seqInput].forEach(input => {
+            input.addEventListener('input', scheduleDraftAutosave);
+            input.addEventListener('change', scheduleDraftAutosave);
+        });
+        drawingNumberInput.addEventListener('change', function() {
+            if (applyRememberedBubbleSizeForCurrentDrawing()) {
+                scheduleDraftAutosave();
+            }
+        });
+        drawingNumberInput.addEventListener('blur', function() {
+            if (applyRememberedBubbleSizeForCurrentDrawing()) {
+                scheduleDraftAutosave();
+            }
+        });
+        bubbleSizeSelect.addEventListener('change', function() {
+            applyBubbleSize(this.value);
+            scheduleDraftAutosave();
+        });
+        window.addEventListener('beforeunload', function() {
+            if (autosaveTimer) {
+                clearTimeout(autosaveTimer);
+                autosaveTimer = null;
+            }
+
+            try {
+                const draftPayload = {
+                    savedAt: new Date().toISOString(),
+                    drawingNumber: drawingNumberInput.value.trim(),
+                    revision: revisionInput.value.trim(),
+                inspectionStage: inspectionStageInput.value,
+                bubbleSize: currentBubbleSize,
+                currentSeq: seqInput.value,
+                currentZoom: currentZoom,
+                    specDataMap: specDataMap,
+                    // specRowMap 不存入草稿，避免撐爆 localStorage
+                    pdfOptions: pdfOptions,
+                    drawingDescriptor: {
+                        type: currentDrawingDescriptor.type || 'none',
+                        origin: currentDrawingDescriptor.origin || 'none',
+                        fileName: currentDrawingDescriptor.fileName || '',
+                        pdfPath: currentDrawingDescriptor.pdfPath || '',
+                        pdfDisplayName: currentDrawingDescriptor.pdfDisplayName || '',
+                        imageSrc: currentDrawingSourceType === 'image' ? (bgImage.src || '') : '',
+                        previewImageSrc: ''
+                    },
+                    tags: Array.from(document.querySelectorAll('.circle-tag')).map(tag => ({
+                        id: getTagItemKey(tag),
+                        itemNo: parseInt(getTagItemKey(tag), 10),
+                        method: tag.dataset.method || 'UNASSIGNED',
+                        inspectionMethod: tag.dataset.method || 'UNASSIGNED',
+                        x: parseFloat(tag.style.left),
+                        y: parseFloat(tag.style.top)
+                    }))
+                };
+                localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftPayload));
+            } catch {
+            }
+        });
+        applyBubbleSize(currentBubbleSize);
+        updatePanModeButton();
+        loadSystemVersion();
+        tryRestoreDraft().catch(error => console.error(error));
+        updateStepProgress();
+        updateTagProgress();
+
+        // ══════════════════════════════════════
+        // 浮動工具列收合
+        // ══════════════════════════════════════
+        function toggleFloatingToolbar() {
+            const tb = document.getElementById('floatingToolbar');
+            if (tb) tb.classList.toggle('collapsed');
+        }
+
+        // ══════════════════════════════════════
+        // 頁碼指示器
+        // ══════════════════════════════════════
+        function updatePageIndicator() {
+            const indicator = document.getElementById('pageIndicator');
+            const curEl = document.getElementById('pageIndicatorCurrent');
+            const totEl = document.getElementById('pageIndicatorTotal');
+            if (!indicator || !pdfRenderState) { if (indicator) indicator.style.display = 'none'; return; }
+            const total = pdfRenderState.pageMetas.length;
+            if (total <= 1) { indicator.style.display = 'none'; return; }
+            indicator.style.display = 'flex';
+            totEl.textContent = total;
+            const vTop = viewport.scrollTop / currentZoom;
+            let cur = 1;
+            for (const meta of pdfRenderState.pageMetas) {
+                if (meta.top <= vTop + 40) cur = meta.pageNo;
+            }
+            curEl.textContent = cur;
+        }
+        // 捲動時更新頁碼
+        viewport.addEventListener('scroll', () => { if (currentDrawingSourceType === 'pdf') updatePageIndicator(); }, { passive: true });
+
+        // ══════════════════════════════════════
+        // EQUIP 圖例折疊
+        // ══════════════════════════════════════
+        function toggleEquipLegend(btn) {
+            const full = document.getElementById('equipLegendFull');
+            if (!full) return;
+            const isOpen = full.classList.toggle('open');
+            const hint = btn.querySelector('.legend-expand-hint');
+            if (hint) hint.textContent = isOpen ? '▴ 收合' : '▾ 展開';
+        }
+
+        // ══════════════════════════════════════
+        // 泡泡統計與未標記高亮
+        // ══════════════════════════════════════
+        function updateTagProgress() {
+            const badge = document.getElementById('tagProgressBadge');
+            if (!badge) return;
+            const tagged = new Set(
+                Array.from(document.querySelectorAll('.circle-tag'))
+                     .map(t => getTagItemKey(t))
+                     .filter(Boolean)
+            );
+            const specKeys = Object.keys(specDataMap);
+            const total = specKeys.length;
+            const done = specKeys.filter(k => tagged.has(k)).length;
+            badge.textContent = `已標 ${done} / 共 ${total}`;
+            badge.style.background = total > 0 && done === total
+                ? 'var(--color-background-success, #d4edda)'
+                : '';
+            badge.style.color = total > 0 && done === total
+                ? 'var(--color-text-success, #155724)'
+                : '';
+        }
+        function highlightUntaggedRows() {
+            const tagged = new Set(
+                Array.from(document.querySelectorAll('.circle-tag'))
+                     .map(t => getTagItemKey(t))
+            );
+            document.querySelectorAll('#specGrid tbody tr').forEach(row => {
+                const key = row.dataset.itemKey || '';
+                row.classList.toggle('row-untagged', key && !tagged.has(key));
+            });
+            updateTagProgress();
+        }
+
+        // ══════════════════════════════════════
+        // 步驟進度圓圈
+        // ══════════════════════════════════════
+        function updateStepProgress() {
+            const hasSpec   = Object.keys(specDataMap).length > 0;
+            const hasDrawing = hasDrawingContent();
+            const hasTags   = document.querySelectorAll('.circle-tag').length > 0;
+            const setStep = (id, state) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.classList.toggle('done',   state === 'done');
+                el.classList.toggle('active', state === 'active');
+            };
+            setStep('step1num', hasSpec ? 'done' : 'active');
+            setStep('step2num', hasDrawing ? 'done' : hasSpec ? 'active' : '');
+            setStep('step3num', hasTags ? 'done' : hasDrawing ? 'active' : '');
+            setStep('step4num', '');
+            setStep('step5num', hasTags ? 'active' : '');
+            setStep('step6num', hasTags ? 'active' : '');
+        }
+        const THEME_STORAGE_KEY = 'drawing-tag-vs2022-theme';
+        let _currentTheme = 'system'; // 'system' | 'dark' | 'light'
+        let _systemDarkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+
+        function applyTheme(theme) {
+            _currentTheme = theme;
+            const isDark = theme === 'dark' || (theme === 'system' && _systemDarkMQ.matches);
+            document.body.classList.toggle('theme-dark',  isDark);
+            document.body.classList.toggle('theme-light', !isDark && theme !== 'system');
+
+            // 按鈕圖示
+            const icon = document.getElementById('themeIcon');
+            if (icon) {
+                icon.textContent = theme === 'system' ? '⚙️' : isDark ? '🌙' : '☀️';
+            }
+
+            // 更新勾選狀態
+            ['system', 'dark', 'light'].forEach(t => {
+                const el = document.getElementById('themeOpt-' + t);
+                if (el) el.classList.toggle('active', t === theme);
+            });
+
+            localStorage.setItem(THEME_STORAGE_KEY, theme);
+        }
+
+        function setTheme(theme) {
+            applyTheme(theme);
+            closeThemeDropdown();
+        }
+
+        function toggleThemeDropdown(e) {
+            e.stopPropagation();
+            const dd = document.getElementById('themeDropdown');
+            if (dd) dd.classList.toggle('open');
+        }
+
+        function closeThemeDropdown() {
+            const dd = document.getElementById('themeDropdown');
+            if (dd) dd.classList.remove('open');
+        }
+
+        // 點其他地方關閉下拉
+        document.addEventListener('click', closeThemeDropdown);
+
+        // 系統模式：監聽系統深/淺色變更
+        _systemDarkMQ.addEventListener('change', () => {
+            if (_currentTheme === 'system') applyTheme('system');
+        });
+
+        // 啟動時套用已儲存的主題
+        const _savedTheme = localStorage.getItem(THEME_STORAGE_KEY) || 'system';
+        applyTheme(_savedTheme);
+
+        // ====== 鍵盤快捷鍵 ======
+        document.addEventListener('keydown', function(e) {
+            // 若焦點在 input / select / textarea 內，不攔截
+            const tag = document.activeElement?.tagName?.toLowerCase();
+            if (tag === 'input' || tag === 'select' || tag === 'textarea') return;
+
+            // Ctrl+Z：復原
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                undoLastAction();
+                return;
+            }
+
+            // + / = ：放大；- ：縮小
+            if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); return; }
+            if (e.key === '-')                   { e.preventDefault(); zoomOut(); return; }
+
+            // F：全景；M：標註放大
+            if (e.key === 'f' || e.key === 'F') { e.preventDefault(); fitToScreen(); return; }
+            if (e.key === 'm' || e.key === 'M') { e.preventDefault(); setMarkZoom(); return; }
+        });
+
+        // Enter 鍵在 seqInput 聚焦時跳到下一個項次（方便鍵盤操作）
+        seqInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const v = parseInt(this.value, 10);
+                if (!isNaN(v) && v > 0) {
+                    this.value = v + 1;
+                }
+            }
+        });
+    </script>    <!-- 匯出結果通知 -->
+    <div id="exportToast"></div>
+
+</body>
+</html>
