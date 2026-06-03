@@ -5,6 +5,9 @@
 - 強化 `start_system.ps1`：啟動失敗時自動輸出 `api` / `worker` 的近期 logs，便於診斷 Docker 啟動問題
 - 修正 `README.md` 的專案實際路徑，並同步更新一鍵啟動腳本的真實行為說明
 - 新增 `.gitignore`，避免 `.env`、`__pycache__` 與虛擬環境檔案誤入版控
+- 修正 `Dockerfile` 的 `Nuclei` 安裝方式：移除 `bash /dev/stdin` 遠端腳本，改為下載固定版本 release binary，避免 image build 因缺少 shell/前置條件而失敗
+- 修正容器啟動時序：為 `db` / `redis` 補上 healthcheck，並讓 `api` / `worker` 等待依賴服務健康後再啟動
+- 修正資料庫初始化韌性：`init_db()` 在 PostgreSQL 尚未 ready 時會自動重試，避免 API 因瞬間拒絕連線直接退出
 
 ## 2026-06-02
 - 補上 JWT 認證、密碼雜湊與 Bearer Token 解析

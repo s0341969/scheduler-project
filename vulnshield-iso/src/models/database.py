@@ -1,3 +1,6 @@
+import asyncio
+
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
 from src.core.config import settings
@@ -15,5 +18,15 @@ async def init_db() -> None:
 
     _ = (Asset, AuditLog, ScanTask, User, Finding, Vulnerability)
 
-    async with engine.begin() as connection:
-        await connection.run_sync(Base.metadata.create_all)
+    attempts = 12
+    delay_seconds = 5
+
+    for attempt in range(1, attempts + 1):
+        try:
+            async with engine.begin() as connection:
+                await connection.run_sync(Base.metadata.create_all)
+            return
+        except OperationalError:
+            if attempt == attempts:
+                raise
+            await asyncio.sleep(delay_seconds)

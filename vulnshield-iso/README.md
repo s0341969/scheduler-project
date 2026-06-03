@@ -18,6 +18,11 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - Docker
 - Docker Compose
 
+### 內建掃描工具安裝方式
+- Docker image 會在建置時安裝 `nmap`
+- `Nuclei` 會使用固定版本 release binary 安裝，目前預設為 `3.3.8`
+- 若未來 `Nuclei` 版本需要升級，請同步更新 `Dockerfile` 的 `NUCLEI_VERSION`
+
 ### 環境變數
 先複製 `G:\codex_pg\vulnshield-iso\.env.example` 為 `.env`，至少調整以下值：
 - `SECRET_KEY`
@@ -41,6 +46,7 @@ docker compose -p vulnshield-iso up -d --build
 - `worker` 容器是否已進入 running 狀態
 - 啟動失敗時自動列出 `api` 與 `worker` 的近期 logs
 - `docker compose` 會固定使用專案名 `vulnshield-iso`
+- `db` 與 `redis` 會先經過 healthcheck，`api` / `worker` 會等依賴服務健康後再啟動
 
 ### 驗證
 - 健康檢查：`GET http://localhost:8000/healthz`
@@ -109,3 +115,5 @@ docker compose -p vulnshield-iso up -d --build
 - `DEFAULT_ADMIN_PASSWORD` 僅適合首次啟動，正式環境必須立即更換。
 - 目前資料表初始化採用啟動時 `create_all`，尚未導入 Alembic migration。
 - 本機若要執行測試或啟動 API，需要先安裝 `requirements.txt` 內相依套件。
+- `Dockerfile` 已避免使用遠端 shell install script 安裝 `Nuclei`，改為固定版本 binary，以降低建置失敗與供應鏈風險。
+- `API` 啟動時會重試資料庫初始化；即使 PostgreSQL 比 API 慢幾秒起來，也不會立刻因一次拒絕連線就退出。
