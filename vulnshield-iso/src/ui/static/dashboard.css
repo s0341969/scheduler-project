@@ -285,6 +285,11 @@ textarea {
     border: 1px solid rgba(111, 98, 84, 0.12);
 }
 
+.credential-card.inactive {
+    opacity: 0.72;
+    border-style: dashed;
+}
+
 .asset-card {
     cursor: pointer;
     transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
@@ -322,6 +327,12 @@ textarea {
 .detail-grid,
 .detail-sections,
 .summary-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.action-row {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;

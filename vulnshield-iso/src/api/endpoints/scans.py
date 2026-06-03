@@ -100,6 +100,8 @@ async def trigger_scan(
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到 credential')
         if current_user.role == UserRole.ANALYST and credential.owner_id != current_user.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法使用他人的 credential')
+        if not credential.is_active:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='此 credential 已停用，無法執行掃描')
 
     normalized_profile = ensure_scan_profile(trigger.scan_profile)
     normalized_template = ensure_template_key(trigger.device_template, asset.device_type)

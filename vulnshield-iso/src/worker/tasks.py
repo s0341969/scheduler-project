@@ -77,6 +77,9 @@ async def _execute_scan_logic(task_id: int):
             resolved_template = ensure_template_key(task.device_template or getattr(asset, 'template_key', None), asset.device_type)
             credential_context = build_credential_runtime_context(credential)
 
+            if credential is not None and not credential.is_active:
+                raise ValueError('此掃描任務綁定的 credential 已停用，無法繼續執行')
+
             if profile_requires_credential(resolved_profile):
                 if credential is None or credential_context is None:
                     raise ValueError('此掃描模式需要 credential，但任務未綁定可用憑證')

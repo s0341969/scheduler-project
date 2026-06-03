@@ -122,6 +122,8 @@ docker compose -p vulnshield-iso up -d --build
 - `POST /credentials`
 - `GET /credentials/{credential_id}`
 - `PATCH /credentials/{credential_id}`
+- `GET /credentials/{credential_id}/audit`
+- `DELETE /credentials/{credential_id}`
 
 設備專用：
 - `GET /assets/{asset_id}/scans`
@@ -154,9 +156,11 @@ docker compose -p vulnshield-iso up -d --build
 3. 在 `設備` 分頁左側建立設備，填入設備類型、目標位址、標籤、預設掃描模式、設備模板與預設 credential
 4. 若要使用認證型掃描，可在同一頁下方的 `Credential 庫` 建立 Windows、Linux SSH 或 SNMP 憑證
 5. 在 `設備` 分頁的清單選取目標設備
-6. 在設備詳情頁可改選當次掃描模式與 credential，再按 `執行弱點掃描`
-7. 切到 `掃描` 分頁查看全域掃描任務歷史、狀態、掃描引擎、服務發現、漏洞、錯誤設定、憑證風險、管理面曝露與認證上下文
-8. 切到 `報告` 分頁查看整體風險統計、高風險設備、掃描層次彙總與 profile 分布基礎資料
+6. 在設備詳情頁可直接按 `編輯設備` 回填左側表單，修改設備的目標、模板、credential 與備註
+7. 在設備詳情頁可改選當次掃描模式與 credential，再按 `執行弱點掃描`
+8. 在 `Credential 庫` 可直接停用、重新啟用或刪除 credential；若仍被設備綁定或有執行中掃描，系統會阻擋刪除
+9. 切到 `掃描` 分頁查看全域掃描任務歷史、狀態、掃描引擎、服務發現、漏洞、錯誤設定、憑證風險、管理面曝露與認證上下文
+10. 切到 `報告` 分頁查看整體風險統計、高風險設備、掃描層次彙總與 profile 分布基礎資料
 
 ## 目前行為重點
 - `scan_profile` 目前支援：
@@ -195,6 +199,8 @@ docker compose -p vulnshield-iso up -d --build
 - 掃描摘要會額外記錄 `authentication` 區塊，標示本次是否要求 credential，以及實際使用的 credential 名稱與種類
 - Dashboard 目前採三分頁工作台：設備頁做 inventory 與單設備掃描策略、掃描頁做全域任務檢視，報告頁做風險與掃描面向彙總。
 - Credential 的敏感內容會以對稱加密方式存入資料庫，不會經由 API 回傳明文。
+- Credential 已支援停用與刪除保護：停用後不可再綁定到設備或發動掃描；若仍被設備綁定或有 `Pending` / `Running` 任務，系統會拒絕刪除。
+- Credential 與設備編輯都會寫入 `audit_logs`，credential 另外可透過 `GET /credentials/{id}/audit` 查最近審計紀錄。
 - `authenticated_snmp` 已接上 Nmap `snmp-info` 腳本與 SNMP community 注入；`authenticated_windows` 與 `authenticated_linux` 目前先完成 credential 管理、相容性驗證、任務綁定與摘要呈現，後續再補真正的深度稽核引擎。
 
 ## 注意事項

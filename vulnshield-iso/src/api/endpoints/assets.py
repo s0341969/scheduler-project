@@ -14,6 +14,7 @@ from src.models.vulnerability import Finding
 from src.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
 from src.schemas.scan import AssetScanRequest, ScanResponse
 from src.schemas.vulnerability import FindingDetailResponse
+from src.services.audit_service import add_audit_log
 from src.services.asset_inventory import (
     asset_to_response,
     build_asset_summary_map,
@@ -22,6 +23,7 @@ from src.services.asset_inventory import (
     normalize_tags,
 )
 from src.services.scan_catalog import recommended_profile_for_template, recommended_template_for_device_type
+from src.services.scan_catalog import credential_kind_supported_by_profile, profile_requires_credential
 from src.services.scan_summary import normalize_scan_summary_payload
 from src.worker.tasks import execute_scan
 
@@ -80,6 +82,8 @@ async def get_accessible_credential(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到 credential')
     if current_user.role == UserRole.ANALYST and credential.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法使用他人的 credential')
+    if not credential.is_active:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='此 credential 已停用，無法綁定或執行掃描')
     return credential
 
 
@@ -104,6 +108,22 @@ async def create_asset(
 
     new_asset = Asset(**payload)
     db.add(new_asset)
+    await db.flush()
+    add_audit_log(
+        db,
+        user=current_user,
+        action='CREATE_ASSET',
+        entity_type='Asset',
+        entity_id=new_asset.id,
+        payload={
+            'name': new_asset.name,
+            'target': new_asset.target,
+            'device_type': new_asset.device_type,
+            'default_scan_profile': new_asset.default_scan_profile,
+            'template_key': new_asset.template_key,
+            'default_credential_id': new_asset.default_credential_id,
+        },
+    )
     await db.commit()
     await db.refresh(new_asset)
     await db.refresh(new_asset, attribute_names=['default_credential'])
@@ -147,6 +167,20 @@ async def update_asset(
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     asset = await get_accessible_asset(asset_id, db, current_user)
+    original_values = {
+        'name': asset.name,
+        'target': asset.target,
+        'criticality': asset.criticality,
+        'env': asset.env.value if hasattr(asset.env, 'value') else asset.env,
+        'device_type': asset.device_type,
+        'default_scan_profile': asset.default_scan_profile,
+        'template_key': asset.template_key,
+        'default_credential_id': asset.default_credential_id,
+        'location': asset.location,
+        'tags': asset.tags,
+        'notes': asset.notes,
+        'status': asset.status,
+    }
 
     values = payload.model_dump(exclude_unset=True)
     if 'device_type' in values and values['device_type'] is not None:
@@ -165,6 +199,22 @@ async def update_asset(
 
     for field, value in values.items():
         setattr(asset, field, value)
+
+    changed_fields = {}
+    for field, old_value in original_values.items():
+        new_value = getattr(asset, field)
+        comparable_new = new_value.value if hasattr(new_value, 'value') else new_value
+        if old_value != comparable_new:
+            changed_fields[field] = {'old': old_value, 'new': comparable_new}
+    if changed_fields:
+        add_audit_log(
+            db,
+            user=current_user,
+            action='UPDATE_ASSET',
+            entity_type='Asset',
+            entity_id=asset.id,
+            payload=changed_fields,
+        )
 
     await db.commit()
     await db.refresh(asset)
@@ -192,6 +242,11 @@ async def trigger_asset_scan(
         db,
         current_user,
     )
+    if profile_requires_credential(requested_profile):
+        if credential is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='此掃描模式需要綁定 credential')
+        if not credential_kind_supported_by_profile(requested_profile, credential.kind):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='credential 類型與掃描模式不相容')
     new_task = ScanTask(
         asset_id=asset.id,
         scan_profile=requested_profile,

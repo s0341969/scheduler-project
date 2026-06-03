@@ -3,6 +3,7 @@ const state = {
     currentUser: null,
     assets: [],
     selectedAssetId: null,
+    editingAssetId: null,
 };
 
 const deviceTypeLabels = {
@@ -24,6 +25,10 @@ const envLabels = {
 
 const loginForm = document.getElementById('login-form');
 const assetForm = document.getElementById('asset-form');
+const assetFormTitle = document.getElementById('asset-form-title');
+const assetFormStatus = document.getElementById('asset-form-status');
+const assetFormSubmit = document.getElementById('asset-form-submit');
+const assetFormCancel = document.getElementById('asset-form-cancel');
 const credentialForm = document.getElementById('credential-form');
 const logoutButton = document.getElementById('logout');
 const assetList = document.getElementById('asset-list');
@@ -128,9 +133,10 @@ function populateProfileSelectors() {
 }
 
 function populateCredentialSelectors() {
+    const activeCredentials = state.credentials.filter((credential) => credential.is_active);
     assetCredentialSelect.innerHTML = [
         '<option value="">不綁定 credential</option>',
-        ...state.credentials.map((credential) => `<option value="${credential.id}">${credential.name} / ${credential.kind_label}</option>`),
+        ...activeCredentials.map((credential) => `<option value="${credential.id}">${credential.name} / ${credential.kind_label}</option>`),
     ].join('');
 
     credentialKindSelect.innerHTML = state.catalog.credentialKinds
@@ -159,19 +165,69 @@ function renderCredentials() {
         return;
     }
     credentialList.innerHTML = state.credentials.map((credential) => `
-        <article class="credential-card">
+        <article class="credential-card ${credential.is_active ? '' : 'inactive'}">
             <strong>${credential.name}</strong>
             <p>${credential.kind_label}</p>
             <div class="pill-row">
                 ${credential.username ? `<span class="pill">${credential.username}</span>` : ''}
                 ${credential.domain ? `<span class="pill">${credential.domain}</span>` : ''}
                 ${credential.port ? `<span class="pill">Port ${credential.port}</span>` : ''}
+                <span class="pill">${credential.is_active ? '啟用中' : '已停用'}</span>
                 <span class="pill">${credential.has_primary_secret ? '已保存主密鑰' : '未保存主密鑰'}</span>
                 ${credential.has_secondary_secret ? '<span class="pill">含第二密鑰</span>' : ''}
             </div>
             <p>${credential.notes || '未提供備註'}</p>
+            <p>最後使用：${formatDate(credential.last_used_at)} ・ 建立時間：${formatDate(credential.created_at)}</p>
+            <div class="action-row">
+                <button class="secondary-button credential-toggle" type="button" data-credential-id="${credential.id}" data-active="${credential.is_active ? 'true' : 'false'}">
+                    ${credential.is_active ? '停用 credential' : '重新啟用'}
+                </button>
+                <button class="ghost-button credential-delete" type="button" data-credential-id="${credential.id}">
+                    刪除 credential
+                </button>
+            </div>
         </article>
     `).join('');
+
+    document.querySelectorAll('.credential-toggle').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const credentialId = Number(button.dataset.credentialId);
+            const nextState = button.dataset.active !== 'true';
+            try {
+                await apiRequest(`/credentials/${credentialId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: nextState }),
+                });
+                await Promise.all([loadCatalog(), loadCredentials(), loadAssets()]);
+                if (state.selectedAssetId) {
+                    await loadAssetDetail(state.selectedAssetId);
+                }
+                showMessage(nextState ? 'Credential 已重新啟用。' : 'Credential 已停用。');
+            } catch (error) {
+                showMessage(error.message);
+            }
+        });
+    });
+
+    document.querySelectorAll('.credential-delete').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const credentialId = Number(button.dataset.credentialId);
+            if (!window.confirm('刪除後無法復原，且必須先解除設備綁定。確定要刪除這筆 credential 嗎？')) {
+                return;
+            }
+            try {
+                await apiRequest(`/credentials/${credentialId}`, { method: 'DELETE' });
+                await Promise.all([loadCatalog(), loadCredentials(), loadAssets()]);
+                if (state.selectedAssetId) {
+                    await loadAssetDetail(state.selectedAssetId);
+                }
+                showMessage('Credential 已刪除。');
+            } catch (error) {
+                showMessage(error.message);
+            }
+        });
+    });
 }
 
 async function loadCatalog() {
@@ -277,7 +333,51 @@ function logout() {
     reportStatus.textContent = '尚未載入';
     reportStatus.className = 'status-chip muted';
     credentialList.innerHTML = '<div class="empty-state">請先登入，再載入 credential。</div>';
+    resetAssetForm();
     updateMetrics([]);
+}
+
+function resetAssetForm() {
+    assetForm.reset();
+    state.editingAssetId = null;
+    assetFormTitle.textContent = '新增設備';
+    assetFormStatus.textContent = '資產建檔';
+    assetFormStatus.className = 'status-chip accent';
+    assetFormSubmit.textContent = '建立設備';
+    assetFormCancel.hidden = true;
+    if (deviceTypeSelect.options.length) {
+        deviceTypeSelect.value = 'Computer';
+    }
+    if (assetTemplateSelect.options.length) {
+        assetTemplateSelect.value = deviceTypeToTemplate.Computer;
+    }
+    if (assetProfileSelect.options.length) {
+        assetProfileSelect.value = 'standard';
+    }
+    if (assetCredentialSelect.options.length) {
+        assetCredentialSelect.value = '';
+    }
+}
+
+function startAssetEdit(asset) {
+    state.editingAssetId = asset.id;
+    assetFormTitle.textContent = `編輯設備 #${asset.id}`;
+    assetFormStatus.textContent = '設備調整';
+    assetFormStatus.className = 'status-chip warning';
+    assetFormSubmit.textContent = '儲存設備';
+    assetFormCancel.hidden = false;
+    assetForm.elements.name.value = asset.name || '';
+    assetForm.elements.target.value = asset.target || '';
+    assetForm.elements.device_type.value = asset.device_type || 'Computer';
+    assetForm.elements.env.value = asset.env || 'Production';
+    assetForm.elements.criticality.value = asset.criticality || 3;
+    assetForm.elements.location.value = asset.location || '';
+    assetForm.elements.default_scan_profile.value = asset.default_scan_profile || 'standard';
+    assetForm.elements.template_key.value = asset.template_key || 'generic';
+    assetForm.elements.default_credential_id.value = asset.default_credential_id || '';
+    assetForm.elements.tags.value = (asset.tags || []).join(', ');
+    assetForm.elements.notes.value = asset.notes || '';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function updateMetrics(assets) {
@@ -699,6 +799,7 @@ function renderAssetDetail(asset, scans, findings) {
                     <p class="subtle">${asset.target} ・ ${deviceTypeLabels[asset.device_type] || asset.device_type}</p>
                 </div>
                 <div class="inline-action-group">
+                    <button id="edit-asset" class="secondary-button" type="button">編輯設備</button>
                     <select id="detail-scan-profile"></select>
                     <button id="run-scan" class="primary-button" type="button">執行弱點掃描</button>
                 </div>
@@ -758,12 +859,14 @@ function renderAssetDetail(asset, scans, findings) {
     detailProfileSelect.innerHTML = state.catalog.profiles
         .map((profile) => `<option value="${profile.key}" ${profile.key === asset.default_scan_profile ? 'selected' : ''}>${profile.label}</option>`)
         .join('');
+    const activeCredentials = state.credentials.filter((credential) => credential.is_active || credential.id === asset.default_credential_id);
     const detailCredentialOptions = [
         '<option value="">使用設備預設 credential</option>',
-        ...state.credentials.map((credential) => `<option value="${credential.id}" ${credential.id === asset.default_credential_id ? 'selected' : ''}>${credential.name} / ${credential.kind_label}</option>`),
+        ...activeCredentials.map((credential) => `<option value="${credential.id}" ${credential.id === asset.default_credential_id ? 'selected' : ''}>${credential.name} / ${credential.kind_label}</option>`),
     ].join('');
     detailProfileSelect.insertAdjacentHTML('afterend', `<select id="detail-scan-credential">${detailCredentialOptions}</select>`);
     const detailCredentialSelect = document.getElementById('detail-scan-credential');
+    document.getElementById('edit-asset').addEventListener('click', () => startAssetEdit(asset));
 
     document.getElementById('run-scan').addEventListener('click', async () => {
         try {
@@ -870,16 +973,17 @@ assetForm.addEventListener('submit', async (event) => {
     };
 
     try {
-        const asset = await apiRequest('/assets', {
-            method: 'POST',
+        const isEditing = state.editingAssetId !== null;
+        const asset = await apiRequest(isEditing ? `/assets/${state.editingAssetId}` : '/assets', {
+            method: isEditing ? 'PATCH' : 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
-        assetForm.reset();
+        resetAssetForm();
         state.selectedAssetId = asset.id;
         await Promise.all([loadCatalog(), loadCredentials(), loadAssets(), loadScans(), loadReports()]);
         await loadAssetDetail(asset.id);
-        showMessage('設備建立成功。');
+        showMessage(isEditing ? '設備更新成功。' : '設備建立成功。');
     } catch (error) {
         showMessage(error.message);
     }
@@ -925,6 +1029,7 @@ refreshAllButton.addEventListener('click', () => {
 });
 
 logoutButton.addEventListener('click', logout);
+assetFormCancel.addEventListener('click', resetAssetForm);
 assetSearch.addEventListener('input', renderAssets);
 assetTypeFilter.addEventListener('change', renderAssets);
 scanSearch.addEventListener('input', renderScans);
@@ -952,6 +1057,7 @@ credentialKindSelect.addEventListener('change', updateCredentialKindForm);
         await fetchCurrentUser();
         await loadCatalog();
         await Promise.all([loadCredentials(), loadAssets(), loadScans(), loadReports()]);
+        resetAssetForm();
     } catch (error) {
         logout();
     }

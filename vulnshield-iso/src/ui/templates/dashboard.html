@@ -71,8 +71,8 @@
                 <div class="workspace">
                     <div class="asset-column panel">
                         <div class="panel-header">
-                            <h2>新增設備</h2>
-                            <span class="status-chip accent">資產建檔</span>
+                            <h2 id="asset-form-title">新增設備</h2>
+                            <span id="asset-form-status" class="status-chip accent">資產建檔</span>
                         </div>
                         <form id="asset-form" class="stacked-form">
                             <label>
@@ -131,7 +131,10 @@
                                 <span>備註</span>
                                 <textarea name="notes" rows="3" placeholder="維護窗口、帳務系統相關、需夜間掃描等"></textarea>
                             </label>
-                            <button type="submit" class="primary-button">建立設備</button>
+                            <div class="helper-row">
+                                <button id="asset-form-submit" type="submit" class="primary-button">建立設備</button>
+                                <button id="asset-form-cancel" type="button" class="ghost-button" hidden>取消編輯</button>
+                            </div>
                         </form>
 
                         <section class="section-block credential-section">

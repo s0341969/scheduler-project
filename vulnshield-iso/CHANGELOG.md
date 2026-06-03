@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-06-03
+- 補上 credential 治理能力：新增停用與刪除流程、刪除前綁定檢查、停用後禁止綁定與執行掃描
+- 新增 credential 審計 API：`GET /credentials/{id}/audit`，並讓 credential 建立、修改、刪除與設備建立、編輯都寫入 `audit_logs`
+- 補上設備頁編輯流程：可從設備詳情回填左側表單，直接更新目標位址、模板、預設掃描模式、credential、標籤與備註
+- 強化 dashboard 的 Credential 庫：顯示啟用狀態、最後使用時間，並可直接停用、重新啟用或刪除 credential
 - 完成商用化第二階段骨架：新增 credential 模型、加密保存、設備預設 credential 與掃描任務 credential 綁定
 - 新增 authenticated scan profile：`authenticated_windows`、`authenticated_linux`、`authenticated_snmp`
 - 新增 credential API：`GET /credentials/kinds`、`GET /credentials`、`POST /credentials`、`GET /credentials/{id}`、`PATCH /credentials/{id}`
