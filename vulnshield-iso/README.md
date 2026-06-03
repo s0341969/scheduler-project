@@ -6,6 +6,8 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - JWT Bearer 認證，登入端點為 `POST /token`
 - 角色權限管控：`Admin`、`Analyst`、`Auditor`
 - 啟動時自動建立資料表與預設管理員
+- 內建設備管理頁：`GET /dashboard`
+- 設備導向資產模型，支援設備類型、位置、標籤與備註
 - Nmap + Nuclei 非同步掃描流程
 - 弱點風險分數：`CVSS/Severity × Asset Criticality`
 - Finding 狀態機：`Open -> Acknowledged -> Fixed -> Verified`，並保留 `Risk-Accepted`
@@ -51,6 +53,7 @@ docker compose -p vulnshield-iso up -d --build
 ### 驗證
 - 健康檢查：`GET http://localhost:8000/healthz`
 - Swagger：`GET http://localhost:8000/docs`
+- 設備管理頁：`GET http://localhost:8000/dashboard`
 
 ## 預設登入流程
 1. 系統啟動時，會依 `.env` 建立預設管理員。
@@ -77,9 +80,13 @@ docker compose -p vulnshield-iso up -d --build
 - 重要欄位：
   - `name`
   - `target`
+  - `device_type`：`Computer` / `Server` / `Firewall` / `Router` / `Switch` / `NAS` / `NetworkDevice` / `Other`
   - `criticality`：1 到 5
   - `owner_id`
   - `env`：`Production` / `Staging` / `Development`
+  - `location`
+  - `tags`
+  - `notes`
 
 ### 3. 觸發掃描
 - `POST /scans/trigger`
@@ -87,11 +94,20 @@ docker compose -p vulnshield-iso up -d --build
   - `asset_id`
   - `scan_profile`
 
+或使用設備導向入口：
+- `POST /assets/{asset_id}/scan`
+
 ### 4. 查詢掃描狀態
 - `GET /scans/{task_id}/status`
 
+設備專用：
+- `GET /assets/{asset_id}/scans`
+
 ### 5. 查詢 findings
 - `GET /findings`
+
+設備專用：
+- `GET /assets/{asset_id}/findings`
 
 ### 6. 更新 finding 狀態
 - `PATCH /findings/{finding_id}/status`
@@ -105,11 +121,23 @@ docker compose -p vulnshield-iso up -d --build
 ### 7. 合規摘要
 - `GET /reports/iso27001`
 
+### 8. 目前登入者
+- `GET /users/me`
+
+## 設備管理頁使用方式
+1. 開啟 `http://localhost:8000/dashboard`
+2. 使用 `.env` 內預設帳號密碼登入
+3. 在左側建立設備，填入設備類型、目標位址、標籤與位置
+4. 在中間設備清單選取目標設備
+5. 在設備詳情頁按 `執行弱點掃描`
+6. 直接查看該設備的掃描歷史與弱點清單
+
 ## 目前行為重點
 - 若 Nuclei severity 是文字等級（如 `critical`、`medium`），系統會先正規化為數值。
 - 相同弱點會以 `template-id | matcher-name | info.name` 組成穩定 key，避免每次掃描都新增重複 `Vulnerability`。
 - 相同 `asset + vulnerability` 會更新既有 `Finding`，而不是無限制重複新增。
 - 已驗證關閉的 finding 若在後續掃描再次出現，會重新回到 `Open`。
+- `Asset` 已明確作為設備 inventory 使用，並支援依設備查看最近掃描、風險摘要與設備專屬 findings。
 
 ## 注意事項
 - `DEFAULT_ADMIN_PASSWORD` 僅適合首次啟動，正式環境必須立即更換。
@@ -117,3 +145,4 @@ docker compose -p vulnshield-iso up -d --build
 - 本機若要執行測試或啟動 API，需要先安裝 `requirements.txt` 內相依套件。
 - `Dockerfile` 已避免使用遠端 shell install script 安裝 `Nuclei`，改為固定版本 binary，以降低建置失敗與供應鏈風險。
 - `API` 啟動時會重試資料庫初始化；即使 PostgreSQL 比 API 慢幾秒起來，也不會立刻因一次拒絕連線就退出。
+- 目前設備管理頁使用瀏覽器本地儲存 `access_token`，適合內部 PoC 與單機部署；若要正式上線，建議後續改為更完整的 session / 前端權杖保護策略。

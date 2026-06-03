@@ -22,7 +22,7 @@ class ScanTask(Base):
     raw_output_path = Column(String, nullable=True)
     error_message = Column(Text, nullable=True)
 
-    asset = relationship('Asset')
+    asset = relationship('Asset', back_populates='scan_tasks')
 
 class AuditLog(Base):
     __tablename__ = 'audit_logs'

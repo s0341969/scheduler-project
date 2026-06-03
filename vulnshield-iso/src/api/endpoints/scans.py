@@ -20,10 +20,10 @@ async def trigger_scan(
 ):
     asset = await db.get(Asset, trigger.asset_id)
     if asset is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到資產')
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到設備')
 
     if current_user.role == UserRole.ANALYST and asset.owner_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法掃描他人的資產')
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法掃描他人的設備')
 
     new_task = ScanTask(asset_id=trigger.asset_id, scan_profile=trigger.scan_profile)
     db.add(new_task)

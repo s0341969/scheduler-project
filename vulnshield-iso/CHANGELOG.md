@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-03
+- 新增設備中心模式：支援設備類型、位置、標籤、備註，以及 `GET /dashboard` 設備管理頁
+- 新增設備導向 API：`GET /users/me`、`GET /assets/{id}`、`GET /assets/{id}/scans`、`GET /assets/{id}/findings`、`POST /assets/{id}/scan`
+- 新增設備摘要邏輯：在設備清單顯示最近掃描狀態、未關閉 finding 數與高風險 finding 數
 - 強化 `start_system.ps1`：將啟動等待時間延長至 180 秒，並同時檢查 API 健康狀態與 worker 容器是否 running
 - 強化 `start_system.ps1`：啟動失敗時自動輸出 `api` / `worker` 的近期 logs，便於診斷 Docker 啟動問題
 - 修正 `README.md` 的專案實際路徑，並同步更新一鍵啟動腳本的真實行為說明

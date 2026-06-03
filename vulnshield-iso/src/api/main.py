@@ -1,6 +1,10 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 
 from src.api.deps import require_roles
@@ -13,6 +17,9 @@ from src.core.security import get_password_hash
 from src.models.database import async_session, init_db
 from src.models.user import User, UserRole
 from src.models.vulnerability import Finding
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+UI_DIR = BASE_DIR / 'ui'
 
 
 @asynccontextmanager
@@ -35,10 +42,28 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
+app.mount('/static', StaticFiles(directory=str(UI_DIR / 'static')), name='static')
+templates = Jinja2Templates(directory=str(UI_DIR / 'templates'))
 app.include_router(auth_router)
 app.include_router(assets_router)
 app.include_router(scans_router)
 app.include_router(findings_router)
+
+
+@app.get('/', include_in_schema=False)
+async def home():
+    return RedirectResponse(url='/dashboard')
+
+
+@app.get('/dashboard', include_in_schema=False, response_class=HTMLResponse)
+async def dashboard(request: Request):
+    return templates.TemplateResponse(
+        request,
+        'dashboard.html',
+        {
+            'project_name': settings.PROJECT_NAME,
+        },
+    )
 
 
 @app.get('/healthz', tags=['health'])

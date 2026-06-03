@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.deps import get_db, require_roles
+from src.api.deps import get_current_user, get_db, require_roles
 from src.core.config import settings
 from src.core.security import create_access_token, get_password_hash, verify_password
 from src.models.user import User, UserRole
@@ -58,3 +58,8 @@ async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
     await db.commit()
     await db.refresh(new_user)
     return new_user
+
+
+@router.get('/users/me', response_model=UserResponse)
+async def read_current_user(current_user: User = Depends(get_current_user)):
+    return current_user

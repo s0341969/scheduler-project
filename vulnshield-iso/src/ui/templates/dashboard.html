@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ project_name }} 控制台</title>
+    <link rel="stylesheet" href="/static/dashboard.css">
+</head>
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <div class="brand">
+                <p class="eyebrow">VulnShield-ISO</p>
+                <h1>設備弱點掃描台</h1>
+                <p class="subtle">用設備清單管理電腦、防火牆與網通設備，並直接發動弱點掃描。</p>
+            </div>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>登入</h2>
+                    <span id="auth-status" class="status-chip muted">尚未登入</span>
+                </div>
+                <form id="login-form" class="stacked-form">
+                    <label>
+                        <span>帳號</span>
+                        <input id="username" name="username" type="text" placeholder="admin" required>
+                    </label>
+                    <label>
+                        <span>密碼</span>
+                        <input id="password" name="password" type="password" placeholder="請輸入密碼" required>
+                    </label>
+                    <button type="submit" class="primary-button">取得存取權杖</button>
+                </form>
+                <div class="helper-row">
+                    <button id="load-assets" class="secondary-button" type="button">重新整理設備</button>
+                    <button id="logout" class="ghost-button" type="button">登出</button>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2>新增設備</h2>
+                    <span class="status-chip accent">資產建檔</span>
+                </div>
+                <form id="asset-form" class="stacked-form">
+                    <label>
+                        <span>設備名稱</span>
+                        <input name="name" type="text" placeholder="總部核心防火牆" required>
+                    </label>
+                    <label>
+                        <span>目標位址</span>
+                        <input name="target" type="text" placeholder="192.168.1.1 或 fw.example.com" required>
+                    </label>
+                    <div class="split-grid">
+                        <label>
+                            <span>設備類型</span>
+                            <select name="device_type">
+                                <option value="Computer">電腦</option>
+                                <option value="Server">伺服器</option>
+                                <option value="Firewall">防火牆</option>
+                                <option value="Router">路由器</option>
+                                <option value="Switch">交換器</option>
+                                <option value="NAS">NAS</option>
+                                <option value="NetworkDevice">其他網通設備</option>
+                                <option value="Other">其他</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span>環境</span>
+                            <select name="env">
+                                <option value="Production">Production</option>
+                                <option value="Staging">Staging</option>
+                                <option value="Development">Development</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="split-grid">
+                        <label>
+                            <span>重要度</span>
+                            <input name="criticality" type="number" min="1" max="5" value="3" required>
+                        </label>
+                        <label>
+                            <span>位置</span>
+                            <input name="location" type="text" placeholder="台北總部 / 機房 A">
+                        </label>
+                    </div>
+                    <label>
+                        <span>標籤</span>
+                        <input name="tags" type="text" placeholder="例如：總部, 外網, 核心設備">
+                    </label>
+                    <label>
+                        <span>備註</span>
+                        <textarea name="notes" rows="3" placeholder="維護窗口、帳務系統相關、需夜間掃描等"></textarea>
+                    </label>
+                    <button type="submit" class="primary-button">建立設備</button>
+                </form>
+            </section>
+        </aside>
+
+        <main class="content">
+            <section class="hero">
+                <div>
+                    <p class="eyebrow">Device-Centric Workflow</p>
+                    <h2>建立設備後，直接點選設備執行弱點掃描</h2>
+                    <p class="subtle">先聚焦設備 inventory，再看每台設備的掃描歷史、風險摘要與修補優先順序。</p>
+                </div>
+                <div class="metrics">
+                    <article class="metric-card">
+                        <span>設備數</span>
+                        <strong id="metric-assets">0</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>高風險 finding</span>
+                        <strong id="metric-high-risk">0</strong>
+                    </article>
+                    <article class="metric-card">
+                        <span>未關閉 finding</span>
+                        <strong id="metric-open-findings">0</strong>
+                    </article>
+                </div>
+            </section>
+
+            <section class="workspace">
+                <div class="asset-column panel">
+                    <div class="panel-header">
+                        <h2>設備清單</h2>
+                        <div class="filter-row">
+                            <input id="asset-search" type="search" placeholder="搜尋設備名稱、IP、標籤">
+                            <select id="asset-type-filter">
+                                <option value="">全部類型</option>
+                                <option value="Computer">電腦</option>
+                                <option value="Server">伺服器</option>
+                                <option value="Firewall">防火牆</option>
+                                <option value="Router">路由器</option>
+                                <option value="Switch">交換器</option>
+                                <option value="NAS">NAS</option>
+                                <option value="NetworkDevice">其他網通設備</option>
+                                <option value="Other">其他</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="asset-list" class="asset-list empty-state">
+                        請先登入，再載入設備清單。
+                    </div>
+                </div>
+
+                <div class="detail-column panel">
+                    <div class="panel-header">
+                        <h2>設備詳情</h2>
+                        <span id="selected-asset-status" class="status-chip muted">尚未選取</span>
+                    </div>
+                    <div id="asset-detail" class="detail-empty">
+                        選一台設備後，這裡會顯示設備資料、掃描歷史與弱點清單。
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/dashboard.js" defer></script>
+</body>
+</html>

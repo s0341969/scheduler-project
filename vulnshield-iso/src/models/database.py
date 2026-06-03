@@ -10,6 +10,40 @@ async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False
 Base = declarative_base()
 
 
+async def _run_additive_schema_updates(connection) -> None:
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS device_type VARCHAR(50)
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS location VARCHAR(255)
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS tags TEXT
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS notes TEXT
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        UPDATE assets
+        SET device_type = 'Computer'
+        WHERE device_type IS NULL OR device_type = ''
+        """
+    )
+
+
 async def init_db() -> None:
     from src.models.asset import Asset
     from src.models.scan import AuditLog, ScanTask
@@ -25,6 +59,7 @@ async def init_db() -> None:
         try:
             async with engine.begin() as connection:
                 await connection.run_sync(Base.metadata.create_all)
+                await _run_additive_schema_updates(connection)
             return
         except OperationalError:
             if attempt == attempts:
