@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 
 from src.api.deps import get_current_user, get_db, require_roles
 from src.models.asset import Asset
+from src.models.credential import Credential
 from src.models.scan import ScanTask
 from src.models.user import User, UserRole
 from src.models.vulnerability import Finding
@@ -27,6 +28,7 @@ from src.worker.tasks import execute_scan
 
 def serialize_asset_scan(task: ScanTask, asset: Asset | None = None) -> ScanResponse:
     resolved_asset = asset or task.asset
+    resolved_credential = task.credential
     return ScanResponse(
         id=task.id,
         asset_id=task.asset_id,
@@ -35,6 +37,9 @@ def serialize_asset_scan(task: ScanTask, asset: Asset | None = None) -> ScanResp
         asset_device_type=resolved_asset.device_type if resolved_asset else None,
         scan_profile=ensure_scan_profile(task.scan_profile),
         device_template=ensure_template_key(task.device_template, resolved_asset.device_type if resolved_asset else None),
+        credential_id=task.credential_id,
+        credential_name=resolved_credential.name if resolved_credential else None,
+        credential_kind=resolved_credential.kind if resolved_credential else None,
         status=task.status,
         started_at=task.started_at,
         finished_at=task.finished_at,
@@ -63,6 +68,21 @@ async def get_accessible_asset(asset_id: int, db: AsyncSession, current_user: Us
     return asset
 
 
+async def get_accessible_credential(
+    credential_id: int | None,
+    db: AsyncSession,
+    current_user: User,
+) -> Credential | None:
+    if credential_id is None:
+        return None
+    credential = await db.get(Credential, credential_id)
+    if credential is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到 credential')
+    if current_user.role == UserRole.ANALYST and credential.owner_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法使用他人的 credential')
+    return credential
+
+
 @router.post('', response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
 async def create_asset(
     asset: AssetCreate,
@@ -79,11 +99,14 @@ async def create_asset(
     if payload['default_scan_profile'] == 'standard' and asset.template_key is None:
         payload['default_scan_profile'] = recommended_profile_for_template(payload['template_key'])
     payload['tags'] = normalize_tags(payload['tags'])
+    credential = await get_accessible_credential(payload.get('default_credential_id'), db, current_user)
+    payload['default_credential_id'] = credential.id if credential else None
 
     new_asset = Asset(**payload)
     db.add(new_asset)
     await db.commit()
     await db.refresh(new_asset)
+    await db.refresh(new_asset, attribute_names=['default_credential'])
 
     summary_map = await build_asset_summary_map(db, [new_asset])
     return asset_to_response(new_asset, summary_map.get(new_asset.id))
@@ -94,7 +117,7 @@ async def list_assets(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    statement = select(Asset)
+    statement = select(Asset).options(selectinload(Asset.default_credential))
     if current_user.role == UserRole.ANALYST:
         statement = statement.where(Asset.owner_id == current_user.id)
 
@@ -111,6 +134,7 @@ async def get_asset(
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR)),
 ):
     asset = await get_accessible_asset(asset_id, db, current_user)
+    await db.refresh(asset, attribute_names=['default_credential'])
     summary_map = await build_asset_summary_map(db, [asset])
     return asset_to_response(asset, summary_map.get(asset.id))
 
@@ -133,6 +157,9 @@ async def update_asset(
         values['template_key'] = ensure_template_key(values['template_key'], values.get('device_type') or asset.device_type)
     elif 'device_type' in values:
         values['template_key'] = recommended_template_for_device_type(values['device_type'])
+    if 'default_credential_id' in values:
+        credential = await get_accessible_credential(values['default_credential_id'], db, current_user)
+        values['default_credential_id'] = credential.id if credential else None
     if 'tags' in values:
         values['tags'] = normalize_tags(values['tags'])
 
@@ -141,6 +168,7 @@ async def update_asset(
 
     await db.commit()
     await db.refresh(asset)
+    await db.refresh(asset, attribute_names=['default_credential'])
     summary_map = await build_asset_summary_map(db, [asset])
     return asset_to_response(asset, summary_map.get(asset.id))
 
@@ -153,15 +181,28 @@ async def trigger_asset_scan(
     current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
 ):
     asset = await get_accessible_asset(asset_id, db, current_user)
+    await db.refresh(asset, attribute_names=['default_credential'])
     requested_profile = ensure_scan_profile(payload.scan_profile if payload else getattr(asset, 'default_scan_profile', None))
     requested_template = ensure_template_key(
         payload.device_template if payload else getattr(asset, 'template_key', None),
         asset.device_type,
     )
-    new_task = ScanTask(asset_id=asset.id, scan_profile=requested_profile, device_template=requested_template)
+    credential = await get_accessible_credential(
+        payload.credential_id if payload and payload.credential_id is not None else getattr(asset, 'default_credential_id', None),
+        db,
+        current_user,
+    )
+    new_task = ScanTask(
+        asset_id=asset.id,
+        scan_profile=requested_profile,
+        device_template=requested_template,
+        credential_id=credential.id if credential else None,
+    )
     db.add(new_task)
     await db.commit()
     await db.refresh(new_task)
+    if credential is not None:
+        await db.refresh(new_task, attribute_names=['credential'])
 
     execute_scan.delay(new_task.id)
     return serialize_asset_scan(new_task, asset)
@@ -176,6 +217,7 @@ async def list_asset_scans(
     asset = await get_accessible_asset(asset_id, db, current_user)
     result = await db.execute(
         select(ScanTask)
+        .options(selectinload(ScanTask.credential))
         .where(ScanTask.asset_id == asset.id)
         .order_by(ScanTask.id.desc())
     )

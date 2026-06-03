@@ -17,6 +17,7 @@ class ScanTask(Base):
     asset_id = Column(Integer, ForeignKey('assets.id'), nullable=False)
     scan_profile = Column(String, default='standard')
     device_template = Column(String(50), nullable=True)
+    credential_id = Column(Integer, ForeignKey('credentials.id'), nullable=True)
     status = Column(Enum(ScanStatus), default=ScanStatus.PENDING)
     started_at = Column(DateTime(timezone=True), nullable=True)
     finished_at = Column(DateTime(timezone=True), nullable=True)
@@ -26,6 +27,7 @@ class ScanTask(Base):
     error_message = Column(Text, nullable=True)
 
     asset = relationship('Asset', back_populates='scan_tasks')
+    credential = relationship('Credential', back_populates='scan_tasks')
 
 class AuditLog(Base):
     __tablename__ = 'audit_logs'

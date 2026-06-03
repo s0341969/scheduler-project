@@ -10,6 +10,7 @@ from sqlalchemy import select
 from src.api.deps import require_roles
 from src.api.endpoints.assets import router as assets_router
 from src.api.endpoints.auth import router as auth_router
+from src.api.endpoints.credentials import router as credentials_router
 from src.api.endpoints.findings import router as findings_router
 from src.api.endpoints.scans import router as scans_router
 from src.core.config import settings
@@ -46,6 +47,7 @@ app = FastAPI(title=settings.PROJECT_NAME, lifespan=lifespan)
 app.mount('/static', StaticFiles(directory=str(UI_DIR / 'static')), name='static')
 templates = Jinja2Templates(directory=str(UI_DIR / 'templates'))
 app.include_router(auth_router)
+app.include_router(credentials_router)
 app.include_router(assets_router)
 app.include_router(scans_router)
 app.include_router(findings_router)

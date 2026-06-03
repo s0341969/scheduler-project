@@ -118,6 +118,12 @@
                                 </label>
                             </div>
                             <label>
+                                <span>預設 credential</span>
+                                <select name="default_credential_id" id="asset-credential-select">
+                                    <option value="">不綁定 credential</option>
+                                </select>
+                            </label>
+                            <label>
                                 <span>標籤</span>
                                 <input name="tags" type="text" placeholder="例如：總部, 外網, 核心設備">
                             </label>
@@ -127,6 +133,54 @@
                             </label>
                             <button type="submit" class="primary-button">建立設備</button>
                         </form>
+
+                        <section class="section-block credential-section">
+                            <div class="panel-header">
+                                <h2>Credential 庫</h2>
+                                <span class="status-chip accent">Authenticated Scan</span>
+                            </div>
+                            <form id="credential-form" class="stacked-form">
+                                <label>
+                                    <span>Credential 名稱</span>
+                                    <input name="name" type="text" placeholder="台北機房 Windows 掃描帳號" required>
+                                </label>
+                                <div class="split-grid">
+                                    <label>
+                                        <span>Credential 類型</span>
+                                        <select name="kind" id="credential-kind-select"></select>
+                                    </label>
+                                    <label>
+                                        <span>連線 Port</span>
+                                        <input name="port" id="credential-port-input" type="number" placeholder="例如 22 / 5985 / 161">
+                                    </label>
+                                </div>
+                                <div class="split-grid">
+                                    <label>
+                                        <span>使用者名稱</span>
+                                        <input name="username" id="credential-username-input" type="text" placeholder="svc_scanner">
+                                    </label>
+                                    <label>
+                                        <span>網域 / 範圍</span>
+                                        <input name="domain" id="credential-domain-input" type="text" placeholder="corp 或 network-a">
+                                    </label>
+                                </div>
+                                <label>
+                                    <span id="credential-primary-label">主要密碼 / community / 私鑰</span>
+                                    <textarea name="primary_secret" id="credential-primary-input" rows="3" placeholder="依 credential 類型填入"></textarea>
+                                </label>
+                                <label>
+                                    <span id="credential-secondary-label">第二密鑰 / passphrase</span>
+                                    <textarea name="secondary_secret" id="credential-secondary-input" rows="2" placeholder="若不需要可留空"></textarea>
+                                </label>
+                                <label>
+                                    <span>備註</span>
+                                    <input name="notes" type="text" placeholder="僅供維護窗口使用">
+                                </label>
+                                <p id="credential-kind-hint" class="subtle">請先選擇 credential 類型。</p>
+                                <button type="submit" class="secondary-button">建立 credential</button>
+                            </form>
+                            <div id="credential-list" class="detail-sections empty-state">請先登入，再載入 credential。</div>
+                        </section>
                     </div>
 
                     <div class="detail-column panel">

@@ -1,6 +1,12 @@
 # Changelog
 
 ## 2026-06-03
+- 完成商用化第二階段骨架：新增 credential 模型、加密保存、設備預設 credential 與掃描任務 credential 綁定
+- 新增 authenticated scan profile：`authenticated_windows`、`authenticated_linux`、`authenticated_snmp`
+- 新增 credential API：`GET /credentials/kinds`、`GET /credentials`、`POST /credentials`、`GET /credentials/{id}`、`PATCH /credentials/{id}`
+- 強化設備與掃描 API：設備可保存預設 credential，單次掃描可覆蓋 credential，並會驗證 profile 與 credential 類型相容性
+- 強化 worker 執行邏輯：authenticated profile 會寫入 redacted credential metadata，`authenticated_snmp` 會以 Nmap `snmp-info` 腳本執行，並回填認證上下文摘要
+- 強化 dashboard：新增 `Credential 庫`、設備預設 credential 選擇、單次掃描 credential 切換，以及認證型掃描資訊顯示
 - 完成商用化第一階段骨架：新增 `scan_profile`（`quick` / `standard` / `aggressive` / `web_only` / `network_only`）、設備模板（`generic` / `firewall` / `switch` / `nas` / `web_server`），並讓設備與掃描任務保存預設策略與實際執行設定
 - 新增掃描策略 API：`GET /scans/profiles` 與 `GET /scans/templates`
 - 強化掃描執行邏輯：Nmap / Nuclei 會依 profile 與 template 決定參數、tags 與執行上限，並把 resolved `scan_config` 寫回掃描任務

@@ -128,6 +128,7 @@ def summarize_scan_results(
     *,
     profile_key: str = 'standard',
     device_template_key: str = 'generic',
+    credential_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     services = parse_nmap_services(nmap_results)
     plan = build_scan_execution_plan(profile_key, device_template_key)
@@ -170,6 +171,19 @@ def summarize_scan_results(
             'scope': plan['device_template']['label'],
         },
     ]
+    if plan['authenticated']:
+        engines.append(
+            {
+                'name': 'Authenticated Context',
+                'status': 'credential-bound' if credential_metadata else 'missing-credential',
+                'detail': (
+                    f"已綁定 {credential_metadata['name']} / {credential_metadata['kind']}"
+                    if credential_metadata
+                    else '此掃描模式需要 credential'
+                ),
+                'scope': '認證前置檢查',
+            }
+        )
 
     return {
         'profile_key': plan['profile']['key'],
@@ -177,6 +191,10 @@ def summarize_scan_results(
         'profile_scope': plan['profile']['scope'],
         'device_template_key': plan['device_template']['key'],
         'device_template_label': plan['device_template']['label'],
+        'authentication': {
+            'required': plan['authenticated'],
+            'credential': credential_metadata,
+        },
         'engines': engines,
         'services': services,
         'vulnerabilities': vulnerabilities,
@@ -210,6 +228,7 @@ def normalize_scan_summary_payload(
     normalized.setdefault('profile_scope', plan['profile']['scope'])
     normalized.setdefault('device_template_key', plan['device_template']['key'])
     normalized.setdefault('device_template_label', plan['device_template']['label'])
+    normalized.setdefault('authentication', {'required': plan['authenticated'], 'credential': None})
     normalized.setdefault('engines', [])
     normalized.setdefault('services', [])
     normalized.setdefault('vulnerabilities', [])

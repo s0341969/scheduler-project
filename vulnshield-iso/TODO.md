@@ -3,7 +3,9 @@
 - 導入 Alembic migration，取代啟動時 `create_all`
 - 新增 integration tests，覆蓋登入、建立資產、觸發掃描與狀態流轉
 - 將 `/reports/iso27001` 移入獨立 router 與 service
-- 實作 authenticated scan 第二階段：Windows 帳密、Linux SSH、SNMP / 網通設備帳密，以及 credential 加密保存
+- 為 `authenticated_windows` 補上 WinRM / SMB / 本機安全設定盤點與弱點規則
+- 為 `authenticated_linux` 補上 SSH 套件盤點、服務設定稽核與本機弱點檢查
+- 為 credential 補上停用、刪除、使用審計、輪替與細粒度權限控管
 - 補齊設備模板與 scan_profile 的權限、排程與審計規則，避免高強度掃描被誤用
 - 為 Docker build 補上 image build 驗證流程，避免掃描器安裝路徑失效後才在手動啟動時發現
 - 為 `docker compose up` 補上啟動整合測試，驗證 API、worker、db、redis 的實際依賴與健康狀態

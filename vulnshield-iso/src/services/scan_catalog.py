@@ -23,6 +23,8 @@ class ScanProfileDefinition:
     nmap_args: tuple[str, ...]
     nuclei_tags: tuple[str, ...]
     max_duration_seconds: int
+    authenticated: bool = False
+    required_credential_kinds: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -101,6 +103,51 @@ SCAN_PROFILE_DEFINITIONS: dict[str, ScanProfileDefinition] = {
         nmap_args=('-sV', '-O', '-T4'),
         nuclei_tags=('network', 'ssl', 'exposure'),
         max_duration_seconds=720,
+    ),
+    'authenticated_windows': ScanProfileDefinition(
+        key='authenticated_windows',
+        label='Authenticated Windows',
+        description='綁定 Windows 帳密做前置檢查，並針對 WinRM / SMB / RDP 面向加強盤點。',
+        scope='認證型 Windows',
+        intensity='高',
+        recommended_for=('Windows Server', '域內主機'),
+        run_nmap=True,
+        run_nuclei=True,
+        nmap_args=('-Pn', '-sV', '-p', '135,139,445,3389,5985'),
+        nuclei_tags=('network', 'ssl', 'exposure', 'windows'),
+        max_duration_seconds=900,
+        authenticated=True,
+        required_credential_kinds=('WindowsPassword',),
+    ),
+    'authenticated_linux': ScanProfileDefinition(
+        key='authenticated_linux',
+        label='Authenticated Linux',
+        description='綁定 Linux SSH 認證資料，聚焦 SSH 與常見 Linux 管理面前置檢查。',
+        scope='認證型 Linux',
+        intensity='高',
+        recommended_for=('Linux Server', '應用主機'),
+        run_nmap=True,
+        run_nuclei=True,
+        nmap_args=('-Pn', '-sV', '-p', '22,80,443,8080,8443'),
+        nuclei_tags=('network', 'ssl', 'exposure', 'linux'),
+        max_duration_seconds=900,
+        authenticated=True,
+        required_credential_kinds=('LinuxSSHPassword', 'LinuxSSHKey'),
+    ),
+    'authenticated_snmp': ScanProfileDefinition(
+        key='authenticated_snmp',
+        label='Authenticated SNMP',
+        description='綁定 SNMP community，對網通設備執行 SNMP 前置檢查。',
+        scope='認證型 SNMP',
+        intensity='中',
+        recommended_for=('交換器', '路由器', '網通設備'),
+        run_nmap=True,
+        run_nuclei=False,
+        nmap_args=('-sU', '-Pn', '-p', '161,162'),
+        nuclei_tags=(),
+        max_duration_seconds=600,
+        authenticated=True,
+        required_credential_kinds=('SNMPv2c',),
     ),
 }
 
@@ -215,4 +262,30 @@ def build_scan_execution_plan(profile_key: str | None, template_key: str | None)
         'nmap_args': list(profile.nmap_args),
         'nuclei_tags': merged_tags,
         'max_duration_seconds': profile.max_duration_seconds,
+        'authenticated': profile.authenticated,
+        'required_credential_kinds': list(profile.required_credential_kinds),
     }
+
+
+def build_redacted_credential_metadata(credential: dict[str, object] | None) -> dict[str, object] | None:
+    if credential is None:
+        return None
+    return {
+        'id': credential.get('id'),
+        'name': credential.get('name'),
+        'kind': credential.get('kind'),
+        'username': credential.get('username'),
+        'domain': credential.get('domain'),
+        'port': credential.get('port'),
+    }
+
+
+def profile_requires_credential(profile_key: str | None) -> bool:
+    return get_scan_profile_definition(profile_key).authenticated
+
+
+def credential_kind_supported_by_profile(profile_key: str | None, credential_kind: str | None) -> bool:
+    profile = get_scan_profile_definition(profile_key)
+    if not profile.required_credential_kinds:
+        return credential_kind is None
+    return credential_kind in profile.required_credential_kinds

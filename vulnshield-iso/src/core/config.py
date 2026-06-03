@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     DEFAULT_ADMIN_USERNAME: str = os.getenv('DEFAULT_ADMIN_USERNAME', 'admin')
     DEFAULT_ADMIN_PASSWORD: str = os.getenv('DEFAULT_ADMIN_PASSWORD', 'ChangeMe123!')
     DEFAULT_ADMIN_ROLE: str = os.getenv('DEFAULT_ADMIN_ROLE', 'Admin')
+    CREDENTIAL_ENCRYPTION_KEY: str = os.getenv('CREDENTIAL_ENCRYPTION_KEY', '')
     
     # Database
     POSTGRES_USER: str = os.getenv('POSTGRES_USER', 'postgres')

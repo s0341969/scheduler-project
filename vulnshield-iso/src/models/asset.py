@@ -35,6 +35,7 @@ class Asset(Base):
     device_type = Column(String(50), nullable=False, default=DeviceType.COMPUTER.value)
     default_scan_profile = Column(String(50), nullable=False, default='standard')
     template_key = Column(String(50), nullable=False, default='generic')
+    default_credential_id = Column(Integer, ForeignKey('credentials.id'), nullable=True)
     location = Column(String(255), nullable=True)
     tags = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
@@ -44,3 +45,4 @@ class Asset(Base):
 
     findings = relationship('Finding', back_populates='asset')
     scan_tasks = relationship('ScanTask', back_populates='asset')
+    default_credential = relationship('Credential', back_populates='assets', foreign_keys=[default_credential_id])

@@ -35,6 +35,7 @@ class ScanSummaryResponse(BaseModel):
     profile_scope: str
     device_template_key: str
     device_template_label: str
+    authentication: dict
     engines: list[ScanEngineSummary]
     services: list[DiscoveredService]
     vulnerabilities: list[ScanSignal]
@@ -60,6 +61,7 @@ class ScanTrigger(BaseModel):
 class AssetScanRequest(BaseModel):
     scan_profile: Optional[str] = None
     device_template: Optional[str] = None
+    credential_id: Optional[int] = None
 
 
 class ScanProfileDescriptor(BaseModel):
@@ -74,6 +76,8 @@ class ScanProfileDescriptor(BaseModel):
     nmap_args: list[str]
     nuclei_tags: list[str]
     max_duration_seconds: int
+    authenticated: bool = False
+    required_credential_kinds: list[str] = []
 
 
 class DeviceTemplateDescriptor(BaseModel):
@@ -93,6 +97,9 @@ class ScanResponse(BaseModel):
     asset_device_type: Optional[DeviceType] = None
     scan_profile: str
     device_template: Optional[str] = None
+    credential_id: Optional[int] = None
+    credential_name: Optional[str] = None
+    credential_kind: Optional[str] = None
     status: ScanStatus
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None

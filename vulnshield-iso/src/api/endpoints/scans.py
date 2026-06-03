@@ -5,6 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from src.api.deps import get_db, require_roles
 from src.models.asset import Asset
+from src.models.credential import Credential
 from src.models.scan import ScanTask
 from src.models.user import User, UserRole
 from src.schemas.scan import (
@@ -14,7 +15,7 @@ from src.schemas.scan import (
     ScanTrigger,
 )
 from src.services.asset_inventory import ensure_scan_profile, ensure_template_key
-from src.services.scan_catalog import list_device_templates, list_scan_profiles
+from src.services.scan_catalog import credential_kind_supported_by_profile, list_device_templates, list_scan_profiles, profile_requires_credential
 from src.services.scan_summary import normalize_scan_summary_payload
 from src.worker.tasks import execute_scan
 
@@ -24,6 +25,7 @@ router = APIRouter(prefix='/scans', tags=['scans'])
 
 def serialize_scan(task: ScanTask) -> ScanResponse:
     asset = task.asset
+    credential = task.credential
     return ScanResponse(
         id=task.id,
         asset_id=task.asset_id,
@@ -32,6 +34,9 @@ def serialize_scan(task: ScanTask) -> ScanResponse:
         asset_device_type=asset.device_type if asset else None,
         scan_profile=ensure_scan_profile(task.scan_profile),
         device_template=ensure_template_key(task.device_template, asset.device_type if asset else None),
+        credential_id=task.credential_id,
+        credential_name=credential.name if credential else None,
+        credential_kind=credential.kind if credential else None,
         status=task.status,
         started_at=task.started_at,
         finished_at=task.finished_at,
@@ -67,7 +72,7 @@ async def list_scans(
 ):
     statement = (
         select(ScanTask)
-        .options(selectinload(ScanTask.asset))
+        .options(selectinload(ScanTask.asset), selectinload(ScanTask.credential))
         .order_by(ScanTask.id.desc())
     )
     if current_user.role == UserRole.ANALYST:
@@ -88,20 +93,37 @@ async def trigger_scan(
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到設備')
 
+    credential = None
+    if trigger.credential_id is not None:
+        credential = await db.get(Credential, trigger.credential_id)
+        if credential is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail='找不到 credential')
+        if current_user.role == UserRole.ANALYST and credential.owner_id != current_user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法使用他人的 credential')
+
+    normalized_profile = ensure_scan_profile(trigger.scan_profile)
+    normalized_template = ensure_template_key(trigger.device_template, asset.device_type)
+    if profile_requires_credential(normalized_profile):
+        if credential is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='此掃描模式需要綁定 credential')
+        if not credential_kind_supported_by_profile(normalized_profile, credential.kind):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='credential 類型與掃描模式不相容')
+
     if current_user.role == UserRole.ANALYST and asset.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法掃描他人的設備')
 
     new_task = ScanTask(
         asset_id=trigger.asset_id,
-        scan_profile=ensure_scan_profile(trigger.scan_profile),
-        device_template=ensure_template_key(trigger.device_template, asset.device_type),
+        scan_profile=normalized_profile,
+        device_template=normalized_template,
+        credential_id=credential.id if credential else None,
     )
     db.add(new_task)
     await db.commit()
     await db.refresh(new_task)
 
     execute_scan.delay(new_task.id)
-    await db.refresh(new_task, attribute_names=['asset'])
+    await db.refresh(new_task, attribute_names=['asset', 'credential'])
     return serialize_scan(new_task)
 
 
@@ -119,5 +141,5 @@ async def get_scan_status(
     if current_user.role == UserRole.ANALYST and asset is not None and asset.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法查看他人的掃描任務')
 
-    await db.refresh(task, attribute_names=['asset'])
+    await db.refresh(task, attribute_names=['asset', 'credential'])
     return serialize_scan(task)

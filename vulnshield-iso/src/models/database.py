@@ -49,6 +49,32 @@ async def _run_additive_schema_updates(connection) -> None:
     )
     await connection.exec_driver_sql(
         """
+        CREATE TABLE IF NOT EXISTS credentials (
+            id SERIAL PRIMARY KEY,
+            name VARCHAR(120) NOT NULL,
+            kind VARCHAR(50) NOT NULL,
+            owner_id INTEGER NOT NULL REFERENCES users(id),
+            username VARCHAR(120),
+            domain VARCHAR(120),
+            port INTEGER,
+            secret_ciphertext TEXT,
+            secondary_secret_ciphertext TEXT,
+            notes TEXT,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            last_used_at TIMESTAMPTZ,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ
+        )
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE assets
+        ADD COLUMN IF NOT EXISTS default_credential_id INTEGER
+        """
+    )
+    await connection.exec_driver_sql(
+        """
         UPDATE assets
         SET device_type = 'Computer'
         WHERE device_type IS NULL OR device_type = ''
@@ -88,6 +114,12 @@ async def _run_additive_schema_updates(connection) -> None:
     await connection.exec_driver_sql(
         """
         ALTER TABLE scan_tasks
+        ADD COLUMN IF NOT EXISTS credential_id INTEGER
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE scan_tasks
         ADD COLUMN IF NOT EXISTS scan_config JSONB
         """
     )
@@ -102,11 +134,12 @@ async def _run_additive_schema_updates(connection) -> None:
 
 async def init_db() -> None:
     from src.models.asset import Asset
+    from src.models.credential import Credential
     from src.models.scan import AuditLog, ScanTask
     from src.models.user import User
     from src.models.vulnerability import Finding, Vulnerability
 
-    _ = (Asset, AuditLog, ScanTask, User, Finding, Vulnerability)
+    _ = (Asset, Credential, AuditLog, ScanTask, User, Finding, Vulnerability)
 
     attempts = 12
     delay_seconds = 5

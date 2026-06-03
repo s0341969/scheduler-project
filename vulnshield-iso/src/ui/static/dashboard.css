@@ -264,6 +264,10 @@ textarea {
     gap: 14px;
 }
 
+.credential-section {
+    margin-top: 20px;
+}
+
 .device-split {
     display: grid;
     grid-template-columns: minmax(280px, 0.85fr) minmax(0, 1.35fr);
@@ -273,7 +277,8 @@ textarea {
 .asset-card,
 .finding-card,
 .scan-card,
-.scan-summary-block {
+.scan-summary-block,
+.credential-card {
     padding: 16px;
     border-radius: var(--radius-md);
     background: var(--surface-strong);
@@ -303,6 +308,7 @@ textarea {
 .finding-card p,
 .scan-card p,
 .scan-summary-block p,
+.credential-card p,
 .detail-grid p,
 .detail-empty,
 .empty-state {
@@ -410,6 +416,11 @@ textarea {
 
 .service-item strong,
 .signal-item strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.credential-card strong {
     display: block;
     margin-bottom: 4px;
 }

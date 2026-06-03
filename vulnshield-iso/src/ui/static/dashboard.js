@@ -24,6 +24,7 @@ const envLabels = {
 
 const loginForm = document.getElementById('login-form');
 const assetForm = document.getElementById('asset-form');
+const credentialForm = document.getElementById('credential-form');
 const logoutButton = document.getElementById('logout');
 const assetList = document.getElementById('asset-list');
 const assetDetail = document.getElementById('asset-detail');
@@ -37,6 +38,17 @@ const scanList = document.getElementById('scan-list');
 const deviceTypeSelect = document.getElementById('device-type-select');
 const assetProfileSelect = document.getElementById('asset-profile-select');
 const assetTemplateSelect = document.getElementById('asset-template-select');
+const assetCredentialSelect = document.getElementById('asset-credential-select');
+const credentialKindSelect = document.getElementById('credential-kind-select');
+const credentialPortInput = document.getElementById('credential-port-input');
+const credentialUsernameInput = document.getElementById('credential-username-input');
+const credentialDomainInput = document.getElementById('credential-domain-input');
+const credentialPrimaryInput = document.getElementById('credential-primary-input');
+const credentialSecondaryInput = document.getElementById('credential-secondary-input');
+const credentialPrimaryLabel = document.getElementById('credential-primary-label');
+const credentialSecondaryLabel = document.getElementById('credential-secondary-label');
+const credentialKindHint = document.getElementById('credential-kind-hint');
+const credentialList = document.getElementById('credential-list');
 const reportSummary = document.getElementById('report-summary');
 const reportAssets = document.getElementById('report-assets');
 const reportSignals = document.getElementById('report-signals');
@@ -50,7 +62,9 @@ state.activeTab = 'devices';
 state.catalog = {
     profiles: [],
     templates: [],
+    credentialKinds: [],
 };
+state.credentials = [];
 
 const deviceTypeToTemplate = {
     Computer: 'generic',
@@ -113,16 +127,74 @@ function populateProfileSelectors() {
         .join('');
 }
 
+function populateCredentialSelectors() {
+    assetCredentialSelect.innerHTML = [
+        '<option value="">不綁定 credential</option>',
+        ...state.credentials.map((credential) => `<option value="${credential.id}">${credential.name} / ${credential.kind_label}</option>`),
+    ].join('');
+
+    credentialKindSelect.innerHTML = state.catalog.credentialKinds
+        .map((kind) => `<option value="${kind.key}">${kind.label}</option>`)
+        .join('');
+    updateCredentialKindForm();
+}
+
+function updateCredentialKindForm() {
+    const kind = state.catalog.credentialKinds.find((item) => item.key === credentialKindSelect.value);
+    if (!kind) {
+        return;
+    }
+    credentialPortInput.value = kind.default_port || '';
+    credentialUsernameInput.disabled = !kind.requires_username;
+    credentialDomainInput.disabled = !kind.supports_domain;
+    credentialSecondaryInput.disabled = !kind.requires_secondary_secret;
+    credentialPrimaryLabel.textContent = kind.key === 'SNMPv2c' ? 'Community' : kind.key === 'LinuxSSHKey' ? 'SSH 私鑰' : '主要密碼';
+    credentialSecondaryLabel.textContent = kind.key === 'LinuxSSHKey' ? 'Passphrase' : '第二密鑰 / passphrase';
+    credentialKindHint.textContent = kind.description;
+}
+
+function renderCredentials() {
+    if (!state.credentials.length) {
+        credentialList.innerHTML = '<div class="empty-state">目前沒有可用 credential。</div>';
+        return;
+    }
+    credentialList.innerHTML = state.credentials.map((credential) => `
+        <article class="credential-card">
+            <strong>${credential.name}</strong>
+            <p>${credential.kind_label}</p>
+            <div class="pill-row">
+                ${credential.username ? `<span class="pill">${credential.username}</span>` : ''}
+                ${credential.domain ? `<span class="pill">${credential.domain}</span>` : ''}
+                ${credential.port ? `<span class="pill">Port ${credential.port}</span>` : ''}
+                <span class="pill">${credential.has_primary_secret ? '已保存主密鑰' : '未保存主密鑰'}</span>
+                ${credential.has_secondary_secret ? '<span class="pill">含第二密鑰</span>' : ''}
+            </div>
+            <p>${credential.notes || '未提供備註'}</p>
+        </article>
+    `).join('');
+}
+
 async function loadCatalog() {
     if (!state.token) {
         return;
     }
-    const [profiles, templates] = await Promise.all([
+    const [profiles, templates, credentialKinds] = await Promise.all([
         apiRequest('/scans/profiles'),
         apiRequest('/scans/templates'),
+        apiRequest('/credentials/kinds'),
     ]);
-    state.catalog = { profiles, templates };
+    state.catalog = { profiles, templates, credentialKinds };
     populateProfileSelectors();
+    populateCredentialSelectors();
+}
+
+async function loadCredentials() {
+    if (!state.token) {
+        return;
+    }
+    state.credentials = await apiRequest('/credentials');
+    populateCredentialSelectors();
+    renderCredentials();
 }
 
 function formatDate(value) {
@@ -189,6 +261,7 @@ function logout() {
     state.token = '';
     state.currentUser = null;
     state.assets = [];
+    state.credentials = [];
     state.selectedAssetId = null;
     localStorage.removeItem('vulnshield_token');
     authStatus.textContent = '尚未登入';
@@ -203,6 +276,7 @@ function logout() {
     reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
     reportStatus.textContent = '尚未載入';
     reportStatus.className = 'status-chip muted';
+    credentialList.innerHTML = '<div class="empty-state">請先登入，再載入 credential。</div>';
     updateMetrics([]);
 }
 
@@ -266,6 +340,7 @@ function renderAssets() {
                 <span class="pill">重要度 ${asset.criticality}</span>
                 <span class="pill">${profileLabel(asset.default_scan_profile)}</span>
                 <span class="pill">${asset.template_label || templateLabel(asset.template_key)}</span>
+                ${asset.default_credential_name ? `<span class="pill">Credential ${asset.default_credential_name}</span>` : ''}
             </div>
             <div class="asset-meta">
                 <span class="pill">未關閉 ${asset.open_findings}</span>
@@ -428,10 +503,12 @@ function scanCard(scan) {
                 <span class="pill">${summary?.profile_label || profileLabel(scan.scan_profile)}</span>
                 <span class="pill">${summary?.device_template_label || templateLabel(scan.device_template || 'generic')}</span>
                 ${scan.asset_device_type ? `<span class="pill">${deviceTypeLabels[scan.asset_device_type] || scan.asset_device_type}</span>` : ''}
+                ${scan.credential_name ? `<span class="pill">${scan.credential_name} / ${scan.credential_kind}</span>` : ''}
                 <span class="pill">開始 ${formatDate(scan.started_at)}</span>
                 <span class="pill">結束 ${formatDate(scan.finished_at)}</span>
             </div>
             ${scan.scan_config ? `<p class="scan-meta">範圍：${scan.scan_config.profile.label} / ${scan.scan_config.device_template.label}</p>` : ''}
+            ${summary?.authentication?.credential ? `<p class="scan-meta">認證：${summary.authentication.credential.name} / ${summary.authentication.credential.kind}</p>` : ''}
             <p class="scan-meta">${scan.error_message || '目前無錯誤訊息。'}</p>
             <div class="summary-grid">
                 <section class="scan-summary-block">
@@ -645,6 +722,10 @@ function renderAssetDetail(asset, scans, findings) {
                     <p>${profileLabel(asset.default_scan_profile)} / ${asset.template_label || templateLabel(asset.template_key)}</p>
                 </article>
                 <article>
+                    <h3>預設 credential</h3>
+                    <p>${asset.default_credential_name ? `${asset.default_credential_name} / ${asset.default_credential_kind}` : '未綁定'}</p>
+                </article>
+                <article>
                     <h3>風險摘要</h3>
                     <p>總 finding ${asset.total_findings} / 未關閉 ${asset.open_findings} / 高風險 ${asset.high_risk_findings}</p>
                 </article>
@@ -677,6 +758,12 @@ function renderAssetDetail(asset, scans, findings) {
     detailProfileSelect.innerHTML = state.catalog.profiles
         .map((profile) => `<option value="${profile.key}" ${profile.key === asset.default_scan_profile ? 'selected' : ''}>${profile.label}</option>`)
         .join('');
+    const detailCredentialOptions = [
+        '<option value="">使用設備預設 credential</option>',
+        ...state.credentials.map((credential) => `<option value="${credential.id}" ${credential.id === asset.default_credential_id ? 'selected' : ''}>${credential.name} / ${credential.kind_label}</option>`),
+    ].join('');
+    detailProfileSelect.insertAdjacentHTML('afterend', `<select id="detail-scan-credential">${detailCredentialOptions}</select>`);
+    const detailCredentialSelect = document.getElementById('detail-scan-credential');
 
     document.getElementById('run-scan').addEventListener('click', async () => {
         try {
@@ -686,10 +773,11 @@ function renderAssetDetail(asset, scans, findings) {
                 body: JSON.stringify({
                     scan_profile: detailProfileSelect.value,
                     device_template: asset.template_key,
+                    credential_id: detailCredentialSelect.value ? Number(detailCredentialSelect.value) : null,
                 }),
             });
             showMessage(`已建立掃描任務 #${task.id}`);
-            await Promise.all([loadAssets(), loadScans(), loadReports()]);
+            await Promise.all([loadAssets(), loadScans(), loadReports(), loadCredentials()]);
             await loadAssetDetail(asset.id);
         } catch (error) {
             showMessage(error.message);
@@ -746,7 +834,7 @@ loginForm.addEventListener('submit', async (event) => {
         await login(String(formData.get('username') || ''), String(formData.get('password') || ''));
         await fetchCurrentUser();
         await loadCatalog();
-        await Promise.all([loadAssets(), loadScans(), loadReports()]);
+        await Promise.all([loadCredentials(), loadAssets(), loadScans(), loadReports()]);
         showMessage('登入成功。');
     } catch (error) {
         logout();
@@ -770,6 +858,7 @@ assetForm.addEventListener('submit', async (event) => {
         device_type: String(formData.get('device_type') || 'Computer'),
         default_scan_profile: String(formData.get('default_scan_profile') || 'standard'),
         template_key: String(formData.get('template_key') || 'generic'),
+        default_credential_id: formData.get('default_credential_id') ? Number(formData.get('default_credential_id')) : null,
         location: String(formData.get('location') || '').trim() || null,
         tags: String(formData.get('tags') || '')
             .split(',')
@@ -788,7 +877,7 @@ assetForm.addEventListener('submit', async (event) => {
         });
         assetForm.reset();
         state.selectedAssetId = asset.id;
-        await Promise.all([loadAssets(), loadScans(), loadReports()]);
+        await Promise.all([loadCatalog(), loadCredentials(), loadAssets(), loadScans(), loadReports()]);
         await loadAssetDetail(asset.id);
         showMessage('設備建立成功。');
     } catch (error) {
@@ -796,8 +885,43 @@ assetForm.addEventListener('submit', async (event) => {
     }
 });
 
+credentialForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    if (!state.currentUser) {
+        showMessage('請先登入後再建立 credential。');
+        return;
+    }
+
+    const formData = new FormData(credentialForm);
+    const payload = {
+        name: String(formData.get('name') || ''),
+        kind: String(formData.get('kind') || ''),
+        username: String(formData.get('username') || '').trim() || null,
+        domain: String(formData.get('domain') || '').trim() || null,
+        port: formData.get('port') ? Number(formData.get('port')) : null,
+        primary_secret: String(formData.get('primary_secret') || '').trim() || null,
+        secondary_secret: String(formData.get('secondary_secret') || '').trim() || null,
+        notes: String(formData.get('notes') || '').trim() || null,
+        is_active: true,
+    };
+
+    try {
+        await apiRequest('/credentials', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        credentialForm.reset();
+        updateCredentialKindForm();
+        await Promise.all([loadCatalog(), loadCredentials(), loadAssets()]);
+        showMessage('Credential 建立成功。');
+    } catch (error) {
+        showMessage(error.message);
+    }
+});
+
 refreshAllButton.addEventListener('click', () => {
-    Promise.all([loadCatalog(), loadAssets(), loadScans(), loadReports()]).catch((error) => showMessage(error.message));
+    Promise.all([loadCatalog(), loadCredentials(), loadAssets(), loadScans(), loadReports()]).catch((error) => showMessage(error.message));
 });
 
 logoutButton.addEventListener('click', logout);
@@ -817,6 +941,7 @@ deviceTypeSelect.addEventListener('change', () => {
         assetProfileSelect.value = matchedTemplate.recommended_profile;
     }
 });
+credentialKindSelect.addEventListener('change', updateCredentialKindForm);
 
 (async function bootstrap() {
     populateDeviceSelectors();
@@ -826,7 +951,7 @@ deviceTypeSelect.addEventListener('change', () => {
     try {
         await fetchCurrentUser();
         await loadCatalog();
-        await Promise.all([loadAssets(), loadScans(), loadReports()]);
+        await Promise.all([loadCredentials(), loadAssets(), loadScans(), loadReports()]);
     } catch (error) {
         logout();
     }

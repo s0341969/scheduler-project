@@ -5,6 +5,7 @@ from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.asset import Asset, DeviceType
+from src.models.credential import Credential
 from src.models.scan import ScanTask
 from src.models.vulnerability import Finding, FindingStatus
 from src.services.scan_catalog import (
@@ -149,4 +150,7 @@ def asset_to_response(asset: Asset, summary: dict[str, object] | None = None) ->
         'high_risk_findings': int(summary.get('high_risk_findings', 0) or 0),
         'default_scan_profile_label': get_scan_profile_definition(getattr(asset, 'default_scan_profile', None)).label,
         'template_label': get_device_template_definition(getattr(asset, 'template_key', None) or recommended_template_for_device_type(asset.device_type)).label,
+        'default_credential_id': getattr(asset, 'default_credential_id', None),
+        'default_credential_name': asset.default_credential.name if getattr(asset, 'default_credential', None) else None,
+        'default_credential_kind': asset.default_credential.kind if getattr(asset, 'default_credential', None) else None,
     }
