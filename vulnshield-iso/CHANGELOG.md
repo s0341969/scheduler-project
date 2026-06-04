@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-06-05
+- 記錄 `VulnScan.Web` 下一輪優先開發項目：`UsersController / 使用者管理頁`、`OpenVAS / Greenbone 匯入`、`PDF 報表`、`EF Core Migration`
+
 ## 2026-06-04
 - 強化 `VulnScan.Web` 認證：`Users` 新增 `PasswordHash` / `PasswordChangedAt`，登入改為 ASP.NET Core `PasswordHasher<User>` 驗證，移除 shared password 模式
 - 強化 `VulnScan.Web` 啟動初始化：`DbInitializer` 會依 `LocalAuth:BootstrapUsers` 建立初始使用者與密碼雜湊

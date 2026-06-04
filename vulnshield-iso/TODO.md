@@ -1,5 +1,12 @@
 # TODO
 
+## 下次優先
+
+- `UsersController` 與使用者管理頁
+- `OpenVAS / Greenbone` 匯入
+- `PDF` 報表
+- `EF Core Migration`，取代目前的 `EnsureCreated()`
+
 - 為 `VulnScan.Web` 導入正式 migration 流程，將 `EnsureCreated()` 升級為可版控的 EF Core Migration
 - 為 `VulnScan.Web` 補上 `UsersController` 與使用者管理頁，讓 Admin 可重設密碼、停用帳號與建立新使用者
 - 為 `VulnScan.Web` 補上 `Vulnerabilities` 的編輯/刪除與更細的權限控管

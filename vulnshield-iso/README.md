@@ -74,6 +74,13 @@ Development 預設 bootstrap 帳號：
 - AD / LDAP / SSO
 - 或整合正式 Identity Provider / Secret Store 管理 bootstrap credentials
 
+### 下次開發優先項目
+下次若延續 `VulnScan.Web`，優先順序以這四項為主：
+1. `UsersController` 與使用者管理頁
+2. `OpenVAS / Greenbone` 匯入
+3. `PDF` 報表
+4. `EF Core Migration`，取代 `EnsureCreated()`
+
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`
 - 角色權限管控：`Admin`、`Analyst`、`Auditor`
