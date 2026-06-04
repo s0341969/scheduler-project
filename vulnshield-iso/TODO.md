@@ -15,6 +15,7 @@
 - 為 `VulnScan.Web` 補上匯入歷史頁、匯入驗證與重複匯入對比規則
 - 為 `VulnScan.Web` 補上 PDF 匯出與 ISO 27001 / 資安盤點報表
 - 為 `VulnScan.Web` 補上整合測試：白名單阻擋、Hangfire 任務建立、Nmap XML 解析、Excel 匯出
+- 視需要補 `stop_vulnscan_web.bat`，讓新版 ASP.NET MVC 系統可一鍵停止
 - 導入 Alembic migration，取代啟動時 `create_all`
 - 新增 integration tests，覆蓋登入、建立資產、觸發掃描與狀態流轉
 - 將 `/reports/iso27001` 移入獨立 router 與 service

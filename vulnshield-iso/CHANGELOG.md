@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `start_vulnscan_web.bat`，提供 `VulnScan.Web` 專用的一鍵啟動流程：建置、執行、健康等待與自動開啟登入頁
 - 記錄 `VulnScan.Web` 下一輪優先開發項目：`UsersController / 使用者管理頁`、`OpenVAS / Greenbone 匯入`、`PDF 報表`、`EF Core Migration`
 
 ## 2026-06-04

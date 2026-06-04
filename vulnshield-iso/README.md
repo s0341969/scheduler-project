@@ -57,6 +57,18 @@ dotnet build
 dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj
 ```
 
+若要直接雙擊啟動新版 ASP.NET MVC 弱掃平台，可使用：
+
+```bat
+G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
+```
+
+此 BAT 會自動執行：
+- `dotnet build`
+- 新開視窗執行 `dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj --launch-profile http --no-build`
+- 等待 `http://localhost:5186/Auth/Login` 可用
+- 自動開啟登入頁
+
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
 - 帳號、角色與密碼雜湊保存在 `Users`
