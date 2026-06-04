@@ -97,6 +97,14 @@
                                     </select>
                                 </label>
                             </div>
+                            <label>
+                                <span>設備狀態</span>
+                                <select name="status" id="asset-status-select">
+                                    <option value="Active">運作中</option>
+                                    <option value="Maintenance">維護中</option>
+                                    <option value="Retired">已退役</option>
+                                </select>
+                            </label>
                             <div class="split-grid">
                                 <label>
                                     <span>重要度</span>
@@ -196,6 +204,12 @@
                             <select id="asset-type-filter">
                                 <option value="">全部類型</option>
                             </select>
+                            <select id="asset-status-filter">
+                                <option value="">全部狀態</option>
+                                <option value="Active">運作中</option>
+                                <option value="Maintenance">維護中</option>
+                                <option value="Retired">已退役</option>
+                            </select>
                         </div>
                         <div class="device-split">
                             <div id="asset-list" class="asset-list empty-state">
@@ -252,6 +266,22 @@
                         <span class="status-chip accent">服務 / 漏洞 / 提示</span>
                     </div>
                     <div id="report-signals" class="detail-sections empty-state">尚未有掃描彙總資料。</div>
+                </div>
+                <div class="workspace reports-layout">
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2>優先處理清單</h2>
+                            <span class="status-chip danger">Priority Queue</span>
+                        </div>
+                        <div id="report-priorities" class="detail-sections empty-state">尚未有優先處理資料。</div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h2>營運建議</h2>
+                            <span class="status-chip accent">Product Guidance</span>
+                        </div>
+                        <div id="report-recommendations" class="detail-sections empty-state">尚未有建議內容。</div>
+                    </div>
                 </div>
             </section>
         </main>

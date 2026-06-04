@@ -16,6 +16,8 @@ from src.services.scan_catalog import (
     recommended_template_for_device_type,
 )
 
+ASSET_STATUS_VALUES = {'Active', 'Maintenance', 'Retired'}
+
 
 def normalize_tags(tags: Iterable[str] | None) -> str | None:
     if tags is None:
@@ -52,6 +54,12 @@ def ensure_device_type(raw_device_type: str | None) -> DeviceType:
 
 def ensure_scan_profile(raw_profile: str | None) -> str:
     return normalize_scan_profile_key(raw_profile)
+
+
+def ensure_asset_status(raw_status: str | None) -> str:
+    if raw_status in ASSET_STATUS_VALUES:
+        return raw_status
+    return 'Active'
 
 
 def ensure_template_key(raw_template: str | None, raw_device_type: str | None = None) -> str:
@@ -139,7 +147,7 @@ def asset_to_response(asset: Asset, summary: dict[str, object] | None = None) ->
         'location': asset.location,
         'tags': parse_tags(asset.tags),
         'notes': asset.notes,
-        'status': asset.status,
+        'status': ensure_asset_status(asset.status),
         'created_at': asset.created_at,
         'updated_at': asset.updated_at,
         'last_scan_id': summary.get('last_scan_id'),

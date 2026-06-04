@@ -23,6 +23,12 @@ const envLabels = {
     Development: '開發環境',
 };
 
+const assetStatusLabels = {
+    Active: '運作中',
+    Maintenance: '維護中',
+    Retired: '已退役',
+};
+
 const loginForm = document.getElementById('login-form');
 const assetForm = document.getElementById('asset-form');
 const assetFormTitle = document.getElementById('asset-form-title');
@@ -37,6 +43,7 @@ const authStatus = document.getElementById('auth-status');
 const selectedAssetStatus = document.getElementById('selected-asset-status');
 const assetSearch = document.getElementById('asset-search');
 const assetTypeFilter = document.getElementById('asset-type-filter');
+const assetStatusFilter = document.getElementById('asset-status-filter');
 const scanSearch = document.getElementById('scan-search');
 const scanStatusFilter = document.getElementById('scan-status-filter');
 const scanList = document.getElementById('scan-list');
@@ -57,6 +64,8 @@ const credentialList = document.getElementById('credential-list');
 const reportSummary = document.getElementById('report-summary');
 const reportAssets = document.getElementById('report-assets');
 const reportSignals = document.getElementById('report-signals');
+const reportPriorities = document.getElementById('report-priorities');
+const reportRecommendations = document.getElementById('report-recommendations');
 const reportStatus = document.getElementById('report-status');
 const navTabs = Array.from(document.querySelectorAll('.nav-tab'));
 const refreshAllButton = document.getElementById('refresh-all');
@@ -330,6 +339,8 @@ function logout() {
     reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
     reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
     reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
+    reportPriorities.innerHTML = '<div class="empty-state">尚未有優先處理資料。</div>';
+    reportRecommendations.innerHTML = '<div class="empty-state">尚未有建議內容。</div>';
     reportStatus.textContent = '尚未載入';
     reportStatus.className = 'status-chip muted';
     credentialList.innerHTML = '<div class="empty-state">請先登入，再載入 credential。</div>';
@@ -357,6 +368,9 @@ function resetAssetForm() {
     if (assetCredentialSelect.options.length) {
         assetCredentialSelect.value = '';
     }
+    if (assetForm.elements.status) {
+        assetForm.elements.status.value = 'Active';
+    }
 }
 
 function startAssetEdit(asset) {
@@ -377,6 +391,7 @@ function startAssetEdit(asset) {
     assetForm.elements.default_credential_id.value = asset.default_credential_id || '';
     assetForm.elements.tags.value = (asset.tags || []).join(', ');
     assetForm.elements.notes.value = asset.notes || '';
+    assetForm.elements.status.value = asset.status || 'Active';
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -393,10 +408,15 @@ function updateMetrics(assets) {
 function filteredAssets() {
     const search = assetSearch.value.trim().toLowerCase();
     const typeFilter = assetTypeFilter.value;
+    const statusFilter = assetStatusFilter.value;
 
     return state.assets.filter((asset) => {
         const matchesType = !typeFilter || asset.device_type === typeFilter;
         if (!matchesType) {
+            return false;
+        }
+        const matchesStatus = !statusFilter || asset.status === statusFilter;
+        if (!matchesStatus) {
             return false;
         }
 
@@ -437,6 +457,7 @@ function renderAssets() {
             <div class="pill-row">
                 <span class="pill">${deviceTypeLabels[asset.device_type] || asset.device_type}</span>
                 <span class="pill">${envLabels[asset.env] || asset.env}</span>
+                <span class="pill">${assetStatusLabels[asset.status] || asset.status}</span>
                 <span class="pill">重要度 ${asset.criticality}</span>
                 <span class="pill">${profileLabel(asset.default_scan_profile)}</span>
                 <span class="pill">${asset.template_label || templateLabel(asset.template_key)}</span>
@@ -658,6 +679,8 @@ function renderReports() {
         reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
         reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
         reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
+        reportPriorities.innerHTML = '<div class="empty-state">尚未有優先處理資料。</div>';
+        reportRecommendations.innerHTML = '<div class="empty-state">尚未有建議內容。</div>';
         reportStatus.textContent = '尚未載入';
         reportStatus.className = 'status-chip muted';
         return;
@@ -773,7 +796,60 @@ function renderReports() {
             <span>資訊 / 風險提示</span>
             <strong>${scanStats.informational}</strong>
         </article>
+        <article class="report-card">
+            <span>運作中設備</span>
+            <strong>${state.report.asset_status_distribution?.Active || 0}</strong>
+        </article>
+        <article class="report-card">
+            <span>維護中設備</span>
+            <strong>${state.report.asset_status_distribution?.Maintenance || 0}</strong>
+        </article>
+        <article class="report-card">
+            <span>已退役設備</span>
+            <strong>${state.report.asset_status_distribution?.Retired || 0}</strong>
+        </article>
     `;
+
+    const priorities = state.report.priority_assets || [];
+    reportPriorities.innerHTML = priorities.length
+        ? priorities.map((asset) => `
+            <article class="scan-card">
+                <div class="scan-head">
+                    <div>
+                        <h3>${asset.name}</h3>
+                        <p>${asset.target}</p>
+                    </div>
+                    <span class="status-chip ${asset.high_risk_findings > 0 ? 'danger' : asset.open_findings > 0 ? 'warning' : 'safe'}">
+                        ${asset.priority_score}
+                    </span>
+                </div>
+                <div class="pill-row">
+                    <span class="pill">${deviceTypeLabels[asset.device_type] || asset.device_type}</span>
+                    <span class="pill">${assetStatusLabels[asset.status] || asset.status}</span>
+                    <span class="pill">高風險 ${asset.high_risk_findings}</span>
+                    <span class="pill">未關閉 ${asset.open_findings}</span>
+                    <span class="pill">總風險 ${asset.risk_total}</span>
+                </div>
+            </article>
+        `).join('')
+        : '<div class="empty-state">目前沒有需要優先處理的設備。</div>';
+
+    const recommendations = state.report.recommendations || [];
+    reportRecommendations.innerHTML = recommendations.length
+        ? recommendations.map((item) => `
+            <article class="scan-card">
+                <div class="scan-head">
+                    <div>
+                        <h3>${item.title}</h3>
+                        <p>${item.detail}</p>
+                    </div>
+                    <span class="status-chip ${item.severity === 'high' ? 'danger' : item.severity === 'medium' ? 'warning' : 'accent'}">
+                        ${item.severity}
+                    </span>
+                </div>
+            </article>
+        `).join('')
+        : '<div class="empty-state">目前沒有建議內容。</div>';
 }
 
 function setActiveTab(tabName) {
@@ -815,6 +891,10 @@ function renderAssetDetail(asset, scans, findings) {
                     <p>${envLabels[asset.env] || asset.env} / ${asset.criticality}</p>
                 </article>
                 <article>
+                    <h3>設備狀態</h3>
+                    <p>${assetStatusLabels[asset.status] || asset.status}</p>
+                </article>
+                <article>
                     <h3>標籤</h3>
                     <p>${(asset.tags || []).join('、') || '未設定'}</p>
                 </article>
@@ -831,6 +911,7 @@ function renderAssetDetail(asset, scans, findings) {
                     <p>總 finding ${asset.total_findings} / 未關閉 ${asset.open_findings} / 高風險 ${asset.high_risk_findings}</p>
                 </article>
             </div>
+            ${asset.status === 'Retired' ? '<div class="empty-state">這台設備目前標記為已退役，系統會阻擋新的掃描任務。</div>' : ''}
 
             <section class="section-block">
                 <h3 class="section-title">設備備註</h3>
@@ -968,7 +1049,7 @@ assetForm.addEventListener('submit', async (event) => {
             .map((tag) => tag.trim())
             .filter(Boolean),
         notes: String(formData.get('notes') || '').trim() || null,
-        status: 'Active',
+        status: String(formData.get('status') || 'Active'),
         owner_id: state.currentUser.id,
     };
 
@@ -1032,6 +1113,7 @@ logoutButton.addEventListener('click', logout);
 assetFormCancel.addEventListener('click', resetAssetForm);
 assetSearch.addEventListener('input', renderAssets);
 assetTypeFilter.addEventListener('change', renderAssets);
+assetStatusFilter.addEventListener('change', renderAssets);
 scanSearch.addEventListener('input', renderScans);
 scanStatusFilter.addEventListener('change', renderScans);
 navTabs.forEach((tab) => {

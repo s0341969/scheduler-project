@@ -18,6 +18,7 @@ from src.services.audit_service import add_audit_log
 from src.services.asset_inventory import (
     asset_to_response,
     build_asset_summary_map,
+    ensure_asset_status,
     ensure_scan_profile,
     ensure_template_key,
     normalize_tags,
@@ -100,6 +101,7 @@ async def create_asset(
     payload['device_type'] = payload['device_type'].value
     payload['default_scan_profile'] = ensure_scan_profile(payload.get('default_scan_profile'))
     payload['template_key'] = ensure_template_key(payload.get('template_key'), payload['device_type'])
+    payload['status'] = ensure_asset_status(payload.get('status'))
     if payload['default_scan_profile'] == 'standard' and asset.template_key is None:
         payload['default_scan_profile'] = recommended_profile_for_template(payload['template_key'])
     payload['tags'] = normalize_tags(payload['tags'])
@@ -187,6 +189,8 @@ async def update_asset(
         values['device_type'] = values['device_type'].value
     if 'default_scan_profile' in values and values['default_scan_profile'] is not None:
         values['default_scan_profile'] = ensure_scan_profile(values['default_scan_profile'])
+    if 'status' in values and values['status'] is not None:
+        values['status'] = ensure_asset_status(values['status'])
     if 'template_key' in values:
         values['template_key'] = ensure_template_key(values['template_key'], values.get('device_type') or asset.device_type)
     elif 'device_type' in values:
@@ -237,6 +241,8 @@ async def trigger_asset_scan(
         payload.device_template if payload else getattr(asset, 'template_key', None),
         asset.device_type,
     )
+    if ensure_asset_status(asset.status) == 'Retired':
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='退役設備不可執行掃描，請先將設備狀態改回運作中或維護中')
     credential = await get_accessible_credential(
         payload.credential_id if payload and payload.credential_id is not None else getattr(asset, 'default_credential_id', None),
         db,

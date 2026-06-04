@@ -1,7 +1,7 @@
 import unittest
 
 from src.models.asset import DeviceType
-from src.services.asset_inventory import ensure_device_type, ensure_scan_profile, ensure_template_key, normalize_tags, parse_tags
+from src.services.asset_inventory import ensure_asset_status, ensure_device_type, ensure_scan_profile, ensure_template_key, normalize_tags, parse_tags
 
 
 class AssetInventoryTests(unittest.TestCase):
@@ -22,6 +22,10 @@ class AssetInventoryTests(unittest.TestCase):
         self.assertEqual(ensure_scan_profile('full'), 'standard')
         self.assertEqual(ensure_template_key(None, 'Firewall'), 'firewall')
         self.assertEqual(ensure_template_key('web_server', 'Server'), 'web_server')
+
+    def test_asset_status_falls_back_to_active(self):
+        self.assertEqual(ensure_asset_status('Maintenance'), 'Maintenance')
+        self.assertEqual(ensure_asset_status('unknown'), 'Active')
 
 
 if __name__ == '__main__':

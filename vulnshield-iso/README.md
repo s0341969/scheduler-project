@@ -9,6 +9,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 內建設備管理頁：`GET /dashboard`
 - Dashboard 已拆成三個工作分頁：`設備`、`掃描`、`報告`
 - 設備導向資產模型，支援設備類型、位置、標籤與備註
+- 設備支援生命週期狀態：`運作中`、`維護中`、`已退役`
 - 商用化第二階段骨架已完成：`scan_profile`、設備模板、掃描分層摘要、Credential 管理、Authenticated Scan 策略與 API
 - Nmap + Nuclei 非同步掃描流程
 - 弱點風險分數：`CVSS/Severity × Asset Criticality`
@@ -160,7 +161,7 @@ docker compose -p vulnshield-iso up -d --build
 7. 在設備詳情頁可改選當次掃描模式與 credential，再按 `執行弱點掃描`
 8. 在 `Credential 庫` 可直接停用、重新啟用或刪除 credential；若仍被設備綁定或有執行中掃描，系統會阻擋刪除
 9. 切到 `掃描` 分頁查看全域掃描任務歷史、狀態、掃描引擎、服務發現、漏洞、錯誤設定、憑證風險、管理面曝露與認證上下文
-10. 切到 `報告` 分頁查看整體風險統計、高風險設備、掃描層次彙總與 profile 分布基礎資料
+10. 切到 `報告` 分頁查看整體風險統計、高風險設備、掃描層次彙總、設備狀態分布、優先處理清單與營運建議
 
 ## 目前行為重點
 - `scan_profile` 目前支援：
@@ -188,6 +189,10 @@ docker compose -p vulnshield-iso up -d --build
 - 相同 `asset + vulnerability` 會更新既有 `Finding`，而不是無限制重複新增。
 - 已驗證關閉的 finding 若在後續掃描再次出現，會重新回到 `Open`。
 - `Asset` 已明確作為設備 inventory 使用，並支援依設備查看最近掃描、風險摘要與設備專屬 findings。
+- 設備狀態目前支援：
+  - `Active`：可正常執行掃描
+  - `Maintenance`：仍可掃描，但表示設備處於維護窗口
+  - `Retired`：不可再建立新的掃描任務
 - Celery worker 啟動時會主動匯入 `src.worker.tasks`，避免掃描任務因未註冊而停在 `Pending`。
 - 掃描摘要目前分成：
   - `服務發現`
@@ -198,6 +203,7 @@ docker compose -p vulnshield-iso up -d --build
   - `資訊 / 風險提示`
 - 掃描摘要會額外記錄 `authentication` 區塊，標示本次是否要求 credential，以及實際使用的 credential 名稱與種類
 - Dashboard 目前採三分頁工作台：設備頁做 inventory 與單設備掃描策略、掃描頁做全域任務檢視，報告頁做風險與掃描面向彙總。
+- 報告頁已補上商用導向資訊：設備狀態分布、優先處理清單與營運建議，可直接看出先處理哪台設備與哪類營運問題。
 - Credential 的敏感內容會以對稱加密方式存入資料庫，不會經由 API 回傳明文。
 - Credential 已支援停用與刪除保護：停用後不可再綁定到設備或發動掃描；若仍被設備綁定或有 `Pending` / `Running` 任務，系統會拒絕刪除。
 - Credential 與設備編輯都會寫入 `audit_logs`，credential 另外可透過 `GET /credentials/{id}/audit` 查最近審計紀錄。

@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-03
+- 強化商用品操作層：新增設備生命週期狀態 `Active` / `Maintenance` / `Retired`，並在設備頁提供狀態選擇、狀態篩選與退役設備掃描阻擋
+- 強化報告頁：新增設備狀態分布、優先處理清單與營運建議，讓報告不只顯示數量，也能指向優先處理目標
+- 新增報表服務 `src/services/reporting.py`，集中產出風險摘要、priority queue 與 recommendation 區塊
 - 補上 credential 治理能力：新增停用與刪除流程、刪除前綁定檢查、停用後禁止綁定與執行掃描
 - 新增 credential 審計 API：`GET /credentials/{id}/audit`，並讓 credential 建立、修改、刪除與設備建立、編輯都寫入 `audit_logs`
 - 補上設備頁編輯流程：可從設備詳情回填左側表單，直接更新目標位址、模板、預設掃描模式、credential、標籤與備註

@@ -16,9 +16,11 @@ from src.api.endpoints.scans import router as scans_router
 from src.core.config import settings
 from src.core.security import get_password_hash
 from src.models.database import async_session, init_db
-from src.models.scan import ScanStatus, ScanTask
+from src.models.asset import Asset
+from src.models.scan import ScanTask
 from src.models.user import User, UserRole
 from src.models.vulnerability import Finding
+from src.services.reporting import build_report_snapshot
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 UI_DIR = BASE_DIR / 'ui'
@@ -79,53 +81,8 @@ async def get_iso_report(
     _: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR)),
 ):
     async with async_session() as db:
-        result = await db.execute(select(Finding))
-        findings = result.scalars().all()
-        scan_result = await db.execute(select(ScanTask))
-        scans = scan_result.scalars().all()
-
-        high_risk = len([f for f in findings if f.risk_score is not None and f.risk_score >= 15.0])
-        med_risk = len([f for f in findings if f.risk_score is not None and 5.0 <= f.risk_score < 15.0])
-        low_risk = len([f for f in findings if f.risk_score is not None and f.risk_score < 5.0])
-
-        scan_layers = {
-            'services': 0,
-            'vulnerabilities': 0,
-            'misconfigurations': 0,
-            'certificate_risks': 0,
-            'exposures': 0,
-            'informational': 0,
-        }
-        scan_status = {
-            ScanStatus.PENDING.value: 0,
-            ScanStatus.RUNNING.value: 0,
-            ScanStatus.COMPLETED.value: 0,
-            ScanStatus.FAILED.value: 0,
-        }
-        profile_distribution: dict[str, int] = {}
-
-        for scan in scans:
-            scan_status[scan.status.value] = scan_status.get(scan.status.value, 0) + 1
-            profile_distribution[scan.scan_profile] = profile_distribution.get(scan.scan_profile, 0) + 1
-
-            summary = scan.scan_summary or {}
-            scan_layers['services'] += int(summary.get('service_count', 0) or 0)
-            scan_layers['vulnerabilities'] += int(summary.get('vulnerability_count', 0) or 0)
-            scan_layers['misconfigurations'] += int(summary.get('misconfiguration_count', 0) or 0)
-            scan_layers['certificate_risks'] += int(summary.get('certificate_risk_count', 0) or 0)
-            scan_layers['exposures'] += int(summary.get('exposure_count', 0) or 0)
-            scan_layers['informational'] += int(summary.get('informational_count', 0) or 0)
-
-        return {
-            'summary': {
-                'total_findings': len(findings),
-                'high_risk': high_risk,
-                'medium_risk': med_risk,
-                'low_risk': low_risk,
-            },
-            'scan_layers': scan_layers,
-            'scan_status': scan_status,
-            'profile_distribution': profile_distribution,
-            'compliance_status': 'In Progress' if high_risk > 0 else 'Compliant'
-        }
+        findings = (await db.execute(select(Finding))).scalars().all()
+        scans = (await db.execute(select(ScanTask))).scalars().all()
+        assets = (await db.execute(select(Asset))).scalars().all()
+        return build_report_snapshot(assets, findings, scans)
 
