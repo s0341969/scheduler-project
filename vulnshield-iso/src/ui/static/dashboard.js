@@ -5,6 +5,7 @@ const state = {
     selectedAssetId: null,
     editingAssetId: null,
     editingScheduleId: null,
+    selectedScanAssetIds: new Set(),
 };
 
 const deviceTypeLabels = {
@@ -51,9 +52,15 @@ const selectedAssetStatus = document.getElementById('selected-asset-status');
 const assetSearch = document.getElementById('asset-search');
 const assetTypeFilter = document.getElementById('asset-type-filter');
 const assetStatusFilter = document.getElementById('asset-status-filter');
+const scanAssetSearch = document.getElementById('scan-asset-search');
+const scanBulkProfile = document.getElementById('scan-bulk-profile');
+const scanSelectAllButton = document.getElementById('scan-select-all');
+const scanClearSelectedButton = document.getElementById('scan-clear-selected');
+const scanRunSelectedButton = document.getElementById('scan-run-selected');
 const scanSearch = document.getElementById('scan-search');
 const scanStatusFilter = document.getElementById('scan-status-filter');
 const scanOverview = document.getElementById('scan-overview');
+const scanAssetList = document.getElementById('scan-asset-list');
 const scanList = document.getElementById('scan-list');
 const deviceTypeSelect = document.getElementById('device-type-select');
 const assetProfileSelect = document.getElementById('asset-profile-select');
@@ -413,6 +420,9 @@ function populateProfileSelectors() {
     assetTemplateSelect.innerHTML = state.catalog.templates
         .map((template) => `<option value="${template.key}">${template.label}</option>`)
         .join('');
+    scanBulkProfile.innerHTML = state.catalog.profiles
+        .map((profile) => `<option value="${profile.key}">${profile.label}</option>`)
+        .join('');
 }
 
 function populateCredentialSelectors() {
@@ -603,6 +613,7 @@ function logout() {
     state.credentials = [];
     state.selectedAssetId = null;
     state.editingScheduleId = null;
+    state.selectedScanAssetIds = new Set();
     localStorage.removeItem('vulnshield_token');
     authStatus.textContent = '尚未登入';
     authStatus.className = 'status-chip muted';
@@ -611,7 +622,8 @@ function logout() {
     assetList.innerHTML = '<div class="empty-state">請先登入，再載入設備清單。</div>';
     assetDetail.innerHTML = '選一台設備後，這裡會顯示設備資料、掃描歷史、掃描內容與弱點清單。';
     scanOverview.innerHTML = '<div class="empty-state">請先登入，再載入掃描營運摘要。</div>';
-    scanList.innerHTML = '<div class="empty-state">請先登入，再載入掃描任務。</div>';
+    scanAssetList.innerHTML = '<div class="empty-state">請先登入，再載入設備清單。</div>';
+    scanList.innerHTML = '<div class="empty-state">請先登入，再載入掃描紀錄。</div>';
     reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
     reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
     reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
@@ -756,6 +768,133 @@ function renderAssets() {
             loadAssetDetail(assetId).catch((error) => showError(error.message));
         });
     });
+}
+
+function filteredScanAssets() {
+    const search = scanAssetSearch.value.trim().toLowerCase();
+    return state.assets.filter((asset) => {
+        if (!search) {
+            return true;
+        }
+        const haystack = [
+            asset.name,
+            asset.target,
+            asset.location || '',
+            ...(asset.tags || []),
+        ].join(' ').toLowerCase();
+        return haystack.includes(search);
+    });
+}
+
+function renderScanWorkbench() {
+    const assets = filteredScanAssets();
+    const activeAssets = state.assets.filter((asset) => asset.status !== 'Retired');
+    const selectedAssets = state.assets.filter((asset) => state.selectedScanAssetIds.has(asset.id));
+
+    scanOverview.innerHTML = `
+        <div class="kpi-strip">
+            <article class="kpi-mini">
+                <span>可掃描設備</span>
+                <strong>${activeAssets.length}</strong>
+            </article>
+            <article class="kpi-mini">
+                <span>目前勾選</span>
+                <strong>${selectedAssets.length}</strong>
+            </article>
+            <article class="kpi-mini">
+                <span>退役設備</span>
+                <strong>${state.assets.filter((asset) => asset.status === 'Retired').length}</strong>
+            </article>
+            <article class="kpi-mini">
+                <span>預設模式</span>
+                <strong>${profileLabel(scanBulkProfile.value || 'standard')}</strong>
+            </article>
+        </div>
+        <div class="progress-note">掃描分頁只負責挑設備與批次觸發。真正的掃描紀錄與歷史明細都集中到報告分頁查看。</div>
+    `;
+
+    if (!assets.length) {
+        scanAssetList.innerHTML = '<div class="empty-state">目前沒有符合條件的設備。</div>';
+        return;
+    }
+
+    scanAssetList.innerHTML = assets.map((asset) => {
+        const disabled = asset.status === 'Retired';
+        const checked = state.selectedScanAssetIds.has(asset.id);
+        return `
+            <article class="selection-card ${checked ? 'active' : ''} ${disabled ? 'disabled' : ''}">
+                <div class="selection-head">
+                    <label class="selection-check">
+                        <input type="checkbox" class="scan-asset-checkbox" data-asset-id="${asset.id}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+                        <span>${asset.name}</span>
+                    </label>
+                    ${statusChip(asset.last_scan_status)}
+                </div>
+                <p>${asset.target}</p>
+                <div class="pill-row">
+                    <span class="pill">${deviceTypeLabels[asset.device_type] || asset.device_type}</span>
+                    <span class="pill">${assetStatusLabels[asset.status] || asset.status}</span>
+                    <span class="pill">${profileLabel(asset.default_scan_profile)}</span>
+                    <span class="pill">${asset.template_label || templateLabel(asset.template_key)}</span>
+                    ${asset.default_credential_name ? `<span class="pill">${asset.default_credential_name}</span>` : '<span class="pill">使用匿名掃描</span>'}
+                </div>
+                <div class="pill-row">
+                    <span class="pill">未關閉 ${asset.open_findings}</span>
+                    <span class="pill">高風險 ${asset.high_risk_findings}</span>
+                    <span class="pill">最後掃描 ${formatDate(asset.last_scan_at)}</span>
+                </div>
+                ${disabled ? '<p class="progress-note">這台設備已退役，不能再加入新的掃描批次。</p>' : ''}
+            </article>
+        `;
+    }).join('');
+
+    document.querySelectorAll('.scan-asset-checkbox').forEach((checkbox) => {
+        checkbox.addEventListener('change', () => {
+            const assetId = Number(checkbox.dataset.assetId);
+            if (checkbox.checked) {
+                state.selectedScanAssetIds.add(assetId);
+            } else {
+                state.selectedScanAssetIds.delete(assetId);
+            }
+            renderScanWorkbench();
+        });
+    });
+}
+
+async function runSelectedScans() {
+    if (!state.currentUser) {
+        showWarning('請先登入後再執行掃描。');
+        return;
+    }
+    const selectedAssets = state.assets.filter((asset) => state.selectedScanAssetIds.has(asset.id) && asset.status !== 'Retired');
+    if (!selectedAssets.length) {
+        showWarning('請至少勾選一台可掃描設備。');
+        return;
+    }
+
+    const profile = scanBulkProfile.value || 'standard';
+    const results = await Promise.allSettled(selectedAssets.map((asset) => apiRequest(`/assets/${asset.id}/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            scan_profile: profile,
+            device_template: asset.template_key,
+            credential_id: null,
+        }),
+    })));
+
+    const successCount = results.filter((result) => result.status === 'fulfilled').length;
+    const failureCount = results.length - successCount;
+
+    if (successCount > 0) {
+        showSuccess(`已建立 ${successCount} 筆掃描任務。`);
+    }
+    if (failureCount > 0) {
+        const firstFailure = results.find((result) => result.status === 'rejected');
+        showError(`有 ${failureCount} 台設備建立掃描失敗。${firstFailure?.reason?.message ? ` 第一筆錯誤：${firstFailure.reason.message}` : ''}`);
+    }
+
+    await Promise.all([loadAssets(), loadScans(), loadReports(), loadCredentials()]);
 }
 
 function filteredScans() {
@@ -963,24 +1102,43 @@ function renderScans() {
         .slice(0, 4);
     const profileMax = profileEntries.length ? profileEntries[0][1] : 1;
 
-    scanOverview.innerHTML = `
+    if (!scans.length) {
+        scanList.innerHTML = `
+            <div class="kpi-strip">
+                <article class="kpi-mini"><span>待處理</span><strong>${summary.byStatus.Pending || 0}</strong></article>
+                <article class="kpi-mini"><span>執行中</span><strong>${summary.byStatus.Running || 0}</strong></article>
+                <article class="kpi-mini"><span>已完成</span><strong>${summary.byStatus.Completed || 0}</strong></article>
+                <article class="kpi-mini"><span>失敗</span><strong>${summary.byStatus.Failed || 0}</strong></article>
+            </div>
+            <div class="insight-grid">
+                <article class="scan-card">
+                    <h3>任務狀態分布</h3>
+                    <div class="bar-list">
+                        ${renderBarRow('Pending', summary.byStatus.Pending || 0, state.scans.length || 1, 'muted')}
+                        ${renderBarRow('Running', summary.byStatus.Running || 0, state.scans.length || 1, 'warning')}
+                        ${renderBarRow('Completed', summary.byStatus.Completed || 0, state.scans.length || 1, 'info')}
+                        ${renderBarRow('Failed', summary.byStatus.Failed || 0, state.scans.length || 1, 'danger')}
+                    </div>
+                </article>
+                <article class="scan-card">
+                    <h3>常用掃描模式</h3>
+                    <div class="bar-list">
+                        ${profileEntries.length
+                            ? profileEntries.map(([profile, count]) => renderBarRow(profileLabel(profile), count, profileMax, 'info')).join('')
+                            : '<div class="empty-state">目前尚無可分析的掃描模式資料。</div>'}
+                    </div>
+                </article>
+            </div>
+            <div class="empty-state">目前沒有符合條件的掃描任務。</div>
+        `;
+        return;
+    }
+    scanList.innerHTML = `
         <div class="kpi-strip">
-            <article class="kpi-mini">
-                <span>待處理</span>
-                <strong>${summary.byStatus.Pending || 0}</strong>
-            </article>
-            <article class="kpi-mini">
-                <span>執行中</span>
-                <strong>${summary.byStatus.Running || 0}</strong>
-            </article>
-            <article class="kpi-mini">
-                <span>已完成</span>
-                <strong>${summary.byStatus.Completed || 0}</strong>
-            </article>
-            <article class="kpi-mini">
-                <span>失敗</span>
-                <strong>${summary.byStatus.Failed || 0}</strong>
-            </article>
+            <article class="kpi-mini"><span>待處理</span><strong>${summary.byStatus.Pending || 0}</strong></article>
+            <article class="kpi-mini"><span>執行中</span><strong>${summary.byStatus.Running || 0}</strong></article>
+            <article class="kpi-mini"><span>已完成</span><strong>${summary.byStatus.Completed || 0}</strong></article>
+            <article class="kpi-mini"><span>失敗</span><strong>${summary.byStatus.Failed || 0}</strong></article>
         </div>
         <div class="insight-grid">
             <article class="scan-card">
@@ -1001,13 +1159,8 @@ function renderScans() {
                 </div>
             </article>
         </div>
+        ${scans.map(scanCard).join('')}
     `;
-
-    if (!scans.length) {
-        scanList.innerHTML = '<div class="empty-state">目前沒有符合條件的掃描任務。</div>';
-        return;
-    }
-    scanList.innerHTML = scans.map(scanCard).join('');
 }
 
 function renderReports() {
@@ -1659,6 +1812,7 @@ async function loadAssets() {
 
     state.assets = await apiRequest('/assets');
     renderAssets();
+    renderScanWorkbench();
 
     if (state.selectedAssetId) {
         const stillExists = state.assets.some((asset) => asset.id === state.selectedAssetId);
@@ -1813,6 +1967,23 @@ assetTypeFilter.addEventListener('change', renderAssets);
 assetStatusFilter.addEventListener('change', renderAssets);
 scanSearch.addEventListener('input', renderScans);
 scanStatusFilter.addEventListener('change', renderScans);
+scanAssetSearch.addEventListener('input', renderScanWorkbench);
+scanBulkProfile.addEventListener('change', renderScanWorkbench);
+scanSelectAllButton.addEventListener('click', () => {
+    state.assets.forEach((asset) => {
+        if (asset.status !== 'Retired') {
+            state.selectedScanAssetIds.add(asset.id);
+        }
+    });
+    renderScanWorkbench();
+});
+scanClearSelectedButton.addEventListener('click', () => {
+    state.selectedScanAssetIds = new Set();
+    renderScanWorkbench();
+});
+scanRunSelectedButton.addEventListener('click', () => {
+    runSelectedScans().catch((error) => showError(error.message));
+});
 navTabs.forEach((tab) => {
     tab.addEventListener('click', () => setActiveTab(tab.dataset.tab));
 });

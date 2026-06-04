@@ -589,7 +589,8 @@ select[multiple] {
 .scan-card,
 .scan-summary-block,
 .credential-card,
-.report-card {
+.report-card,
+.selection-card {
     padding: 16px;
     border-radius: var(--radius-lg);
     border: 1px solid rgba(143, 162, 187, 0.14);
@@ -610,6 +611,7 @@ select[multiple] {
 .panel-highlight .scan-summary-block,
 .panel-highlight .credential-card,
 .panel-highlight .report-card,
+.panel-highlight .selection-card,
 .panel-highlight .detail-grid article {
     background: rgba(255, 255, 255, 0.98);
     border-color: rgba(83, 101, 124, 0.12);
@@ -624,7 +626,8 @@ select[multiple] {
     cursor: pointer;
 }
 
-.asset-card.active {
+.asset-card.active,
+.selection-card.active {
     border-color: rgba(47, 194, 160, 0.34);
     box-shadow: 0 14px 30px rgba(14, 28, 44, 0.14);
 }
@@ -759,6 +762,37 @@ select[multiple] {
 .report-card.compact strong,
 .kpi-mini strong {
     font-size: 1.3rem;
+}
+
+.selection-card {
+    display: grid;
+    gap: 10px;
+}
+
+.selection-card.disabled {
+    opacity: 0.62;
+    border-style: dashed;
+}
+
+.selection-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.selection-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.selection-check input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--accent-strong);
 }
 
 .kpi-mini {

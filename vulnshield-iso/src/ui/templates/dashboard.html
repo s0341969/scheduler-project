@@ -278,22 +278,21 @@
                     <div class="panel-header">
                         <div>
                             <p class="panel-kicker">Scan Operations</p>
-                            <h2>掃描任務中心</h2>
+                            <h2>設備掃描工作台</h2>
                         </div>
-                        <span class="status-chip accent">全域檢視</span>
+                        <span class="status-chip accent">Multi Select</span>
                     </div>
                     <div class="filter-row">
-                        <input id="scan-search" type="search" placeholder="搜尋設備名稱、IP、任務編號">
-                        <select id="scan-status-filter">
-                            <option value="">全部狀態</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Running">Running</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Failed">Failed</option>
+                        <input id="scan-asset-search" type="search" placeholder="搜尋要掃描的設備名稱、IP、標籤">
+                        <select id="scan-bulk-profile">
+                            <option value="">請先登入後載入掃描模式</option>
                         </select>
+                        <button id="scan-select-all" class="ghost-button" type="button">全選可掃描設備</button>
+                        <button id="scan-clear-selected" class="ghost-button" type="button">清除勾選</button>
+                        <button id="scan-run-selected" class="primary-button" type="button">執行勾選設備掃描</button>
                     </div>
-                    <div id="scan-overview" class="detail-sections empty-state">請先登入，再載入掃描營運摘要。</div>
-                    <div id="scan-list" class="detail-sections empty-state">請先登入，再載入掃描任務。</div>
+                    <div id="scan-overview" class="detail-sections empty-state">請先登入，再載入掃描工作台。</div>
+                    <div id="scan-asset-list" class="detail-sections empty-state">請先登入，再載入設備清單。</div>
                 </section>
             </section>
 
@@ -341,6 +340,27 @@
                         <span class="status-chip accent">Daily Trend</span>
                     </div>
                     <div id="report-trends" class="detail-sections empty-state">尚未有趨勢資料。</div>
+                </section>
+
+                <section class="panel panel-highlight">
+                    <div class="panel-header">
+                        <div>
+                            <p class="panel-kicker">History</p>
+                            <h2>所有掃描紀錄</h2>
+                        </div>
+                        <span class="status-chip accent">Scan Archive</span>
+                    </div>
+                    <div class="filter-row">
+                        <input id="scan-search" type="search" placeholder="搜尋設備名稱、IP、任務編號">
+                        <select id="scan-status-filter">
+                            <option value="">全部狀態</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Running">Running</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                    </div>
+                    <div id="scan-list" class="detail-sections empty-state">請先登入，再載入掃描紀錄。</div>
                 </section>
 
                 <div class="workspace reports-layout">
