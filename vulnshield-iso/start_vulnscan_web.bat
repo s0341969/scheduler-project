@@ -1,80 +1,90 @@
 @echo off
-setlocal EnableExtensions EnableDelayedExpansion
-chcp 65001 >nul
+setlocal EnableExtensions
 
 set "PROJECT_ROOT=%~dp0"
 set "PROJECT_FILE=%PROJECT_ROOT%VulnScan.Web\VulnScan.Web.csproj"
+set "BUILD_DLL=%PROJECT_ROOT%VulnScan.Web\bin\Debug\net10.0\VulnScan.Web.dll"
 set "APP_URL=http://localhost:5186/Auth/Login"
 set "APP_TITLE=VulnScan.Web"
 
 echo ===============================================
-echo VulnScan.Web 一鍵啟動
+echo VulnScan.Web One-Click Startup
 echo ===============================================
 echo.
 
 where dotnet >nul 2>nul
 if errorlevel 1 (
-    echo [錯誤] 找不到 dotnet 指令，請先安裝 .NET SDK 10。
+    echo [ERROR] dotnet command not found. Install .NET SDK 10 first.
     pause
     exit /b 1
 )
 
 if not exist "%PROJECT_FILE%" (
-    echo [錯誤] 找不到專案檔：
+    echo [ERROR] Project file not found:
     echo %PROJECT_FILE%
     pause
     exit /b 1
 )
 
-echo [1/4] 建置 VulnScan.Web...
-dotnet build "%PROJECT_ROOT%" >nul
+echo [1/4] Building VulnScan.Web...
+dotnet build "%PROJECT_FILE%" --no-restore
 if errorlevel 1 (
-    echo.
-    echo [錯誤] dotnet build 失敗，請先修正建置問題。
-    pause
-    exit /b 1
+    echo Fast build failed. Trying full restore + build...
+    dotnet build "%PROJECT_FILE%"
+    if errorlevel 1 (
+        if exist "%BUILD_DLL%" (
+            echo Build failed, but existing build output was found:
+            echo %BUILD_DLL%
+            echo Starting with the previous build output...
+        ) else (
+            echo.
+            echo [ERROR] dotnet build failed and no previous build output was found.
+            pause
+            exit /b 1
+        )
+    )
 )
 
-echo [2/4] 啟動 VulnScan.Web...
-start "%APP_TITLE%" cmd /k "cd /d ""%PROJECT_ROOT%"" && dotnet run --project "".\VulnScan.Web\VulnScan.Web.csproj"" --launch-profile http --no-build"
+echo [2/4] Starting VulnScan.Web...
+start "%APP_TITLE%" cmd /k "cd /d ""%PROJECT_ROOT%"" && dotnet run --project "".\VulnScan.Web\VulnScan.Web.csproj"" --launch-profile http --no-build --no-restore"
 
-echo [3/4] 等待網站就緒...
+echo [3/4] Waiting for application startup...
 set "READY=0"
 for /L %%I in (1,1,24) do (
-    powershell.exe -NoProfile -Command ^
-        "try { $r = Invoke-WebRequest -Uri '%APP_URL%' -MaximumRedirection 0 -ErrorAction Stop; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 400) { exit 0 } else { exit 1 } } catch { if ($_.Exception.Response -and ($_.Exception.Response.StatusCode.value__ -ge 200) -and ($_.Exception.Response.StatusCode.value__ -lt 400)) { exit 0 } else { exit 1 } }"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "try { $response = Invoke-WebRequest -Uri '%APP_URL%' -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop; exit 0 } catch { exit 1 }"
     if not errorlevel 1 (
         set "READY=1"
-        goto :ready
+        goto ready
     )
 
-    echo    等待中... %%I/24
-    timeout /t 5 /nobreak >nul
+    echo Waiting... %%I/24
+    ping 127.0.0.1 -n 6 >nul
 )
 
 :ready
 if "%READY%"=="1" (
-    echo [4/4] 開啟登入頁...
+    echo [4/4] Opening login page...
     start "" "%APP_URL%"
     echo.
-    echo 啟動完成。
-    echo 登入頁：%APP_URL%
-    echo Development 預設帳號可參考：
+    echo Startup completed.
+    echo Login URL: %APP_URL%
+    echo Development sample accounts:
     echo - admin / Admin123!Demo
     echo - secmgr / Security123!Demo
     echo - scanner / Scanner123!Demo
     echo - viewer / Viewer123!Demo
     echo.
-    echo 關閉系統時，請直接關閉新開啟的 VulnScan.Web 視窗。
+    echo To stop the app, close the new VulnScan.Web console window.
     pause
     exit /b 0
 )
 
 echo.
-echo [錯誤] 已啟動應用程式，但 120 秒內尚未確認網站可用。
-echo 請檢查新開啟的 VulnScan.Web 視窗輸出，常見原因為：
-echo - MSSQL 連線字串不正確
-echo - 5186 Port 已被占用
-echo - appsettings 設定有誤
+echo [ERROR] The app process started, but the login page did not respond within 120 seconds.
+echo Check the VulnScan.Web console window for details.
+echo Common causes:
+echo - invalid MSSQL connection string
+echo - port 5186 already in use
+echo - invalid appsettings configuration
 pause
 exit /b 1

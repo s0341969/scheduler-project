@@ -64,10 +64,13 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 ```
 
 此 BAT 會自動執行：
-- `dotnet build`
+- 先嘗試 `dotnet build --no-restore`
+- 若缺套件才回退到完整 `dotnet build`
+- 若完整 build 失敗但本機已有先前建好的 DLL，會直接沿用既有輸出啟動
 - 新開視窗執行 `dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj --launch-profile http --no-build`
 - 等待 `http://localhost:5186/Auth/Login` 可用
 - 自動開啟登入頁
+- BAT 內容刻意維持純 ASCII，避免 Windows `cmd.exe` 因中文編碼或錯誤換行格式導致啟動失敗
 
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：

@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-05
+- 強化 `start_vulnscan_web.bat`：若 NuGet restore / build 失敗但本機已有既有 DLL，會直接沿用上一版輸出啟動，提升離線或受限環境可用性
+- 強化 `start_vulnscan_web.bat`：先走 `dotnet build --no-restore` 快路徑，只有缺套件時才回退完整 restore/build，降低日常雙擊啟動對 NuGet 的依賴
+- 修正 `start_vulnscan_web.bat` 的 Windows `cmd.exe` 相容性：改為純 ASCII 批次內容，避免中文編碼與換行格式造成命令被拆壞
 - 新增 `start_vulnscan_web.bat`，提供 `VulnScan.Web` 專用的一鍵啟動流程：建置、執行、健康等待與自動開啟登入頁
 - 記錄 `VulnScan.Web` 下一輪優先開發項目：`UsersController / 使用者管理頁`、`OpenVAS / Greenbone 匯入`、`PDF 報表`、`EF Core Migration`
 
