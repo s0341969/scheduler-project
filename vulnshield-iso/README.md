@@ -36,6 +36,15 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
   - `Reports`
   - `AuditLogs`
 - 啟動時會自動 `EnsureCreated()`，並建立預設使用者與內網白名單
+- 已補齊 `Assets` / `ScanAllowedRanges` / `ScanJobs` 的新增、列表、編輯、刪除完整 CRUD
+- 已補齊 `VulnerabilityActions` 改善追蹤與弱點詳情頁，可更新：
+  - 負責人
+  - 狀態
+  - 改善期限
+  - 改善說明
+  - 附件
+- 已補齊 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML` 匯入，匯入後會自動建立對應 `ScanJob`、`ScanRun` 與 `Vulnerabilities`
+- 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 
 ### `VulnScan.Web` 啟動方式
 1. 先確認 MSSQL 可連線，並依需求調整：
@@ -48,20 +57,22 @@ dotnet build
 dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj
 ```
 
-### `VulnScan.Web` 本地登入假設
-由於 spec 的 `Users` 資料表沒有密碼欄位，這版採用最小侵入的本地登入策略：
-- 帳號與角色由 `Users` 資料表管理
-- 密碼由 `LocalAuth:SharedPassword` 控制
-- Development 預設密碼在 [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json) 為 `Admin123!`
-- 啟動時會自動建立：
-  - `admin`
-  - `secmgr`
-  - `scanner`
-  - `viewer`
+### `VulnScan.Web` 本地登入機制
+這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
+- 帳號、角色與密碼雜湊保存在 `Users`
+- 啟動時會依 `LocalAuth:BootstrapUsers` 建立初始使用者
+- 若資料庫中的使用者尚未有密碼雜湊，系統會在啟動時自動補齊
+- 使用者登入後可於介面直接變更自己的密碼
+
+Development 預設 bootstrap 帳號：
+- `admin / Admin123!Demo`
+- `secmgr / Security123!Demo`
+- `scanner / Scanner123!Demo`
+- `viewer / Viewer123!Demo`
 
 正式環境應改為：
 - AD / LDAP / SSO
-- 或在後續版本為 `Users` 補齊獨立密碼/身分驗證機制
+- 或整合正式 Identity Provider / Secret Store 管理 bootstrap credentials
 
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`

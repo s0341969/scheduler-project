@@ -1,6 +1,7 @@
 using Hangfire;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VulnScan.Web.Data;
 using VulnScan.Web.Models;
@@ -26,6 +27,7 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddHangfire(configuration =>
     configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
@@ -51,6 +53,7 @@ builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();
 builder.Services.AddScoped<IScanJobService, ScanJobService>();
 builder.Services.AddScoped<IVulnerabilityService, VulnerabilityService>();
+builder.Services.AddScoped<IScanImportService, ScanImportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 
 var app = builder.Build();
@@ -58,7 +61,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await DbInitializer.InitializeAsync(dbContext);
+    var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
+    var localAuthOptions = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LocalAuthOptions>>().Value;
+    await DbInitializer.InitializeAsync(dbContext, passwordHasher, localAuthOptions);
 }
 
 if (!app.Environment.IsDevelopment())

@@ -42,7 +42,10 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
             ScanType = form.ScanType.Trim(),
             ScanTool = form.ScanTool.Trim(),
             ScanProfile = string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim(),
-            IsEnabled = true,
+            ScheduleType = string.IsNullOrWhiteSpace(form.ScheduleType) ? null : form.ScheduleType.Trim(),
+            ScheduleTime = form.ScheduleTime,
+            CronExpression = string.IsNullOrWhiteSpace(form.CronExpression) ? null : form.CronExpression.Trim(),
+            IsEnabled = form.IsEnabled,
             CreatedBy = User.Identity?.Name,
             CreatedAt = DateTime.UtcNow,
         };
@@ -59,6 +62,83 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
     {
         await scanJobService.CreateRunAsync(id, User.Identity?.Name ?? "system", cancellationToken);
         TempData["StatusMessage"] = $"已建立掃描任務 #{id} 的執行紀錄。";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
+    {
+        var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
+        if (job is null)
+        {
+            return NotFound();
+        }
+
+        return View(new ScanJobViewModel
+        {
+            JobId = job.JobId,
+            JobName = job.JobName,
+            TargetRange = job.TargetRange,
+            ScanType = job.ScanType,
+            ScanTool = job.ScanTool,
+            ScanProfile = job.ScanProfile,
+            ScheduleType = job.ScheduleType,
+            ScheduleTime = job.ScheduleTime,
+            CronExpression = job.CronExpression,
+            IsEnabled = job.IsEnabled,
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Edit(int id, ScanJobViewModel form, CancellationToken cancellationToken)
+    {
+        if (id != form.JobId)
+        {
+            return BadRequest();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return View(form);
+        }
+
+        var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
+        if (job is null)
+        {
+            return NotFound();
+        }
+
+        job.JobName = form.JobName.Trim();
+        job.TargetRange = form.TargetRange.Trim();
+        job.ScanType = form.ScanType.Trim();
+        job.ScanTool = form.ScanTool.Trim();
+        job.ScanProfile = string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim();
+        job.ScheduleType = string.IsNullOrWhiteSpace(form.ScheduleType) ? null : form.ScheduleType.Trim();
+        job.ScheduleTime = form.ScheduleTime;
+        job.CronExpression = string.IsNullOrWhiteSpace(form.CronExpression) ? null : form.CronExpression.Trim();
+        job.IsEnabled = form.IsEnabled;
+        job.UpdatedAt = DateTime.UtcNow;
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        TempData["StatusMessage"] = $"已更新掃描任務：{job.JobName}";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
+    {
+        var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
+        if (job is null)
+        {
+            TempData["StatusMessage"] = "掃描任務已不存在。";
+            return RedirectToAction(nameof(Index));
+        }
+
+        dbContext.ScanJobs.Remove(job);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        TempData["StatusMessage"] = $"已刪除掃描任務：{job.JobName}";
         return RedirectToAction(nameof(Index));
     }
 }

@@ -25,6 +25,7 @@
                 <a asp-controller="ScanRuns" asp-action="Index">掃描紀錄</a>
                 <a asp-controller="AssetPorts" asp-action="Index">Port / Service</a>
                 <a asp-controller="Vulnerabilities" asp-action="Index">弱點清單</a>
+                <a asp-controller="VulnerabilityActions" asp-action="Index">改善追蹤</a>
                 <a asp-controller="Reports" asp-action="Index">報表匯出</a>
                 <a asp-controller="AuditLogs" asp-action="Index">稽核紀錄</a>
             </nav>
@@ -35,6 +36,7 @@
                         <div class="user-name">@User.Identity.Name</div>
                         <div class="user-role">@string.Join(", ", User.Claims.Where(item => item.Type == System.Security.Claims.ClaimTypes.Role).Select(item => item.Value))</div>
                     </div>
+                    <a asp-controller="Auth" asp-action="ChangePassword" class="btn btn-light w-100">變更密碼</a>
                     <form asp-controller="Auth" asp-action="Logout" method="post">
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn btn-outline-light w-100">登出</button>

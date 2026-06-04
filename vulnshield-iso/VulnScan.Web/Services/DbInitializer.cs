@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VulnScan.Web.Data;
 using VulnScan.Web.Models;
@@ -6,49 +7,52 @@ namespace VulnScan.Web.Services;
 
 public static class DbInitializer
 {
-    public static async Task InitializeAsync(ApplicationDbContext dbContext, CancellationToken cancellationToken = default)
+    public static async Task InitializeAsync(
+        ApplicationDbContext dbContext,
+        IPasswordHasher<User> passwordHasher,
+        LocalAuthOptions localAuthOptions,
+        CancellationToken cancellationToken = default)
     {
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
-        if (!await dbContext.Users.AnyAsync(cancellationToken))
+        if (localAuthOptions.BootstrapUsers.Count > 0)
         {
-            dbContext.Users.AddRange(
-                new User
+            foreach (var bootstrapUser in localAuthOptions.BootstrapUsers)
+            {
+                if (string.IsNullOrWhiteSpace(bootstrapUser.Account) ||
+                    string.IsNullOrWhiteSpace(bootstrapUser.UserName) ||
+                    string.IsNullOrWhiteSpace(bootstrapUser.RoleName) ||
+                    string.IsNullOrWhiteSpace(bootstrapUser.Password))
                 {
-                    Account = "admin",
-                    UserName = "系統管理員",
-                    Email = "admin@local",
-                    RoleName = "Admin",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                },
-                new User
+                    continue;
+                }
+
+                var existingUser = await dbContext.Users.FirstOrDefaultAsync(
+                    item => item.Account == bootstrapUser.Account,
+                    cancellationToken);
+
+                if (existingUser is null)
                 {
-                    Account = "secmgr",
-                    UserName = "資安主管",
-                    Email = "security@local",
-                    RoleName = "SecurityManager",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                },
-                new User
+                    var user = new User
+                    {
+                        Account = bootstrapUser.Account.Trim(),
+                        UserName = bootstrapUser.UserName.Trim(),
+                        Email = string.IsNullOrWhiteSpace(bootstrapUser.Email) ? null : bootstrapUser.Email.Trim(),
+                        RoleName = bootstrapUser.RoleName.Trim(),
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow,
+                        PasswordChangedAt = DateTime.UtcNow,
+                    };
+                    user.PasswordHash = passwordHasher.HashPassword(user, bootstrapUser.Password);
+                    dbContext.Users.Add(user);
+                }
+                else if (string.IsNullOrWhiteSpace(existingUser.PasswordHash))
                 {
-                    Account = "scanner",
-                    UserName = "弱掃分析員",
-                    Email = "scanner@local",
-                    RoleName = "Scanner",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                },
-                new User
-                {
-                    Account = "viewer",
-                    UserName = "稽核檢視者",
-                    Email = "viewer@local",
-                    RoleName = "Viewer",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                });
+                    existingUser.PasswordHash = passwordHasher.HashPassword(existingUser, bootstrapUser.Password);
+                    existingUser.PasswordChangedAt = DateTime.UtcNow;
+                    existingUser.UpdatedAt = DateTime.UtcNow;
+                }
+            }
         }
 
         if (!await dbContext.ScanAllowedRanges.AnyAsync(cancellationToken))

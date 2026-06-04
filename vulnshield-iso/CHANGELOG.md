@@ -1,6 +1,14 @@
 # Changelog
 
 ## 2026-06-04
+- 強化 `VulnScan.Web` 認證：`Users` 新增 `PasswordHash` / `PasswordChangedAt`，登入改為 ASP.NET Core `PasswordHasher<User>` 驗證，移除 shared password 模式
+- 強化 `VulnScan.Web` 啟動初始化：`DbInitializer` 會依 `LocalAuth:BootstrapUsers` 建立初始使用者與密碼雜湊
+- 新增 `Auth/ChangePassword`，支援登入後自行變更密碼
+- 補齊 `Assets`、`ScanAllowedRanges`、`ScanJobs` 的 Edit/Delete 與 Razor 頁面，完成第一批完整 CRUD
+- 新增 `VulnerabilityActionsController` 與改善追蹤頁，支援弱點改善紀錄新增、編輯、刪除與附件路徑保存
+- 強化 `VulnerabilitiesController`：新增弱點詳情頁，可更新負責人、狀態、到期日與改善備註
+- 新增 `ScanImportService`，支援 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML` 匯入
+- 匯入流程會自動建立 `ScanJob` / `ScanRun`，並將結果寫入 `Vulnerabilities`，重複弱點會依 `Asset + VulnName + PluginId + Port` 做更新
 - 依 `VulnScan_Web_SPEC.md` 新增平行專案 `VulnScan.Web`，採 `ASP.NET Core MVC + MSSQL + Hangfire + Nmap` 重新實作弱點掃描管理平台 V1
 - 新增 `VulnScan.Web.slnx`、`VulnScan.Web.csproj` 與完整 MVC 專案結構，避免再沿用舊 Python Dashboard 勉強承接新規格
 - 新增 spec 對應資料模型：`Users`、`Assets`、`ScanAllowedRanges`、`ScanJobs`、`ScanRuns`、`AssetPorts`、`Vulnerabilities`、`VulnerabilityActions`、`AuditLogs`、`ReportExports`

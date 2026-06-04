@@ -184,6 +184,10 @@ a {
   padding: 22px;
 }
 
+.panel-card-narrow {
+  max-width: 720px;
+}
+
 .panel-card-header {
   display: flex;
   justify-content: space-between;
@@ -276,6 +280,60 @@ a {
   word-break: break-all;
 }
 
+.action-cell,
+.action-row,
+.action-stack,
+.inline-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.action-stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.import-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.import-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background: #f9fbfe;
+}
+
+.subheading {
+  margin: 10px 0 6px;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: 12px 16px;
+  margin: 0;
+}
+
+.detail-grid dt {
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.detail-grid dd {
+  margin: 0;
+}
+
+.preserve-line {
+  white-space: pre-wrap;
+}
+
 .empty-state {
   background: var(--panel);
   border-radius: 22px;
@@ -331,7 +389,9 @@ a {
   .panel-grid,
   .split-grid,
   .form-grid,
-  .hero-grid {
+  .hero-grid,
+  .import-grid,
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 

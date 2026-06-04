@@ -1,0 +1,114 @@
+@model VulnScan.Web.ViewModels.VulnerabilityDetailsViewModel
+@{
+    ViewData["Title"] = "弱點詳情";
+}
+
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>弱點資訊</h3>
+            <span class="status-pill">@Model.Vulnerability.Status</span>
+        </div>
+        <dl class="detail-grid">
+            <dt>資產</dt>
+            <dd>@(Model.Vulnerability.Asset?.AssetName ?? "-")</dd>
+            <dt>IP</dt>
+            <dd>@Model.Vulnerability.IPAddress</dd>
+            <dt>弱點名稱</dt>
+            <dd>@Model.Vulnerability.VulnName</dd>
+            <dt>Severity</dt>
+            <dd>@(Model.Vulnerability.Severity ?? "-")</dd>
+            <dt>CVSS</dt>
+            <dd>@(Model.Vulnerability.CVSS?.ToString("0.0") ?? "-")</dd>
+            <dt>Port / Protocol</dt>
+            <dd>@(Model.Vulnerability.PortNumber?.ToString() ?? "-") / @(Model.Vulnerability.Protocol ?? "-")</dd>
+            <dt>Plugin ID</dt>
+            <dd>@(Model.Vulnerability.PluginId ?? "-")</dd>
+            <dt>CVE</dt>
+            <dd>@(Model.Vulnerability.CVE ?? "-")</dd>
+            <dt>描述</dt>
+            <dd>@(Model.Vulnerability.Description ?? "-")</dd>
+            <dt>改善建議</dt>
+            <dd>@(Model.Vulnerability.Solution ?? "-")</dd>
+            <dt>證據</dt>
+            <dd class="preserve-line">@(!string.IsNullOrWhiteSpace(Model.Vulnerability.Evidence) ? Model.Vulnerability.Evidence : "-")</dd>
+        </dl>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>改善追蹤更新</h3>
+        </div>
+        <form asp-action="UpdateWorkflow" method="post" enctype="multipart/form-data" class="form-grid">
+            @Html.AntiForgeryToken()
+            <input asp-for="WorkflowForm.VulnId" type="hidden" />
+            <div>
+                <label asp-for="WorkflowForm.OwnerUser" class="form-label">負責人</label>
+                <input asp-for="WorkflowForm.OwnerUser" class="form-control" />
+            </div>
+            <div>
+                <label asp-for="WorkflowForm.Status" class="form-label">狀態</label>
+                <select asp-for="WorkflowForm.Status" class="form-select">
+                    <option>未處理</option>
+                    <option>已指派</option>
+                    <option>改善中</option>
+                    <option>待複掃</option>
+                    <option>已關閉</option>
+                    <option>風險接受</option>
+                </select>
+            </div>
+            <div>
+                <label asp-for="WorkflowForm.DueDate" class="form-label">改善期限</label>
+                <input asp-for="WorkflowForm.DueDate" type="date" class="form-control" />
+            </div>
+            <div>
+                <label class="form-label" for="attachmentFile">附件</label>
+                <input id="attachmentFile" name="attachmentFile" type="file" class="form-control" />
+            </div>
+            <div class="full-width">
+                <label asp-for="WorkflowForm.Note" class="form-label">改善說明</label>
+                <textarea asp-for="WorkflowForm.Note" rows="4" class="form-control"></textarea>
+            </div>
+            <div class="form-actions action-row">
+                <button type="submit" class="btn btn-primary">新增改善紀錄</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">返回弱點清單</a>
+            </div>
+        </form>
+    </article>
+</section>
+
+<article class="panel-card">
+    <div class="panel-card-header">
+        <h3>改善歷程</h3>
+        <a asp-controller="VulnerabilityActions" asp-action="Index">查看全部</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark-table align-middle">
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>執行人</th>
+                    <th>狀態</th>
+                    <th>內容</th>
+                    <th>附件</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.Actions)
+            {
+                <tr>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@(item.ActionUser ?? "-")</td>
+                    <td>@(item.ActionStatus ?? "-")</td>
+                    <td>@(item.ActionNote ?? "-")</td>
+                    <td class="path-cell">@(!string.IsNullOrWhiteSpace(item.AttachmentPath) ? item.AttachmentPath : "-")</td>
+                    <td>
+                        <a asp-controller="VulnerabilityActions" asp-action="Edit" asp-route-id="@item.ActionId" class="btn btn-sm btn-outline-secondary">編輯</a>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</article>

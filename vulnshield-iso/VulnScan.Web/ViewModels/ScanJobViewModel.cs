@@ -24,4 +24,15 @@ public sealed class ScanJobViewModel
 
     [Display(Name = "掃描強度")]
     public string? ScanProfile { get; set; } = "Normal";
+
+    [Display(Name = "排程類型")]
+    public string? ScheduleType { get; set; }
+
+    [Display(Name = "排程時間")]
+    public TimeOnly? ScheduleTime { get; set; }
+
+    [Display(Name = "Cron 表達式")]
+    public string? CronExpression { get; set; }
+
+    public bool IsEnabled { get; set; } = true;
 }

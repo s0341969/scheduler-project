@@ -1,0 +1,40 @@
+@model VulnScan.Web.Models.ScanAllowedRange
+@{
+    ViewData["Title"] = "編輯掃描白名單";
+}
+
+<article class="panel-card panel-card-narrow">
+    <div class="panel-card-header">
+        <h3>編輯掃描白名單</h3>
+    </div>
+    <form asp-action="Edit" asp-route-id="@Model.RangeId" method="post" class="form-grid">
+        @Html.AntiForgeryToken()
+        <input asp-for="RangeId" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger full-width"></div>
+        <div>
+            <label asp-for="RangeName" class="form-label"></label>
+            <input asp-for="RangeName" class="form-control" />
+            <span asp-validation-for="RangeName" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="Cidr" class="form-label"></label>
+            <input asp-for="Cidr" class="form-control" />
+            <span asp-validation-for="Cidr" class="text-danger"></span>
+        </div>
+        <div class="full-width">
+            <label asp-for="Description" class="form-label"></label>
+            <textarea asp-for="Description" rows="3" class="form-control"></textarea>
+        </div>
+        <div class="form-check align-self-end">
+            <input asp-for="IsEnabled" class="form-check-input" />
+            <label asp-for="IsEnabled" class="form-check-label">啟用範圍</label>
+        </div>
+        <div class="form-actions action-row">
+            <button type="submit" class="btn btn-primary">儲存變更</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">返回列表</a>
+        </div>
+    </form>
+</article>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

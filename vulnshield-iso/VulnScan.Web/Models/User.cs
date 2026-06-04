@@ -19,10 +19,16 @@ public sealed class User
     public string? Email { get; set; }
 
     [Required]
+    [StringLength(500)]
+    public string PasswordHash { get; set; } = string.Empty;
+
+    [Required]
     [StringLength(50)]
     public string RoleName { get; set; } = string.Empty;
 
     public bool IsActive { get; set; } = true;
+
+    public DateTime? PasswordChangedAt { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

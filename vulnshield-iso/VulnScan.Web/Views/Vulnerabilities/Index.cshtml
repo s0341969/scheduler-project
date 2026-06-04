@@ -1,42 +1,75 @@
-@model IReadOnlyList<VulnScan.Web.Models.Vulnerability>
+@model VulnScan.Web.ViewModels.VulnerabilitiesIndexViewModel
 @{
     ViewData["Title"] = "弱點清單";
 }
 
-<article class="panel-card">
-    <div class="panel-card-header">
-        <h3>弱點總表</h3>
-        <span class="counter-pill">@Model.Count 筆</span>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-dark-table align-middle">
-            <thead>
-                <tr>
-                    <th>資產</th>
-                    <th>IP</th>
-                    <th>弱點名稱</th>
-                    <th>Severity</th>
-                    <th>CVSS</th>
-                    <th>狀態</th>
-                    <th>負責人</th>
-                    <th>到期日</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var item in Model)
-            {
-                <tr>
-                    <td>@(item.Asset?.AssetName ?? "-")</td>
-                    <td>@item.IPAddress</td>
-                    <td>@item.VulnName</td>
-                    <td>@(item.Severity ?? "-")</td>
-                    <td>@(item.CVSS?.ToString("0.0") ?? "-")</td>
-                    <td><span class="status-pill">@item.Status</span></td>
-                    <td>@(item.OwnerUser ?? "-")</td>
-                    <td>@(item.DueDate?.ToString("yyyy-MM-dd") ?? "-")</td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    </div>
-</article>
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>Nuclei / Nessus 匯入</h3>
+        </div>
+        <div class="import-grid">
+            <form asp-action="ImportNuclei" method="post" enctype="multipart/form-data" class="form-stack import-card">
+                @Html.AntiForgeryToken()
+                <div>
+                    <div class="eyebrow">Nuclei JSON</div>
+                    <h4 class="subheading">匯入 Nuclei JSON / JSONL</h4>
+                    <p class="text-secondary">支援 `template-id`、`info.name`、`info.severity`、`matched-at`、`host` 與 remediation 欄位。</p>
+                </div>
+                <input type="file" name="importFile" class="form-control" accept=".json,.jsonl" />
+                <button type="submit" class="btn btn-primary">匯入 Nuclei</button>
+            </form>
+
+            <form asp-action="ImportNessus" method="post" enctype="multipart/form-data" class="form-stack import-card">
+                @Html.AntiForgeryToken()
+                <div>
+                    <div class="eyebrow">Nessus CSV/XML</div>
+                    <h4 class="subheading">匯入 Nessus 結果</h4>
+                    <p class="text-secondary">支援 CSV 與 XML，會依 Plugin ID / Name / Host / Port 對應到系統弱點資料。</p>
+                </div>
+                <input type="file" name="importFile" class="form-control" accept=".csv,.xml" />
+                <button type="submit" class="btn btn-primary">匯入 Nessus</button>
+            </form>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>弱點總表</h3>
+            <span class="counter-pill">@Model.Items.Count 筆</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>資產</th>
+                        <th>IP</th>
+                        <th>弱點名稱</th>
+                        <th>Severity</th>
+                        <th>CVSS</th>
+                        <th>狀態</th>
+                        <th>負責人</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@(item.Asset?.AssetName ?? "-")</td>
+                        <td>@item.IPAddress</td>
+                        <td>@item.VulnName</td>
+                        <td>@(item.Severity ?? "-")</td>
+                        <td>@(item.CVSS?.ToString("0.0") ?? "-")</td>
+                        <td><span class="status-pill">@item.Status</span></td>
+                        <td>@(item.OwnerUser ?? "-")</td>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.VulnId" class="btn btn-sm btn-outline-secondary">詳情 / 改善</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>

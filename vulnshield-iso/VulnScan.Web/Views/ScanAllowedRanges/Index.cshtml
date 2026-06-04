@@ -48,6 +48,7 @@
                         <th>CIDR / Range</th>
                         <th>狀態</th>
                         <th>說明</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -58,6 +59,13 @@
                         <td>@item.Cidr</td>
                         <td><span class="status-pill">@(item.IsEnabled ? "Enabled" : "Disabled")</span></td>
                         <td>@(item.Description ?? "-")</td>
+                        <td class="action-cell">
+                            <a asp-action="Edit" asp-route-id="@item.RangeId" class="btn btn-sm btn-outline-secondary">編輯</a>
+                            <form asp-action="Delete" asp-route-id="@item.RangeId" method="post" class="inline-form">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('確定刪除此白名單範圍？');">刪除</button>
+                            </form>
+                        </td>
                     </tr>
                 }
                 </tbody>
@@ -65,3 +73,6 @@
         </div>
     </article>
 </section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

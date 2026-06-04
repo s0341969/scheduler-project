@@ -16,7 +16,7 @@
         <section class="login-card">
             <div class="eyebrow">VulnScan Web</div>
             <h1>企業弱點掃描管理平台</h1>
-            <p class="text-secondary">以資料庫中的帳號角色進行登入，密碼使用 `appsettings.json` 的 `LocalAuth:SharedPassword`。</p>
+            <p class="text-secondary">以資料庫中的帳號與個別密碼進行登入。初始帳號密碼由 `appsettings` 的 bootstrap users 產生，登入後可再變更。</p>
 
             <form asp-action="Login" method="post" class="form-stack">
                 @Html.AntiForgeryToken()

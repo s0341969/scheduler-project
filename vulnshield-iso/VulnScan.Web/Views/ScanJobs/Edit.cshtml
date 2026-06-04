@@ -1,0 +1,60 @@
+@model VulnScan.Web.ViewModels.ScanJobViewModel
+@{
+    ViewData["Title"] = "編輯掃描任務";
+}
+
+<article class="panel-card panel-card-narrow">
+    <div class="panel-card-header">
+        <h3>編輯掃描任務</h3>
+    </div>
+    <form asp-action="Edit" asp-route-id="@Model.JobId" method="post" class="form-grid">
+        @Html.AntiForgeryToken()
+        <input asp-for="JobId" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger full-width"></div>
+        <div>
+            <label asp-for="JobName" class="form-label"></label>
+            <input asp-for="JobName" class="form-control" />
+            <span asp-validation-for="JobName" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="TargetRange" class="form-label"></label>
+            <input asp-for="TargetRange" class="form-control" />
+            <span asp-validation-for="TargetRange" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="ScanType" class="form-label"></label>
+            <input asp-for="ScanType" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="ScanTool" class="form-label"></label>
+            <input asp-for="ScanTool" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="ScanProfile" class="form-label"></label>
+            <input asp-for="ScanProfile" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="ScheduleType" class="form-label"></label>
+            <input asp-for="ScheduleType" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="ScheduleTime" class="form-label"></label>
+            <input asp-for="ScheduleTime" class="form-control" type="time" />
+        </div>
+        <div>
+            <label asp-for="CronExpression" class="form-label"></label>
+            <input asp-for="CronExpression" class="form-control" />
+        </div>
+        <div class="form-check align-self-end">
+            <input asp-for="IsEnabled" class="form-check-input" />
+            <label asp-for="IsEnabled" class="form-check-label">啟用任務</label>
+        </div>
+        <div class="form-actions action-row">
+            <button type="submit" class="btn btn-primary">儲存變更</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">返回列表</a>
+        </div>
+    </form>
+</article>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

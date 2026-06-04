@@ -43,6 +43,27 @@
                     <option>Deep</option>
                 </select>
             </div>
+            <div>
+                <label asp-for="Form.ScheduleType" class="form-label"></label>
+                <select asp-for="Form.ScheduleType" class="form-select">
+                    <option value="">不排程</option>
+                    <option>Daily</option>
+                    <option>Weekly</option>
+                    <option>Cron</option>
+                </select>
+            </div>
+            <div>
+                <label asp-for="Form.ScheduleTime" class="form-label"></label>
+                <input asp-for="Form.ScheduleTime" class="form-control" type="time" />
+            </div>
+            <div class="full-width">
+                <label asp-for="Form.CronExpression" class="form-label"></label>
+                <input asp-for="Form.CronExpression" class="form-control" />
+            </div>
+            <div class="form-check align-self-end">
+                <input asp-for="Form.IsEnabled" class="form-check-input" />
+                <label asp-for="Form.IsEnabled" class="form-check-label">啟用任務</label>
+            </div>
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary">建立任務</button>
             </div>
@@ -63,6 +84,7 @@
                         <th>類型</th>
                         <th>工具</th>
                         <th>強度</th>
+                        <th>排程</th>
                         <th>動作</th>
                     </tr>
                 </thead>
@@ -75,12 +97,20 @@
                         <td>@item.ScanType</td>
                         <td>@item.ScanTool</td>
                         <td>@(item.ScanProfile ?? "-")</td>
+                        <td>@(item.ScheduleType ?? "-")</td>
                         <td>
-                            <form asp-action="RunNow" method="post">
-                                @Html.AntiForgeryToken()
-                                <input type="hidden" name="id" value="@item.JobId" />
-                                <button type="submit" class="btn btn-sm btn-primary">立即掃描</button>
-                            </form>
+                            <div class="action-stack">
+                                <form asp-action="RunNow" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item.JobId" />
+                                    <button type="submit" class="btn btn-sm btn-primary">立即掃描</button>
+                                </form>
+                                <a asp-action="Edit" asp-route-id="@item.JobId" class="btn btn-sm btn-outline-secondary">編輯</a>
+                                <form asp-action="Delete" asp-route-id="@item.JobId" method="post" class="inline-form">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('確定刪除此掃描任務？');">刪除</button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                 }
@@ -89,3 +119,6 @@
         </div>
     </article>
 </section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

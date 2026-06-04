@@ -1,0 +1,56 @@
+@model VulnScan.Web.ViewModels.AssetViewModel
+@{
+    ViewData["Title"] = "編輯資產";
+}
+
+<article class="panel-card panel-card-narrow">
+    <div class="panel-card-header">
+        <h3>編輯資產</h3>
+    </div>
+    <form asp-action="Edit" asp-route-id="@Model.AssetId" method="post" class="form-grid">
+        @Html.AntiForgeryToken()
+        <input asp-for="AssetId" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="text-danger full-width"></div>
+        <div>
+            <label asp-for="AssetName" class="form-label"></label>
+            <input asp-for="AssetName" class="form-control" />
+            <span asp-validation-for="AssetName" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="IPAddress" class="form-label"></label>
+            <input asp-for="IPAddress" class="form-control" />
+            <span asp-validation-for="IPAddress" class="text-danger"></span>
+        </div>
+        <div>
+            <label asp-for="HostName" class="form-label"></label>
+            <input asp-for="HostName" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="AssetType" class="form-label"></label>
+            <input asp-for="AssetType" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="OwnerDept" class="form-label"></label>
+            <input asp-for="OwnerDept" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="OwnerUser" class="form-label"></label>
+            <input asp-for="OwnerUser" class="form-control" />
+        </div>
+        <div>
+            <label asp-for="Importance" class="form-label"></label>
+            <input asp-for="Importance" class="form-control" />
+        </div>
+        <div class="form-check align-self-end">
+            <input asp-for="IsActive" class="form-check-input" />
+            <label asp-for="IsActive" class="form-check-label">啟用資產</label>
+        </div>
+        <div class="form-actions action-row">
+            <button type="submit" class="btn btn-primary">儲存變更</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">返回列表</a>
+        </div>
+    </form>
+</article>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

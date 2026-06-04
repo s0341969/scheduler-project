@@ -82,6 +82,7 @@
                         <th>負責單位</th>
                         <th>重要性</th>
                         <th>最後掃描</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,6 +95,13 @@
                         <td>@(item.OwnerDept ?? "-")</td>
                         <td>@(item.Importance ?? "-")</td>
                         <td>@(item.LastScanTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                        <td class="action-cell">
+                            <a asp-action="Edit" asp-route-id="@item.AssetId" class="btn btn-sm btn-outline-secondary">編輯</a>
+                            <form asp-action="Delete" asp-route-id="@item.AssetId" method="post" class="inline-form">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('確定刪除此資產？');">刪除</button>
+                            </form>
+                        </td>
                     </tr>
                 }
                 </tbody>
@@ -101,3 +109,6 @@
         </div>
     </article>
 </section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
