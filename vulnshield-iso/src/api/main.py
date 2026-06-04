@@ -13,6 +13,7 @@ from src.api.endpoints.auth import router as auth_router
 from src.api.endpoints.credentials import router as credentials_router
 from src.api.endpoints.findings import router as findings_router
 from src.api.endpoints.scans import router as scans_router
+from src.api.endpoints.schedules import router as schedules_router
 from src.core.config import settings
 from src.core.security import get_password_hash
 from src.models.database import async_session, init_db
@@ -52,6 +53,7 @@ app.include_router(auth_router)
 app.include_router(credentials_router)
 app.include_router(assets_router)
 app.include_router(scans_router)
+app.include_router(schedules_router)
 app.include_router(findings_router)
 
 

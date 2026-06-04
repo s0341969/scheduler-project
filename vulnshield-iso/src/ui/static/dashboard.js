@@ -4,6 +4,7 @@ const state = {
     assets: [],
     selectedAssetId: null,
     editingAssetId: null,
+    editingScheduleId: null,
 };
 
 const deviceTypeLabels = {
@@ -27,6 +28,12 @@ const assetStatusLabels = {
     Active: '運作中',
     Maintenance: '維護中',
     Retired: '已退役',
+};
+
+const scheduleCadenceLabels = {
+    Daily: '每日',
+    Weekly: '每週',
+    Cron: 'Cron',
 };
 
 const loginForm = document.getElementById('login-form');
@@ -328,6 +335,7 @@ function logout() {
     state.assets = [];
     state.credentials = [];
     state.selectedAssetId = null;
+    state.editingScheduleId = null;
     localStorage.removeItem('vulnshield_token');
     authStatus.textContent = '尚未登入';
     authStatus.className = 'status-chip muted';
@@ -475,6 +483,7 @@ function renderAssets() {
         card.addEventListener('click', () => {
             const assetId = Number(card.dataset.assetId);
             state.selectedAssetId = assetId;
+            state.editingScheduleId = null;
             renderAssets();
             loadAssetDetail(assetId).catch((error) => showMessage(error.message));
         });
@@ -624,6 +633,7 @@ function scanCard(scan) {
                 <span class="pill">${summary?.profile_label || profileLabel(scan.scan_profile)}</span>
                 <span class="pill">${summary?.device_template_label || templateLabel(scan.device_template || 'generic')}</span>
                 ${scan.asset_device_type ? `<span class="pill">${deviceTypeLabels[scan.asset_device_type] || scan.asset_device_type}</span>` : ''}
+                ${scan.schedule_id ? `<span class="pill">排程 #${scan.schedule_id}</span>` : '<span class="pill">手動觸發</span>'}
                 ${scan.credential_name ? `<span class="pill">${scan.credential_name} / ${scan.credential_kind}</span>` : ''}
                 <span class="pill">開始 ${formatDate(scan.started_at)}</span>
                 <span class="pill">結束 ${formatDate(scan.finished_at)}</span>
@@ -852,6 +862,232 @@ function renderReports() {
         : '<div class="empty-state">目前沒有建議內容。</div>';
 }
 
+function parseScheduleTime(schedule) {
+    const hour = String(schedule.run_hour ?? 2).padStart(2, '0');
+    const minute = String(schedule.run_minute ?? 0).padStart(2, '0');
+    return `${hour}:${minute}`;
+}
+
+function scheduleFormMarkup(asset, schedules) {
+    const activeCredentials = state.credentials.filter((credential) => credential.is_active || credential.id === asset.default_credential_id);
+    const editingSchedule = schedules.find((schedule) => schedule.id === state.editingScheduleId) || null;
+    const selectedWeekdays = new Set(editingSchedule?.weekdays || []);
+    const selectedCadence = editingSchedule?.cadence || 'Weekly';
+    return `
+        <div class="asset-card">
+            <form id="schedule-form" class="stacked-form">
+                <div class="split-grid">
+                    <label>
+                        <span>排程名稱</span>
+                        <input name="name" type="text" value="${editingSchedule?.name || ''}" placeholder="例如：總部防火牆平日凌晨掃描" required>
+                    </label>
+                    <label>
+                        <span>週期</span>
+                        <select name="cadence" id="schedule-cadence-select">
+                            ${Object.entries(scheduleCadenceLabels).map(([value, label]) => `<option value="${value}" ${selectedCadence === value ? 'selected' : ''}>${label}</option>`).join('')}
+                        </select>
+                    </label>
+                </div>
+                <div class="split-grid">
+                    <label>
+                        <span>執行時間</span>
+                        <input name="run_time" id="schedule-time-input" type="time" value="${parseScheduleTime(editingSchedule || {})}">
+                    </label>
+                    <label>
+                        <span>時區</span>
+                        <input name="timezone" type="text" value="${editingSchedule?.timezone || 'Asia/Taipei'}" placeholder="Asia/Taipei">
+                    </label>
+                </div>
+                <label id="schedule-weekdays-row">
+                    <span>每週星期</span>
+                    <select name="weekdays" id="schedule-weekdays-select" multiple size="4">
+                        ${Object.entries({ 0: '週一', 1: '週二', 2: '週三', 3: '週四', 4: '週五', 5: '週六', 6: '週日' })
+                            .map(([value, label]) => `<option value="${value}" ${selectedWeekdays.has(Number(value)) ? 'selected' : ''}>${label}</option>`).join('')}
+                    </select>
+                </label>
+                <label id="schedule-cron-row">
+                    <span>Cron 表達式</span>
+                    <input name="cron_expr" id="schedule-cron-input" type="text" value="${editingSchedule?.cron_expr || ''}" placeholder="例如：0 2 * * 1-5">
+                </label>
+                <div class="split-grid">
+                    <label>
+                        <span>掃描模式</span>
+                        <select name="scan_profile">
+                            ${state.catalog.profiles.map((profile) => `<option value="${profile.key}" ${(editingSchedule?.scan_profile || asset.default_scan_profile) === profile.key ? 'selected' : ''}>${profile.label}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>
+                        <span>設備模板</span>
+                        <select name="device_template">
+                            ${state.catalog.templates.map((template) => `<option value="${template.key}" ${(editingSchedule?.device_template || asset.template_key) === template.key ? 'selected' : ''}>${template.label}</option>`).join('')}
+                        </select>
+                    </label>
+                </div>
+                <div class="split-grid">
+                    <label>
+                        <span>Credential</span>
+                        <select name="credential_id">
+                            <option value="">使用設備預設 credential</option>
+                            ${activeCredentials.map((credential) => `<option value="${credential.id}" ${((editingSchedule?.credential_id ?? asset.default_credential_id) === credential.id) ? 'selected' : ''}>${credential.name} / ${credential.kind_label}</option>`).join('')}
+                        </select>
+                    </label>
+                    <label>
+                        <span>啟用狀態</span>
+                        <select name="is_active">
+                            <option value="true" ${(editingSchedule?.is_active ?? true) ? 'selected' : ''}>啟用</option>
+                            <option value="false" ${(editingSchedule?.is_active === false) ? 'selected' : ''}>停用</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="helper-row">
+                    <button type="submit" class="secondary-button">${editingSchedule ? '更新排程' : '建立排程'}</button>
+                    <button id="schedule-form-cancel" type="button" class="ghost-button" ${editingSchedule ? '' : 'hidden'}>取消編輯</button>
+                </div>
+            </form>
+        </div>
+    `;
+}
+
+function scheduleCard(schedule) {
+    return `
+        <article class="scan-card">
+            <div class="scan-head">
+                <div>
+                    <h3>${schedule.name}</h3>
+                    <p>${scheduleCadenceLabels[schedule.cadence] || schedule.cadence}${schedule.weekdays_label ? ` ・ ${schedule.weekdays_label}` : ''}</p>
+                </div>
+                <span class="status-chip ${schedule.is_active ? 'safe' : 'muted'}">${schedule.is_active ? '啟用中' : '已停用'}</span>
+            </div>
+            <div class="pill-row">
+                <span class="pill">${profileLabel(schedule.scan_profile)}</span>
+                <span class="pill">${templateLabel(schedule.device_template || 'generic')}</span>
+                <span class="pill">${schedule.credential_name || '設備預設 credential'}</span>
+                <span class="pill">下次 ${formatDate(schedule.next_run_at)}</span>
+                <span class="pill">上次 ${formatDate(schedule.last_run_at)}</span>
+            </div>
+            <p class="scan-meta">${schedule.last_error || '目前無排程錯誤。'}</p>
+            <div class="action-row">
+                <button class="secondary-button schedule-edit" type="button" data-schedule-id="${schedule.id}">編輯排程</button>
+                <button class="ghost-button schedule-toggle" type="button" data-schedule-id="${schedule.id}" data-active="${schedule.is_active ? 'true' : 'false'}">
+                    ${schedule.is_active ? '停用排程' : '重新啟用'}
+                </button>
+                <button class="ghost-button schedule-delete" type="button" data-schedule-id="${schedule.id}">刪除排程</button>
+            </div>
+        </article>
+    `;
+}
+
+function bindScheduleForm(asset, schedules) {
+    const form = document.getElementById('schedule-form');
+    if (!form) {
+        return;
+    }
+    const cadenceSelect = document.getElementById('schedule-cadence-select');
+    const weekdaysRow = document.getElementById('schedule-weekdays-row');
+    const cronRow = document.getElementById('schedule-cron-row');
+    const cancelButton = document.getElementById('schedule-form-cancel');
+
+    function updateScheduleFormVisibility() {
+        const cadence = cadenceSelect.value;
+        weekdaysRow.hidden = cadence !== 'Weekly';
+        cronRow.hidden = cadence !== 'Cron';
+    }
+
+    cadenceSelect.addEventListener('change', updateScheduleFormVisibility);
+    updateScheduleFormVisibility();
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const formData = new FormData(form);
+        const runTime = String(formData.get('run_time') || '02:00');
+        const [hourText, minuteText] = runTime.split(':');
+        const selectedWeekdays = Array.from(form.querySelector('#schedule-weekdays-select').selectedOptions).map((option) => Number(option.value));
+        const payload = {
+            name: String(formData.get('name') || ''),
+            cadence: String(formData.get('cadence') || 'Weekly'),
+            timezone: String(formData.get('timezone') || 'Asia/Taipei'),
+            weekdays: selectedWeekdays,
+            run_hour: Number(hourText || 0),
+            run_minute: Number(minuteText || 0),
+            cron_expr: String(formData.get('cron_expr') || '').trim() || null,
+            scan_profile: String(formData.get('scan_profile') || asset.default_scan_profile),
+            device_template: String(formData.get('device_template') || asset.template_key),
+            credential_id: formData.get('credential_id') ? Number(formData.get('credential_id')) : null,
+            is_active: String(formData.get('is_active') || 'true') === 'true',
+        };
+        try {
+            if (state.editingScheduleId) {
+                await apiRequest(`/schedules/${state.editingScheduleId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                showMessage('排程更新成功。');
+            } else {
+                await apiRequest(`/assets/${asset.id}/schedules`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                showMessage('排程建立成功。');
+            }
+            state.editingScheduleId = null;
+            await loadAssetDetail(asset.id);
+            await loadScans();
+        } catch (error) {
+            showMessage(error.message);
+        }
+    });
+
+    if (cancelButton) {
+        cancelButton.addEventListener('click', async () => {
+            state.editingScheduleId = null;
+            await loadAssetDetail(asset.id);
+        });
+    }
+
+    document.querySelectorAll('.schedule-edit').forEach((button) => {
+        button.addEventListener('click', async () => {
+            state.editingScheduleId = Number(button.dataset.scheduleId);
+            await loadAssetDetail(asset.id);
+        });
+    });
+    document.querySelectorAll('.schedule-toggle').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const scheduleId = Number(button.dataset.scheduleId);
+            const nextState = button.dataset.active !== 'true';
+            try {
+                await apiRequest(`/schedules/${scheduleId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_active: nextState }),
+                });
+                showMessage(nextState ? '排程已重新啟用。' : '排程已停用。');
+                state.editingScheduleId = null;
+                await loadAssetDetail(asset.id);
+            } catch (error) {
+                showMessage(error.message);
+            }
+        });
+    });
+    document.querySelectorAll('.schedule-delete').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const scheduleId = Number(button.dataset.scheduleId);
+            if (!window.confirm('確定要刪除這筆排程嗎？')) {
+                return;
+            }
+            try {
+                await apiRequest(`/schedules/${scheduleId}`, { method: 'DELETE' });
+                showMessage('排程已刪除。');
+                state.editingScheduleId = null;
+                await loadAssetDetail(asset.id);
+            } catch (error) {
+                showMessage(error.message);
+            }
+        });
+    });
+}
+
 function setActiveTab(tabName) {
     state.activeTab = tabName;
     navTabs.forEach((tab) => {
@@ -862,7 +1098,7 @@ function setActiveTab(tabName) {
     });
 }
 
-function renderAssetDetail(asset, scans, findings) {
+function renderAssetDetail(asset, scans, findings, schedules) {
     selectedAssetStatus.textContent = asset.name;
     selectedAssetStatus.className = 'status-chip accent';
 
@@ -921,6 +1157,14 @@ function renderAssetDetail(asset, scans, findings) {
             </section>
 
             <section class="section-block">
+                <h3 class="section-title">排程掃描</h3>
+                ${scheduleFormMarkup(asset, schedules)}
+                <div class="detail-sections">
+                    ${schedules.length ? schedules.map(scheduleCard).join('') : '<div class="empty-state">此設備目前沒有排程。</div>'}
+                </div>
+            </section>
+
+            <section class="section-block">
                 <h3 class="section-title">最近掃描歷史</h3>
                 <div class="detail-sections">
                     ${scans.length ? scans.map(scanCard).join('') : '<div class="empty-state">尚未有掃描歷史。</div>'}
@@ -948,6 +1192,7 @@ function renderAssetDetail(asset, scans, findings) {
     detailProfileSelect.insertAdjacentHTML('afterend', `<select id="detail-scan-credential">${detailCredentialOptions}</select>`);
     const detailCredentialSelect = document.getElementById('detail-scan-credential');
     document.getElementById('edit-asset').addEventListener('click', () => startAssetEdit(asset));
+    bindScheduleForm(asset, schedules);
 
     document.getElementById('run-scan').addEventListener('click', async () => {
         try {
@@ -1003,12 +1248,13 @@ async function loadReports() {
 }
 
 async function loadAssetDetail(assetId) {
-    const [asset, scans, findings] = await Promise.all([
+    const [asset, scans, findings, schedules] = await Promise.all([
         apiRequest(`/assets/${assetId}`),
         apiRequest(`/assets/${assetId}/scans`),
         apiRequest(`/assets/${assetId}/findings`),
+        apiRequest(`/assets/${assetId}/schedules`),
     ]);
-    renderAssetDetail(asset, scans, findings);
+    renderAssetDetail(asset, scans, findings, schedules);
 }
 
 loginForm.addEventListener('submit', async (event) => {

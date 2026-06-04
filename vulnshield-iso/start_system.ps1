@@ -55,6 +55,10 @@ function Show-StartupDiagnostics {
     Write-Host ""
     Write-Host "Recent worker logs:" -ForegroundColor Yellow
     docker compose -p vulnshield-iso logs --tail 80 worker
+
+    Write-Host ""
+    Write-Host "Recent beat logs:" -ForegroundColor Yellow
+    docker compose -p vulnshield-iso logs --tail 80 beat
 }
 
 Write-Host "Starting VulnShield-ISO..." -ForegroundColor Cyan
@@ -85,10 +89,11 @@ catch {
 Write-Step "Step 2/5: Starting containers..."
 Invoke-CheckedCommand -Command { docker compose -p vulnshield-iso up -d --build } -FailureMessage "docker compose startup failed."
 
-Write-Step "Step 3/5: Waiting for API and worker readiness..."
+Write-Step "Step 3/5: Waiting for API, worker, and beat readiness..."
 $healthUrl = 'http://localhost:8000/healthz'
 $isHealthy = $false
 $workerReady = $false
+$beatReady = $false
 $maxAttempts = 36
 
 for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
@@ -104,30 +109,33 @@ for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
     }
 
     $workerReady = Test-ComposeServiceRunning -ServiceName 'worker'
-    if ($isHealthy -and $workerReady) {
+    $beatReady = Test-ComposeServiceRunning -ServiceName 'beat'
+    if ($isHealthy -and $workerReady -and $beatReady) {
         break
     }
 
     Write-Host (
-        "Waiting... attempt {0}/{1} | api={2} | worker={3}" -f
+        "Waiting... attempt {0}/{1} | api={2} | worker={3} | beat={4}" -f
         $attempt,
         $maxAttempts,
         ($(if ($isHealthy) { 'ready' } else { 'pending' })),
-        ($(if ($workerReady) { 'ready' } else { 'pending' }))
+        ($(if ($workerReady) { 'ready' } else { 'pending' })),
+        ($(if ($beatReady) { 'ready' } else { 'pending' }))
     ) -ForegroundColor DarkYellow
 }
 
-if (-not $isHealthy -or -not $workerReady) {
+if (-not $isHealthy -or -not $workerReady -or -not $beatReady) {
     Write-Host "Startup check failed within 180 seconds." -ForegroundColor Red
     Write-Host "Check these commands:" -ForegroundColor Red
     Write-Host "1. docker compose -p vulnshield-iso logs -f api" -ForegroundColor Red
     Write-Host "2. docker compose -p vulnshield-iso logs -f worker" -ForegroundColor Red
-    Write-Host "3. verify your .env values" -ForegroundColor Red
+    Write-Host "3. docker compose -p vulnshield-iso logs -f beat" -ForegroundColor Red
+    Write-Host "4. verify your .env values" -ForegroundColor Red
     Show-StartupDiagnostics
     exit 1
 }
 
-Write-Host "API and worker are ready." -ForegroundColor Green
+Write-Host "API, worker, and beat are ready." -ForegroundColor Green
 
 Write-Step "Step 4/5: Opening API docs..."
 Start-Process "http://localhost:8000/docs"

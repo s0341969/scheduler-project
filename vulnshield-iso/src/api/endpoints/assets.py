@@ -8,10 +8,11 @@ from sqlalchemy.orm import selectinload
 from src.api.deps import get_current_user, get_db, require_roles
 from src.models.asset import Asset
 from src.models.credential import Credential
-from src.models.scan import ScanTask
+from src.models.scan import ScanSchedule, ScanTask
 from src.models.user import User, UserRole
 from src.models.vulnerability import Finding
 from src.schemas.asset import AssetCreate, AssetResponse, AssetUpdate
+from src.schemas.schedule import ScanScheduleCreate, ScanScheduleResponse
 from src.schemas.scan import AssetScanRequest, ScanResponse
 from src.schemas.vulnerability import FindingDetailResponse
 from src.services.audit_service import add_audit_log
@@ -25,6 +26,12 @@ from src.services.asset_inventory import (
 )
 from src.services.scan_catalog import recommended_profile_for_template, recommended_template_for_device_type
 from src.services.scan_catalog import credential_kind_supported_by_profile, profile_requires_credential
+from src.services.schedule_service import (
+    calculate_next_run_at,
+    normalize_schedule_payload_values,
+    schedule_to_response,
+    serialize_weekdays,
+)
 from src.services.scan_summary import normalize_scan_summary_payload
 from src.worker.tasks import execute_scan
 
@@ -38,6 +45,7 @@ def serialize_asset_scan(task: ScanTask, asset: Asset | None = None) -> ScanResp
         asset_name=resolved_asset.name if resolved_asset else None,
         asset_target=resolved_asset.target if resolved_asset else None,
         asset_device_type=resolved_asset.device_type if resolved_asset else None,
+        schedule_id=task.schedule_id,
         scan_profile=ensure_scan_profile(task.scan_profile),
         device_template=ensure_template_key(task.device_template, resolved_asset.device_type if resolved_asset else None),
         credential_id=task.credential_id,
@@ -86,6 +94,35 @@ async def get_accessible_credential(
     if not credential.is_active:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='此 credential 已停用，無法綁定或執行掃描')
     return credential
+
+
+def resolve_schedule_payload(
+    *,
+    asset: Asset,
+    payload: ScanScheduleCreate,
+) -> dict:
+    normalized_profile = ensure_scan_profile(payload.scan_profile or getattr(asset, 'default_scan_profile', None))
+    normalized_template = ensure_template_key(payload.device_template or getattr(asset, 'template_key', None), asset.device_type)
+    normalized_schedule = normalize_schedule_payload_values(
+        cadence=payload.cadence,
+        timezone_name=payload.timezone,
+        weekdays=payload.weekdays,
+        run_hour=payload.run_hour,
+        run_minute=payload.run_minute,
+        cron_expr=payload.cron_expr,
+    )
+    return {
+        'name': payload.name,
+        'cadence': normalized_schedule['cadence'],
+        'timezone': normalized_schedule['timezone'],
+        'weekdays': serialize_weekdays(normalized_schedule['weekdays']),
+        'run_hour': normalized_schedule['run_hour'],
+        'run_minute': normalized_schedule['run_minute'],
+        'cron_expr': normalized_schedule['cron_expr'],
+        'scan_profile': normalized_profile,
+        'device_template': normalized_template,
+        'is_active': payload.is_active,
+    }
 
 
 @router.post('', response_model=AssetResponse, status_code=status.HTTP_201_CREATED)
@@ -283,6 +320,79 @@ async def list_asset_scans(
         .order_by(ScanTask.id.desc())
     )
     return [serialize_asset_scan(task, asset) for task in result.scalars().all()]
+
+
+@router.get('/{asset_id}/schedules', response_model=List[ScanScheduleResponse])
+async def list_asset_schedules(
+    asset_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST, UserRole.AUDITOR)),
+):
+    asset = await get_accessible_asset(asset_id, db, current_user)
+    result = await db.execute(
+        select(ScanSchedule)
+        .options(selectinload(ScanSchedule.asset), selectinload(ScanSchedule.credential))
+        .where(ScanSchedule.asset_id == asset.id)
+        .order_by(ScanSchedule.id.desc())
+    )
+    return [schedule_to_response(schedule) for schedule in result.scalars().all()]
+
+
+@router.post('/{asset_id}/schedules', response_model=ScanScheduleResponse, status_code=status.HTTP_201_CREATED)
+async def create_asset_schedule(
+    asset_id: int,
+    payload: ScanScheduleCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_roles(UserRole.ADMIN, UserRole.ANALYST)),
+):
+    asset = await get_accessible_asset(asset_id, db, current_user)
+    if ensure_asset_status(asset.status) == 'Retired':
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='退役設備不可建立排程掃描')
+
+    credential = await get_accessible_credential(
+        payload.credential_id if payload.credential_id is not None else getattr(asset, 'default_credential_id', None),
+        db,
+        current_user,
+    )
+    resolved_payload = resolve_schedule_payload(asset=asset, payload=payload)
+
+    if profile_requires_credential(resolved_payload['scan_profile']):
+        if credential is None:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='此排程模式需要綁定 credential')
+        if not credential_kind_supported_by_profile(resolved_payload['scan_profile'], credential.kind):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='credential 類型與排程掃描模式不相容')
+
+    next_run_at = (
+        calculate_next_run_at(
+            cadence=resolved_payload['cadence'],
+            timezone_name=resolved_payload['timezone'],
+            run_hour=resolved_payload['run_hour'],
+            run_minute=resolved_payload['run_minute'],
+            weekdays=payload.weekdays,
+            cron_expr=resolved_payload['cron_expr'],
+        )
+        if resolved_payload['is_active']
+        else None
+    )
+    schedule = ScanSchedule(
+        asset_id=asset.id,
+        credential_id=credential.id if credential else None,
+        next_run_at=next_run_at,
+        **resolved_payload,
+    )
+    db.add(schedule)
+    await db.flush()
+    add_audit_log(
+        db,
+        user=current_user,
+        action='CREATE_SCHEDULE',
+        entity_type='ScanSchedule',
+        entity_id=schedule.id,
+        payload={'asset_id': asset.id, 'cadence': schedule.cadence, 'scan_profile': schedule.scan_profile},
+    )
+    await db.commit()
+    await db.refresh(schedule, attribute_names=['asset', 'credential'])
+    return schedule_to_response(schedule)
 
 
 @router.get('/{asset_id}/findings', response_model=List[FindingDetailResponse])

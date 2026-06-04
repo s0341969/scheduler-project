@@ -56,6 +56,7 @@ class ScanTrigger(BaseModel):
     asset_id: int
     scan_profile: str = 'standard'
     device_template: Optional[str] = None
+    credential_id: Optional[int] = None
 
 
 class AssetScanRequest(BaseModel):
@@ -95,6 +96,7 @@ class ScanResponse(BaseModel):
     asset_name: Optional[str] = None
     asset_target: Optional[str] = None
     asset_device_type: Optional[DeviceType] = None
+    schedule_id: Optional[int] = None
     scan_profile: str
     device_template: Optional[str] = None
     credential_id: Optional[int] = None

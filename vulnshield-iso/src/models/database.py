@@ -125,6 +125,37 @@ async def _run_additive_schema_updates(connection) -> None:
     )
     await connection.exec_driver_sql(
         """
+        CREATE TABLE IF NOT EXISTS scan_schedules (
+            id SERIAL PRIMARY KEY,
+            asset_id INTEGER NOT NULL REFERENCES assets(id),
+            name VARCHAR(120) NOT NULL,
+            cadence VARCHAR(20) NOT NULL DEFAULT 'Daily',
+            timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Taipei',
+            weekdays VARCHAR(32),
+            run_hour INTEGER,
+            run_minute INTEGER,
+            cron_expr VARCHAR(120),
+            scan_profile VARCHAR(50) NOT NULL DEFAULT 'standard',
+            device_template VARCHAR(50),
+            credential_id INTEGER REFERENCES credentials(id),
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            next_run_at TIMESTAMPTZ,
+            last_run_at TIMESTAMPTZ,
+            last_task_id INTEGER,
+            last_error TEXT,
+            created_at TIMESTAMPTZ DEFAULT NOW(),
+            updated_at TIMESTAMPTZ
+        )
+        """
+    )
+    await connection.exec_driver_sql(
+        """
+        ALTER TABLE scan_tasks
+        ADD COLUMN IF NOT EXISTS schedule_id INTEGER
+        """
+    )
+    await connection.exec_driver_sql(
+        """
         UPDATE scan_tasks
         SET scan_profile = 'standard'
         WHERE scan_profile IS NULL OR scan_profile = '' OR scan_profile = 'full'
@@ -135,11 +166,11 @@ async def _run_additive_schema_updates(connection) -> None:
 async def init_db() -> None:
     from src.models.asset import Asset
     from src.models.credential import Credential
-    from src.models.scan import AuditLog, ScanTask
+    from src.models.scan import AuditLog, ScanSchedule, ScanTask
     from src.models.user import User
     from src.models.vulnerability import Finding, Vulnerability
 
-    _ = (Asset, Credential, AuditLog, ScanTask, User, Finding, Vulnerability)
+    _ = (Asset, Credential, AuditLog, ScanSchedule, ScanTask, User, Finding, Vulnerability)
 
     attempts = 12
     delay_seconds = 5

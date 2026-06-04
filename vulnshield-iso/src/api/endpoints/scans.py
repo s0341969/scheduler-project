@@ -15,6 +15,7 @@ from src.schemas.scan import (
     ScanTrigger,
 )
 from src.services.asset_inventory import ensure_scan_profile, ensure_template_key
+from src.services.asset_inventory import ensure_asset_status
 from src.services.scan_catalog import credential_kind_supported_by_profile, list_device_templates, list_scan_profiles, profile_requires_credential
 from src.services.scan_summary import normalize_scan_summary_payload
 from src.worker.tasks import execute_scan
@@ -32,6 +33,7 @@ def serialize_scan(task: ScanTask) -> ScanResponse:
         asset_name=asset.name if asset else None,
         asset_target=asset.target if asset else None,
         asset_device_type=asset.device_type if asset else None,
+        schedule_id=task.schedule_id,
         scan_profile=ensure_scan_profile(task.scan_profile),
         device_template=ensure_template_key(task.device_template, asset.device_type if asset else None),
         credential_id=task.credential_id,
@@ -113,6 +115,8 @@ async def trigger_scan(
 
     if current_user.role == UserRole.ANALYST and asset.owner_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='您無法掃描他人的設備')
+    if ensure_asset_status(asset.status) == 'Retired':
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail='退役設備不可執行掃描')
 
     new_task = ScanTask(
         asset_id=trigger.asset_id,

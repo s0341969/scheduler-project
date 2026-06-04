@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-06-03
+- 新增排程掃描第一版：加入 `scan_schedules` 資料模型、每日 / 每週 / Cron 排程、`Celery beat` 每分鐘同步到期任務
+- 新增排程 API：`GET /assets/{id}/schedules`、`POST /assets/{id}/schedules`、`GET /schedules`、`PATCH /schedules/{id}`、`DELETE /schedules/{id}`
+- 強化 dashboard：設備詳情新增排程建立 / 編輯 / 啟停 / 刪除，掃描任務會顯示來自哪筆排程
+- 強化啟動流程：`docker-compose.yml` 新增 `beat` 服務，`start_system.ps1` 會一併檢查 `beat` 是否 ready
 - 強化商用品操作層：新增設備生命週期狀態 `Active` / `Maintenance` / `Retired`，並在設備頁提供狀態選擇、狀態篩選與退役設備掃描阻擋
 - 強化報告頁：新增設備狀態分布、優先處理清單與營運建議，讓報告不只顯示數量，也能指向優先處理目標
 - 新增報表服務 `src/services/reporting.py`，集中產出風險摘要、priority queue 與 recommendation 區塊

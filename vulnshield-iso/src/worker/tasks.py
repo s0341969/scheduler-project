@@ -4,16 +4,17 @@ import datetime
 import json
 from pathlib import Path
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from src.worker.celery_app import celery_app
 from src.services.nmap_service import NmapService
 from src.services.nuclei_service import NucleiService
 from src.models.database import async_session
 from src.models.credential import Credential
-from src.models.scan import ScanTask, ScanStatus
+from src.models.scan import ScanSchedule, ScanTask, ScanStatus
 from src.models.asset import Asset
 from src.models.user import User
-from src.services.asset_inventory import ensure_scan_profile, ensure_template_key
+from src.services.asset_inventory import ensure_asset_status, ensure_scan_profile, ensure_template_key
 from src.services.credential_service import build_credential_runtime_context
 from src.services.scan_catalog import (
     build_redacted_credential_metadata,
@@ -21,6 +22,7 @@ from src.services.scan_catalog import (
     credential_kind_supported_by_profile,
     profile_requires_credential,
 )
+from src.services.schedule_service import calculate_next_run_at, parse_weekdays
 from src.services.scan_processing import get_or_create_vulnerability, upsert_finding
 from src.services.scan_summary import summarize_scan_results
 
@@ -58,6 +60,10 @@ async def run_sync_scan(target: str, scan_config: dict, credential_context: dict
 @celery_app.task(name='tasks.execute_scan')
 def execute_scan(task_id: int):
     return asyncio.run(_execute_scan_logic(task_id))
+
+@celery_app.task(name='tasks.sync_scan_schedules')
+def sync_scan_schedules():
+    return asyncio.run(_sync_scan_schedules_logic())
 
 async def _execute_scan_logic(task_id: int):
     async with async_session() as session:
@@ -128,4 +134,88 @@ async def _execute_scan_logic(task_id: int):
             task.error_message = str(e)
             await session.commit()
             return f'Scan failed: {str(e)}'
+
+
+async def _sync_scan_schedules_logic():
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    created_tasks = 0
+    pending_task_ids: list[int] = []
+
+    async with async_session() as session:
+        result = await session.execute(
+            select(ScanSchedule)
+            .options(
+                selectinload(ScanSchedule.asset),
+                selectinload(ScanSchedule.credential),
+            )
+            .where(
+                ScanSchedule.is_active.is_(True),
+                ScanSchedule.next_run_at.is_not(None),
+                ScanSchedule.next_run_at <= now_utc,
+            )
+            .order_by(ScanSchedule.next_run_at.asc(), ScanSchedule.id.asc())
+        )
+        schedules = result.scalars().all()
+
+        for schedule in schedules:
+            asset = schedule.asset
+            credential = schedule.credential
+            schedule.last_run_at = now_utc
+            schedule.last_error = None
+
+            try:
+                if asset is None:
+                    raise ValueError('排程綁定的設備不存在')
+                if ensure_asset_status(asset.status) == 'Retired':
+                    raise ValueError('設備已退役，排程已略過')
+                if credential is not None and not credential.is_active:
+                    raise ValueError('排程綁定的 credential 已停用')
+                if profile_requires_credential(schedule.scan_profile):
+                    if credential is None:
+                        raise ValueError('此排程模式需要 credential，但目前未綁定')
+                    if not credential_kind_supported_by_profile(schedule.scan_profile, credential.kind):
+                        raise ValueError('排程綁定的 credential 類型與掃描模式不相容')
+
+                next_run_at = calculate_next_run_at(
+                    cadence=schedule.cadence,
+                    timezone_name=schedule.timezone,
+                    run_hour=schedule.run_hour,
+                    run_minute=schedule.run_minute,
+                    weekdays=parse_weekdays(schedule.weekdays),
+                    cron_expr=schedule.cron_expr,
+                    base_time=now_utc + datetime.timedelta(minutes=1),
+                )
+                task = ScanTask(
+                    asset_id=schedule.asset_id,
+                    scan_profile=ensure_scan_profile(schedule.scan_profile),
+                    device_template=ensure_template_key(schedule.device_template, asset.device_type),
+                    credential_id=schedule.credential_id,
+                    schedule_id=schedule.id,
+                )
+                session.add(task)
+                await session.flush()
+
+                schedule.last_task_id = task.id
+                schedule.next_run_at = next_run_at
+                pending_task_ids.append(task.id)
+                created_tasks += 1
+            except Exception as exc:
+                logger.error('Schedule %s sync failed: %s', schedule.id, str(exc))
+                schedule.last_error = str(exc)
+                schedule.next_run_at = calculate_next_run_at(
+                    cadence=schedule.cadence,
+                    timezone_name=schedule.timezone,
+                    run_hour=schedule.run_hour,
+                    run_minute=schedule.run_minute,
+                    weekdays=parse_weekdays(schedule.weekdays),
+                    cron_expr=schedule.cron_expr,
+                    base_time=now_utc + datetime.timedelta(minutes=1),
+                )
+
+        await session.commit()
+
+    for task_id in pending_task_ids:
+        execute_scan.delay(task_id)
+
+    return f'scheduled {created_tasks} tasks'
 
