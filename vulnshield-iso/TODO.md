@@ -17,9 +17,8 @@
 - 為 `start_system.ps1` 補上可選的 `--no-browser` / `-NoBrowser` 模式，避免在無桌面環境自動開啟 Swagger
 - 為設備管理頁補上複製設備功能
 - 為設備管理頁補上 per-device remediation 任務與負責人追蹤
-- 為 dashboard 的 `報告` 分頁補上趨勢圖、掃描類型分布與可匯出報表
-- 為新的商用品 dashboard 補上 inline validation 與欄位層級錯誤提示，目前已改為 toast，但表單仍缺少欄位內回饋
+- 為 dashboard 的 `報告` 分頁補上可匯出報表與更完整的趨勢圖，目前已有近 7 天任務趨勢，但仍缺匯出與更細粒度分析
 - 為 dashboard 補上實機瀏覽器 UI smoke test，驗證三分頁版面在 `320px / 768px / 1024px / 1440px` 的可用性
-- 為掃描分頁補上真正的進度時間軸與步驟狀態，目前僅提供 Pending / Running / Completed / Failed 的營運判讀
+- 為掃描分頁補上更精細的進度時間軸與引擎層級狀態，目前已有簡化 `Queue / Probe / Analysis / Report`，但尚未做到實際執行百分比或每引擎時間線
 - 視需要補一鍵登入、建立測試資產、觸發掃描的自動化腳本
 - 視需要補停止系統與清除容器的 `stop_system.ps1` / `stop_system.bat`

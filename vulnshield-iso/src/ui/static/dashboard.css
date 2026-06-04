@@ -364,6 +364,10 @@ button {
     gap: 8px;
 }
 
+.stacked-form label.field-invalid span {
+    color: #b03b45;
+}
+
 .stacked-form span,
 .detail-grid h3,
 .section-title,
@@ -393,6 +397,16 @@ textarea {
 .panel select,
 .panel textarea {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.field-invalid input,
+.field-invalid select,
+.field-invalid textarea,
+input.field-invalid,
+select.field-invalid,
+textarea.field-invalid {
+    border-color: rgba(239, 107, 115, 0.6);
+    box-shadow: 0 0 0 4px rgba(239, 107, 115, 0.12);
 }
 
 .panel-highlight input,
@@ -702,6 +716,16 @@ select[multiple] {
     gap: 12px;
 }
 
+.field-help {
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: var(--muted-dark);
+}
+
+.field-help.error {
+    color: #b03b45;
+}
+
 .inline-action-group {
     flex-wrap: wrap;
 }
@@ -819,6 +843,96 @@ select[multiple] {
     background: rgba(12, 23, 39, 0.03);
     color: var(--muted-dark);
     line-height: 1.58;
+}
+
+.scan-timeline {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.timeline-step {
+    position: relative;
+    padding: 12px 12px 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(83, 101, 124, 0.12);
+    background: rgba(12, 23, 39, 0.03);
+}
+
+.timeline-step::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 999px;
+    background: rgba(127, 147, 173, 0.35);
+}
+
+.timeline-step strong,
+.trend-day strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.timeline-step p,
+.trend-day p {
+    margin: 0;
+    color: var(--muted-dark);
+    line-height: 1.45;
+}
+
+.timeline-step.is-complete::before {
+    background: linear-gradient(180deg, #2fc2a0 0%, #69d7be 100%);
+}
+
+.timeline-step.is-active::before {
+    background: linear-gradient(180deg, #f0b24d 0%, #f5cc78 100%);
+}
+
+.timeline-step.is-failed::before {
+    background: linear-gradient(180deg, #ef6b73 0%, #f79aa1 100%);
+}
+
+.trend-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.trend-day {
+    display: grid;
+    gap: 10px;
+    padding: 16px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(83, 101, 124, 0.12);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 10px 24px rgba(7, 17, 31, 0.06);
+}
+
+.trend-stack {
+    display: grid;
+    align-content: end;
+    gap: 6px;
+    min-height: 140px;
+}
+
+.trend-bar {
+    border-radius: 999px;
+    min-height: 10px;
+}
+
+.trend-bar.completed {
+    background: linear-gradient(180deg, #2fc2a0 0%, #69d7be 100%);
+}
+
+.trend-bar.failed {
+    background: linear-gradient(180deg, #ef6b73 0%, #f79aa1 100%);
+}
+
+.trend-bar.running {
+    background: linear-gradient(180deg, #f0b24d 0%, #f5cc78 100%);
 }
 
 .bar-list {
@@ -951,6 +1065,8 @@ select[multiple] {
     .metrics,
     .kpi-strip,
     .insight-grid,
+    .scan-timeline,
+    .trend-grid,
     .split-grid,
     .detail-grid,
     .summary-grid,

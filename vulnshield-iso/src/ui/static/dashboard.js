@@ -72,6 +72,7 @@ const credentialList = document.getElementById('credential-list');
 const reportSummary = document.getElementById('report-summary');
 const reportAssets = document.getElementById('report-assets');
 const reportSignals = document.getElementById('report-signals');
+const reportTrends = document.getElementById('report-trends');
 const reportPriorities = document.getElementById('report-priorities');
 const reportRecommendations = document.getElementById('report-recommendations');
 const reportStatus = document.getElementById('report-status');
@@ -151,6 +152,152 @@ function statusChip(status) {
     return `<span class="status-chip ${className}">${normalized}</span>`;
 }
 
+function clearFormErrors(form) {
+    form.querySelectorAll('.field-help.error').forEach((node) => node.remove());
+    form.querySelectorAll('.field-invalid').forEach((node) => node.classList.remove('field-invalid'));
+}
+
+function setFieldError(form, fieldName, message) {
+    const field = form.elements[fieldName];
+    if (!field) {
+        return;
+    }
+    const label = field.closest('label');
+    if (label) {
+        label.classList.add('field-invalid');
+    } else {
+        field.classList.add('field-invalid');
+    }
+    const helper = document.createElement('p');
+    helper.className = 'field-help error';
+    helper.textContent = message;
+    if (label) {
+        label.appendChild(helper);
+    } else {
+        field.insertAdjacentElement('afterend', helper);
+    }
+}
+
+function clearFieldError(field) {
+    const label = field.closest('label');
+    if (label) {
+        label.classList.remove('field-invalid');
+        label.querySelectorAll('.field-help.error').forEach((node) => node.remove());
+    }
+    field.classList.remove('field-invalid');
+    let sibling = field.nextElementSibling;
+    while (sibling && sibling.classList?.contains('field-help') && sibling.classList?.contains('error')) {
+        const next = sibling.nextElementSibling;
+        sibling.remove();
+        sibling = next;
+    }
+}
+
+function bindInlineValidation(form) {
+    form.querySelectorAll('input, select, textarea').forEach((field) => {
+        field.addEventListener('input', () => clearFieldError(field));
+        field.addEventListener('change', () => clearFieldError(field));
+    });
+}
+
+function validateLoginForm() {
+    clearFormErrors(loginForm);
+    const username = String(loginForm.elements.username.value || '').trim();
+    const password = String(loginForm.elements.password.value || '');
+    let valid = true;
+
+    if (!username) {
+        setFieldError(loginForm, 'username', '請輸入登入帳號。');
+        valid = false;
+    }
+    if (!password) {
+        setFieldError(loginForm, 'password', '請輸入登入密碼。');
+        valid = false;
+    }
+
+    return valid;
+}
+
+function validateAssetForm() {
+    clearFormErrors(assetForm);
+    const name = String(assetForm.elements.name.value || '').trim();
+    const target = String(assetForm.elements.target.value || '').trim();
+    const criticality = Number(assetForm.elements.criticality.value || 0);
+    let valid = true;
+
+    if (!name) {
+        setFieldError(assetForm, 'name', '設備名稱不可空白。');
+        valid = false;
+    }
+    if (!target) {
+        setFieldError(assetForm, 'target', '請輸入設備 IP 或主機名稱。');
+        valid = false;
+    }
+    if (!Number.isInteger(criticality) || criticality < 1 || criticality > 5) {
+        setFieldError(assetForm, 'criticality', '重要度必須介於 1 到 5。');
+        valid = false;
+    }
+
+    return valid;
+}
+
+function validateCredentialForm() {
+    clearFormErrors(credentialForm);
+    const kind = state.catalog.credentialKinds.find((item) => item.key === credentialKindSelect.value);
+    const name = String(credentialForm.elements.name.value || '').trim();
+    const username = String(credentialForm.elements.username.value || '').trim();
+    const primarySecret = String(credentialForm.elements.primary_secret.value || '').trim();
+    const secondarySecret = String(credentialForm.elements.secondary_secret.value || '').trim();
+    let valid = true;
+
+    if (!name) {
+        setFieldError(credentialForm, 'name', 'Credential 名稱不可空白。');
+        valid = false;
+    }
+    if (!kind) {
+        setFieldError(credentialForm, 'kind', '請選擇 credential 類型。');
+        valid = false;
+        return valid;
+    }
+    if (kind.requires_username && !username) {
+        setFieldError(credentialForm, 'username', '此 credential 類型需要使用者名稱。');
+        valid = false;
+    }
+    if (!primarySecret) {
+        setFieldError(credentialForm, 'primary_secret', '請填入主要密鑰或密碼。');
+        valid = false;
+    }
+    if (kind.requires_secondary_secret && !secondarySecret) {
+        setFieldError(credentialForm, 'secondary_secret', '此 credential 類型需要第二密鑰或 passphrase。');
+        valid = false;
+    }
+
+    return valid;
+}
+
+function validateScheduleForm(form, cadence) {
+    clearFormErrors(form);
+    let valid = true;
+    const scheduleName = String(form.elements.name.value || '').trim();
+    const cronExpr = String(form.elements.cron_expr?.value || '').trim();
+    const selectedWeekdays = Array.from(form.querySelector('#schedule-weekdays-select')?.selectedOptions || []);
+
+    if (!scheduleName) {
+        setFieldError(form, 'name', '排程名稱不可空白。');
+        valid = false;
+    }
+    if (cadence === 'Weekly' && selectedWeekdays.length === 0) {
+        setFieldError(form, 'weekdays', '每週排程至少要選擇一天。');
+        valid = false;
+    }
+    if (cadence === 'Cron' && !cronExpr) {
+        setFieldError(form, 'cron_expr', 'Cron 排程必須填入 Cron 表達式。');
+        valid = false;
+    }
+
+    return valid;
+}
+
 function renderBarRow(label, value, maxValue, tone = 'info') {
     const safeMax = maxValue > 0 ? maxValue : 1;
     const percentage = Math.max(6, Math.round((value / safeMax) * 100));
@@ -188,6 +335,54 @@ function scanProgressNote(scan) {
         return '本次掃描已完成，可直接依服務、漏洞、錯誤設定與曝露面向進行後續處置。';
     }
     return '目前無額外狀態說明。';
+}
+
+function scanTimeline(scan) {
+    const status = scan.status || 'Pending';
+    const engineCount = scan.scan_summary?.engines?.length || 0;
+    const queueState = status === 'Pending'
+        ? 'is-active'
+        : 'is-complete';
+    const probeState = status === 'Pending'
+        ? ''
+        : status === 'Failed' && engineCount === 0
+            ? 'is-failed'
+            : status === 'Running'
+                ? 'is-active'
+                : 'is-complete';
+    const analysisState = status === 'Completed'
+        ? 'is-complete'
+        : status === 'Failed' && engineCount > 0
+            ? 'is-failed'
+            : status === 'Running'
+                ? 'is-active'
+                : '';
+    const resultState = status === 'Completed'
+        ? 'is-complete'
+        : status === 'Failed'
+            ? 'is-failed'
+            : '';
+
+    return `
+        <div class="scan-timeline">
+            <article class="timeline-step ${queueState}">
+                <strong>Queue</strong>
+                <p>任務建立並進入佇列。</p>
+            </article>
+            <article class="timeline-step ${probeState}">
+                <strong>Probe</strong>
+                <p>服務探測與連線檢查。</p>
+            </article>
+            <article class="timeline-step ${analysisState}">
+                <strong>Analysis</strong>
+                <p>模板比對與風險歸類。</p>
+            </article>
+            <article class="timeline-step ${resultState}">
+                <strong>Report</strong>
+                <p>摘要寫回與報告輸出。</p>
+            </article>
+        </div>
+    `;
 }
 
 function populateDeviceSelectors() {
@@ -714,6 +909,7 @@ function scanCard(scan) {
             ${scan.scan_config ? `<p class="scan-meta">範圍：${scan.scan_config.profile.label} / ${scan.scan_config.device_template.label}</p>` : ''}
             ${summary?.authentication?.credential ? `<p class="scan-meta">認證：${summary.authentication.credential.name} / ${summary.authentication.credential.kind}</p>` : ''}
             <p class="scan-meta">${scan.error_message || '目前無錯誤訊息。'}</p>
+            ${scanTimeline(scan)}
             <div class="progress-note">${scanProgressNote(scan)}</div>
             <div class="summary-grid">
                 <section class="scan-summary-block">
@@ -819,6 +1015,7 @@ function renderReports() {
         reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
         reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
         reportSignals.innerHTML = '<div class="empty-state">尚未有掃描彙總資料。</div>';
+        reportTrends.innerHTML = '<div class="empty-state">尚未有趨勢資料。</div>';
         reportPriorities.innerHTML = '<div class="empty-state">尚未有優先處理資料。</div>';
         reportRecommendations.innerHTML = '<div class="empty-state">尚未有建議內容。</div>';
         reportStatus.textContent = '尚未載入';
@@ -963,6 +1160,67 @@ function renderReports() {
             <span>已退役設備</span>
             <strong>${state.report.asset_status_distribution?.Retired || 0}</strong>
         </article>
+    `;
+
+    const dailyBuckets = new Map();
+    for (let offset = 6; offset >= 0; offset -= 1) {
+        const day = new Date();
+        day.setHours(0, 0, 0, 0);
+        day.setDate(day.getDate() - offset);
+        const key = day.toISOString().slice(0, 10);
+        dailyBuckets.set(key, {
+            label: day.toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }),
+            completed: 0,
+            failed: 0,
+            running: 0,
+        });
+    }
+
+    state.scans.forEach((scan) => {
+        const rawDate = scan.finished_at || scan.started_at || scan.created_at;
+        if (!rawDate) {
+            return;
+        }
+        const parsed = new Date(rawDate);
+        if (Number.isNaN(parsed.getTime())) {
+            return;
+        }
+        const key = parsed.toISOString().slice(0, 10);
+        const bucket = dailyBuckets.get(key);
+        if (!bucket) {
+            return;
+        }
+        if (scan.status === 'Completed') {
+            bucket.completed += 1;
+        } else if (scan.status === 'Failed') {
+            bucket.failed += 1;
+        } else if (scan.status === 'Running' || scan.status === 'Pending') {
+            bucket.running += 1;
+        }
+    });
+
+    const trendDays = Array.from(dailyBuckets.values());
+    const trendMax = Math.max(...trendDays.map((day) => day.completed + day.failed + day.running), 1);
+    reportTrends.innerHTML = `
+        <div class="trend-grid">
+            ${trendDays.map((day) => {
+                const completedHeight = Math.max(10, Math.round((day.completed / trendMax) * 100));
+                const failedHeight = day.failed ? Math.max(10, Math.round((day.failed / trendMax) * 100)) : 0;
+                const runningHeight = day.running ? Math.max(10, Math.round((day.running / trendMax) * 100)) : 0;
+                return `
+                    <article class="trend-day">
+                        <strong>${day.label}</strong>
+                        <div class="trend-stack">
+                            ${day.completed ? `<div class="trend-bar completed" style="height:${completedHeight}px"></div>` : ''}
+                            ${day.failed ? `<div class="trend-bar failed" style="height:${failedHeight}px"></div>` : ''}
+                            ${day.running ? `<div class="trend-bar running" style="height:${runningHeight}px"></div>` : ''}
+                            ${!day.completed && !day.failed && !day.running ? '<div class="empty-state">無任務</div>' : ''}
+                        </div>
+                        <p>完成 ${day.completed} / 失敗 ${day.failed} / 執行中 ${day.running}</p>
+                    </article>
+                `;
+            }).join('')}
+        </div>
     `;
 
     const priorities = state.report.priority_assets || [];
@@ -1127,6 +1385,7 @@ function bindScheduleForm(asset, schedules) {
     if (!form) {
         return;
     }
+    bindInlineValidation(form);
     const cadenceSelect = document.getElementById('schedule-cadence-select');
     const weekdaysRow = document.getElementById('schedule-weekdays-row');
     const cronRow = document.getElementById('schedule-cron-row');
@@ -1143,6 +1402,11 @@ function bindScheduleForm(asset, schedules) {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
+        const cadence = cadenceSelect.value;
+        if (!validateScheduleForm(form, cadence)) {
+            showWarning('請先修正排程欄位錯誤。');
+            return;
+        }
         const formData = new FormData(form);
         const runTime = String(formData.get('run_time') || '02:00');
         const [hourText, minuteText] = runTime.split(':');
@@ -1432,6 +1696,10 @@ async function loadAssetDetail(assetId) {
 
 loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (!validateLoginForm()) {
+        showWarning('請先修正登入欄位錯誤。');
+        return;
+    }
     const formData = new FormData(loginForm);
     try {
         await login(String(formData.get('username') || ''), String(formData.get('password') || ''));
@@ -1449,6 +1717,10 @@ assetForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!state.currentUser) {
         showWarning('請先登入後再建立設備。');
+        return;
+    }
+    if (!validateAssetForm()) {
+        showWarning('請先修正設備欄位錯誤。');
         return;
     }
 
@@ -1493,6 +1765,10 @@ credentialForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!state.currentUser) {
         showWarning('請先登入後再建立 credential。');
+        return;
+    }
+    if (!validateCredentialForm()) {
+        showWarning('請先修正 credential 欄位錯誤。');
         return;
     }
 
@@ -1553,6 +1829,9 @@ credentialKindSelect.addEventListener('change', updateCredentialKindForm);
 
 (async function bootstrap() {
     populateDeviceSelectors();
+    bindInlineValidation(loginForm);
+    bindInlineValidation(assetForm);
+    bindInlineValidation(credentialForm);
     if (!state.token) {
         return;
     }

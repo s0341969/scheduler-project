@@ -10,6 +10,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - Dashboard 已拆成三個工作分頁：`設備`、`掃描`、`報告`
 - Dashboard 已重新規劃為商用品控制台版面，採深色側欄、亮色作業主區、決策型 KPI 卡與分頁式工作區
 - Dashboard 互動已改為非阻斷式通知模式，設備、排程、掃描與 credential 操作會以 toast 顯示結果，而不是中斷式 `alert()`
+- Dashboard 表單已補上 inline validation，登入、設備、credential 與排程欄位錯誤會直接顯示在欄位旁，不再只依賴 submit 後錯誤訊息
 - 設備導向資產模型，支援設備類型、位置、標籤與備註
 - 設備支援生命週期狀態：`運作中`、`維護中`、`已退役`
 - 支援 DB-backed 排程掃描，透過 `Celery beat` 每分鐘同步到期任務
@@ -222,8 +223,10 @@ docker compose -p vulnshield-iso up -d --build
 - Dashboard 目前採三分頁工作台：設備頁做 inventory 與單設備掃描策略、掃描頁做全域任務檢視，報告頁做風險與掃描面向彙總。
 - Dashboard UI 已改成商用品資訊架構：使用固定側欄、Hero KPI、決策型報告卡、設備治理工作區與亮暗對比明確的操作層級，避免 PoC 風格卡片堆疊。
 - 掃描分頁目前會先顯示營運摘要：待處理、執行中、已完成、失敗，以及常用掃描模式與任務狀態分布，再往下看逐筆任務。
+- 掃描任務卡目前會顯示簡化步驟時間軸：`Queue -> Probe -> Analysis -> Report`，協助判斷任務卡在哪一層。
 - 設備詳情頁目前會先顯示單設備 KPI：設備狀態、進行中任務、已完成任務、失敗任務與排程數量，再往下看掃描與 finding 明細。
 - 報告分頁目前已加入條帶式風險分布與設備狀態分布，讓畫面不只列數字，也能快速看出風險集中程度。
+- 報告分頁目前已補上近 7 天掃描趨勢，區分完成、失敗與執行中任務，便於看週期波動。
 - 排程掃描會先寫入 `scan_schedules`，再由 `Celery beat` 每分鐘檢查 `next_run_at` 是否到期，到期後建立 `scan_tasks` 並交給 worker 執行。
 - 排程若未明確指定 credential，會沿用設備預設 credential。
 - 報告頁已補上商用導向資訊：設備狀態分布、優先處理清單與營運建議，可直接看出先處理哪台設備與哪類營運問題。
