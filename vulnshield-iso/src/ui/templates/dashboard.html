@@ -292,6 +292,7 @@
                             <option value="Failed">Failed</option>
                         </select>
                     </div>
+                    <div id="scan-overview" class="detail-sections empty-state">請先登入，再載入掃描營運摘要。</div>
                     <div id="scan-list" class="detail-sections empty-state">請先登入，再載入掃描任務。</div>
                 </section>
             </section>
@@ -356,6 +357,8 @@
             </section>
         </main>
     </div>
+
+    <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="true"></div>
 
     <script src="/static/dashboard.js" defer></script>
 </body>

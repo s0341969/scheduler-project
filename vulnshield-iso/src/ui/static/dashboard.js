@@ -53,6 +53,7 @@ const assetTypeFilter = document.getElementById('asset-type-filter');
 const assetStatusFilter = document.getElementById('asset-status-filter');
 const scanSearch = document.getElementById('scan-search');
 const scanStatusFilter = document.getElementById('scan-status-filter');
+const scanOverview = document.getElementById('scan-overview');
 const scanList = document.getElementById('scan-list');
 const deviceTypeSelect = document.getElementById('device-type-select');
 const assetProfileSelect = document.getElementById('asset-profile-select');
@@ -76,6 +77,7 @@ const reportRecommendations = document.getElementById('report-recommendations');
 const reportStatus = document.getElementById('report-status');
 const navTabs = Array.from(document.querySelectorAll('.nav-tab'));
 const refreshAllButton = document.getElementById('refresh-all');
+const toastStack = document.getElementById('toast-stack');
 
 state.scans = [];
 state.report = null;
@@ -99,7 +101,38 @@ const deviceTypeToTemplate = {
 };
 
 function showMessage(message) {
-    window.alert(message);
+    showToast('系統通知', message, 'info');
+}
+
+function showToast(title, message, tone = 'info') {
+    if (!toastStack) {
+        window.alert(message);
+        return;
+    }
+
+    const toast = document.createElement('article');
+    toast.className = `toast ${tone}`;
+    toast.innerHTML = `
+        <strong>${title}</strong>
+        <p>${message}</p>
+    `;
+    toastStack.appendChild(toast);
+
+    window.setTimeout(() => {
+        toast.remove();
+    }, 4200);
+}
+
+function showError(message) {
+    showToast('操作失敗', message, 'error');
+}
+
+function showSuccess(message) {
+    showToast('已完成', message, 'success');
+}
+
+function showWarning(message) {
+    showToast('注意', message, 'warning');
 }
 
 function statusChip(status) {
@@ -116,6 +149,45 @@ function statusChip(status) {
                 ? 'warning'
                 : 'muted';
     return `<span class="status-chip ${className}">${normalized}</span>`;
+}
+
+function renderBarRow(label, value, maxValue, tone = 'info') {
+    const safeMax = maxValue > 0 ? maxValue : 1;
+    const percentage = Math.max(6, Math.round((value / safeMax) * 100));
+    const fillClass = tone === 'danger'
+        ? 'danger'
+        : tone === 'warning'
+            ? 'warning'
+            : tone === 'muted'
+                ? 'muted'
+                : '';
+    return `
+        <div class="bar-row">
+            <div class="bar-row-head">
+                <span>${label}</span>
+                <strong>${value}</strong>
+            </div>
+            <div class="bar-track">
+                <div class="bar-fill ${fillClass}" style="width:${Math.min(percentage, 100)}%"></div>
+            </div>
+        </div>
+    `;
+}
+
+function scanProgressNote(scan) {
+    if (scan.status === 'Pending') {
+        return '任務已排入佇列，等待 worker 接手。若長時間停在 Pending，應優先檢查 queue 與 worker 健康狀態。';
+    }
+    if (scan.status === 'Running') {
+        return '掃描正在執行中，通常會依序經過服務探測、模板比對與結果整理。';
+    }
+    if (scan.status === 'Failed') {
+        return '本次掃描未完成，請先閱讀錯誤訊息，再判斷是連線、認證、模板或掃描器層面的問題。';
+    }
+    if (scan.status === 'Completed') {
+        return '本次掃描已完成，可直接依服務、漏洞、錯誤設定與曝露面向進行後續處置。';
+    }
+    return '目前無額外狀態說明。';
 }
 
 function populateDeviceSelectors() {
@@ -219,9 +291,9 @@ function renderCredentials() {
                 if (state.selectedAssetId) {
                     await loadAssetDetail(state.selectedAssetId);
                 }
-                showMessage(nextState ? 'Credential 已重新啟用。' : 'Credential 已停用。');
+                showSuccess(nextState ? 'Credential 已重新啟用。' : 'Credential 已停用。');
             } catch (error) {
-                showMessage(error.message);
+                showError(error.message);
             }
         });
     });
@@ -238,9 +310,9 @@ function renderCredentials() {
                 if (state.selectedAssetId) {
                     await loadAssetDetail(state.selectedAssetId);
                 }
-                showMessage('Credential 已刪除。');
+                showSuccess('Credential 已刪除。');
             } catch (error) {
-                showMessage(error.message);
+                showError(error.message);
             }
         });
     });
@@ -343,6 +415,7 @@ function logout() {
     selectedAssetStatus.className = 'status-chip muted';
     assetList.innerHTML = '<div class="empty-state">請先登入，再載入設備清單。</div>';
     assetDetail.innerHTML = '選一台設備後，這裡會顯示設備資料、掃描歷史、掃描內容與弱點清單。';
+    scanOverview.innerHTML = '<div class="empty-state">請先登入，再載入掃描營運摘要。</div>';
     scanList.innerHTML = '<div class="empty-state">請先登入，再載入掃描任務。</div>';
     reportSummary.innerHTML = '<div class="empty-state">請先登入，再載入報告資料。</div>';
     reportAssets.innerHTML = '<div class="empty-state">尚未有報告內容。</div>';
@@ -485,7 +558,7 @@ function renderAssets() {
             state.selectedAssetId = assetId;
             state.editingScheduleId = null;
             renderAssets();
-            loadAssetDetail(assetId).catch((error) => showMessage(error.message));
+            loadAssetDetail(assetId).catch((error) => showError(error.message));
         });
     });
 }
@@ -621,7 +694,7 @@ function scanCard(scan) {
         : '<div class="empty-state">本次沒有額外資訊或風險提示。</div>';
 
     return `
-        <article class="scan-card">
+        <article class="scan-card operation-card">
             <div class="scan-head">
                 <div>
                     <h3>掃描任務 #${scan.id}</h3>
@@ -641,6 +714,7 @@ function scanCard(scan) {
             ${scan.scan_config ? `<p class="scan-meta">範圍：${scan.scan_config.profile.label} / ${scan.scan_config.device_template.label}</p>` : ''}
             ${summary?.authentication?.credential ? `<p class="scan-meta">認證：${summary.authentication.credential.name} / ${summary.authentication.credential.kind}</p>` : ''}
             <p class="scan-meta">${scan.error_message || '目前無錯誤訊息。'}</p>
+            <div class="progress-note">${scanProgressNote(scan)}</div>
             <div class="summary-grid">
                 <section class="scan-summary-block">
                     <h4>本次掃描用了哪些引擎</h4>
@@ -677,6 +751,62 @@ function scanCard(scan) {
 
 function renderScans() {
     const scans = filteredScans();
+    const summary = state.scans.reduce((result, scan) => {
+        const status = scan.status || 'Unknown';
+        result.byStatus[status] = (result.byStatus[status] || 0) + 1;
+        const profile = scan.scan_profile || 'standard';
+        result.byProfile[profile] = (result.byProfile[profile] || 0) + 1;
+        return result;
+    }, {
+        byStatus: {},
+        byProfile: {},
+    });
+
+    const profileEntries = Object.entries(summary.byProfile)
+        .sort((left, right) => right[1] - left[1])
+        .slice(0, 4);
+    const profileMax = profileEntries.length ? profileEntries[0][1] : 1;
+
+    scanOverview.innerHTML = `
+        <div class="kpi-strip">
+            <article class="kpi-mini">
+                <span>待處理</span>
+                <strong>${summary.byStatus.Pending || 0}</strong>
+            </article>
+            <article class="kpi-mini">
+                <span>執行中</span>
+                <strong>${summary.byStatus.Running || 0}</strong>
+            </article>
+            <article class="kpi-mini">
+                <span>已完成</span>
+                <strong>${summary.byStatus.Completed || 0}</strong>
+            </article>
+            <article class="kpi-mini">
+                <span>失敗</span>
+                <strong>${summary.byStatus.Failed || 0}</strong>
+            </article>
+        </div>
+        <div class="insight-grid">
+            <article class="scan-card">
+                <h3>任務狀態分布</h3>
+                <div class="bar-list">
+                    ${renderBarRow('Pending', summary.byStatus.Pending || 0, state.scans.length, 'muted')}
+                    ${renderBarRow('Running', summary.byStatus.Running || 0, state.scans.length, 'warning')}
+                    ${renderBarRow('Completed', summary.byStatus.Completed || 0, state.scans.length, 'info')}
+                    ${renderBarRow('Failed', summary.byStatus.Failed || 0, state.scans.length, 'danger')}
+                </div>
+            </article>
+            <article class="scan-card">
+                <h3>常用掃描模式</h3>
+                <div class="bar-list">
+                    ${profileEntries.length
+                        ? profileEntries.map(([profile, count]) => renderBarRow(profileLabel(profile), count, profileMax, 'info')).join('')
+                        : '<div class="empty-state">目前尚無可分析的掃描模式資料。</div>'}
+                </div>
+            </article>
+        </div>
+    `;
+
     if (!scans.length) {
         scanList.innerHTML = '<div class="empty-state">目前沒有符合條件的掃描任務。</div>';
         return;
@@ -701,22 +831,37 @@ function renderReports() {
         ? 'status-chip safe'
         : 'status-chip warning';
 
+    const severityBars = [
+        ['高風險', state.report.summary.high_risk, 'danger'],
+        ['中風險', state.report.summary.medium_risk, 'warning'],
+        ['低風險', state.report.summary.low_risk, 'muted'],
+    ];
+    const severityMax = Math.max(...severityBars.map((entry) => entry[1]), 1);
+
     reportSummary.innerHTML = `
-        <article class="report-card">
+        <article class="report-card compact">
             <span>總 finding</span>
             <strong>${state.report.summary.total_findings}</strong>
+            <p>目前納管範圍內所有已建立的 finding 數量。</p>
         </article>
-        <article class="report-card">
-            <span>高風險</span>
-            <strong>${state.report.summary.high_risk}</strong>
+        <article class="report-card compact">
+            <span>高風險占比</span>
+            <strong>${state.report.summary.total_findings ? Math.round((state.report.summary.high_risk / state.report.summary.total_findings) * 100) : 0}%</strong>
+            <p>反映目前是否有過多暴露集中在高風險區。</p>
         </article>
-        <article class="report-card">
-            <span>中風險</span>
-            <strong>${state.report.summary.medium_risk}</strong>
+        <article class="scan-card">
+            <h3>風險層級分布</h3>
+            <div class="bar-list">
+                ${severityBars.map(([label, value, tone]) => renderBarRow(label, value, severityMax, tone)).join('')}
+            </div>
         </article>
-        <article class="report-card">
-            <span>低風險</span>
-            <strong>${state.report.summary.low_risk}</strong>
+        <article class="scan-card">
+            <h3>管理狀態判讀</h3>
+            <div class="bar-list">
+                ${renderBarRow('運作中設備', state.report.asset_status_distribution?.Active || 0, state.assets.length || 1, 'info')}
+                ${renderBarRow('維護中設備', state.report.asset_status_distribution?.Maintenance || 0, state.assets.length || 1, 'warning')}
+                ${renderBarRow('已退役設備', state.report.asset_status_distribution?.Retired || 0, state.assets.length || 1, 'muted')}
+            </div>
         </article>
     `;
 
@@ -770,51 +915,51 @@ function renderReports() {
     });
 
     reportSignals.innerHTML = `
-        <article class="report-card">
+        <article class="report-card compact">
             <span>已完成掃描</span>
             <strong>${scanStats.byStatus.Completed || 0}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>待處理 / 執行中</span>
             <strong>${(scanStats.byStatus.Pending || 0) + (scanStats.byStatus.Running || 0)}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>掃描失敗</span>
             <strong>${scanStats.byStatus.Failed || 0}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>已辨識服務</span>
             <strong>${scanStats.services}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>漏洞訊號</span>
             <strong>${scanStats.vulnerabilities}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>錯誤設定</span>
             <strong>${scanStats.misconfigurations}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>憑證風險</span>
             <strong>${scanStats.certificateRisks}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>管理面曝露</span>
             <strong>${scanStats.exposures}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>資訊 / 風險提示</span>
             <strong>${scanStats.informational}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>運作中設備</span>
             <strong>${state.report.asset_status_distribution?.Active || 0}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>維護中設備</span>
             <strong>${state.report.asset_status_distribution?.Maintenance || 0}</strong>
         </article>
-        <article class="report-card">
+        <article class="report-card compact">
             <span>已退役設備</span>
             <strong>${state.report.asset_status_distribution?.Retired || 0}</strong>
         </article>
@@ -1022,20 +1167,20 @@ function bindScheduleForm(asset, schedules) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
-                showMessage('排程更新成功。');
+                showSuccess('排程更新成功。');
             } else {
                 await apiRequest(`/assets/${asset.id}/schedules`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload),
                 });
-                showMessage('排程建立成功。');
+                showSuccess('排程建立成功。');
             }
             state.editingScheduleId = null;
             await loadAssetDetail(asset.id);
             await loadScans();
         } catch (error) {
-            showMessage(error.message);
+            showError(error.message);
         }
     });
 
@@ -1062,11 +1207,11 @@ function bindScheduleForm(asset, schedules) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ is_active: nextState }),
                 });
-                showMessage(nextState ? '排程已重新啟用。' : '排程已停用。');
+                showSuccess(nextState ? '排程已重新啟用。' : '排程已停用。');
                 state.editingScheduleId = null;
                 await loadAssetDetail(asset.id);
             } catch (error) {
-                showMessage(error.message);
+                showError(error.message);
             }
         });
     });
@@ -1078,11 +1223,11 @@ function bindScheduleForm(asset, schedules) {
             }
             try {
                 await apiRequest(`/schedules/${scheduleId}`, { method: 'DELETE' });
-                showMessage('排程已刪除。');
+                showSuccess('排程已刪除。');
                 state.editingScheduleId = null;
                 await loadAssetDetail(asset.id);
             } catch (error) {
-                showMessage(error.message);
+                showError(error.message);
             }
         });
     });
@@ -1099,6 +1244,11 @@ function setActiveTab(tabName) {
 }
 
 function renderAssetDetail(asset, scans, findings, schedules) {
+    const runningScans = scans.filter((scan) => scan.status === 'Running').length;
+    const pendingScans = scans.filter((scan) => scan.status === 'Pending').length;
+    const completedScans = scans.filter((scan) => scan.status === 'Completed').length;
+    const failedScans = scans.filter((scan) => scan.status === 'Failed').length;
+
     selectedAssetStatus.textContent = asset.name;
     selectedAssetStatus.className = 'status-chip accent';
 
@@ -1115,6 +1265,25 @@ function renderAssetDetail(asset, scans, findings, schedules) {
                     <select id="detail-scan-profile"></select>
                     <button id="run-scan" class="primary-button" type="button">執行弱點掃描</button>
                 </div>
+            </div>
+
+            <div class="kpi-strip">
+                <article class="kpi-mini">
+                    <span>設備狀態</span>
+                    <strong>${assetStatusLabels[asset.status] || asset.status}</strong>
+                </article>
+                <article class="kpi-mini">
+                    <span>進行中任務</span>
+                    <strong>${runningScans + pendingScans}</strong>
+                </article>
+                <article class="kpi-mini">
+                    <span>已完成任務</span>
+                    <strong>${completedScans}</strong>
+                </article>
+                <article class="kpi-mini">
+                    <span>失敗任務</span>
+                    <strong>${failedScans}</strong>
+                </article>
             </div>
 
             <div class="detail-grid">
@@ -1145,6 +1314,10 @@ function renderAssetDetail(asset, scans, findings, schedules) {
                 <article>
                     <h3>風險摘要</h3>
                     <p>總 finding ${asset.total_findings} / 未關閉 ${asset.open_findings} / 高風險 ${asset.high_risk_findings}</p>
+                </article>
+                <article>
+                    <h3>排程數量</h3>
+                    <p>啟用 ${schedules.filter((schedule) => schedule.is_active).length} / 全部 ${schedules.length}</p>
                 </article>
             </div>
             ${asset.status === 'Retired' ? '<div class="empty-state">這台設備目前標記為已退役，系統會阻擋新的掃描任務。</div>' : ''}
@@ -1205,18 +1378,18 @@ function renderAssetDetail(asset, scans, findings, schedules) {
                     credential_id: detailCredentialSelect.value ? Number(detailCredentialSelect.value) : null,
                 }),
             });
-            showMessage(`已建立掃描任務 #${task.id}`);
+            showSuccess(`已建立掃描任務 #${task.id}`);
             await Promise.all([loadAssets(), loadScans(), loadReports(), loadCredentials()]);
             await loadAssetDetail(asset.id);
         } catch (error) {
-            showMessage(error.message);
+            showError(error.message);
         }
     });
 }
 
 async function loadAssets() {
     if (!state.token) {
-        showMessage('請先登入。');
+        showWarning('請先登入。');
         return;
     }
 
@@ -1265,17 +1438,17 @@ loginForm.addEventListener('submit', async (event) => {
         await fetchCurrentUser();
         await loadCatalog();
         await Promise.all([loadCredentials(), loadAssets(), loadScans(), loadReports()]);
-        showMessage('登入成功。');
+        showSuccess('登入成功。');
     } catch (error) {
         logout();
-        showMessage(error.message);
+        showError(error.message);
     }
 });
 
 assetForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!state.currentUser) {
-        showMessage('請先登入後再建立設備。');
+        showWarning('請先登入後再建立設備。');
         return;
     }
 
@@ -1310,16 +1483,16 @@ assetForm.addEventListener('submit', async (event) => {
         state.selectedAssetId = asset.id;
         await Promise.all([loadCatalog(), loadCredentials(), loadAssets(), loadScans(), loadReports()]);
         await loadAssetDetail(asset.id);
-        showMessage(isEditing ? '設備更新成功。' : '設備建立成功。');
+        showSuccess(isEditing ? '設備更新成功。' : '設備建立成功。');
     } catch (error) {
-        showMessage(error.message);
+        showError(error.message);
     }
 });
 
 credentialForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     if (!state.currentUser) {
-        showMessage('請先登入後再建立 credential。');
+        showWarning('請先登入後再建立 credential。');
         return;
     }
 
@@ -1345,14 +1518,16 @@ credentialForm.addEventListener('submit', async (event) => {
         credentialForm.reset();
         updateCredentialKindForm();
         await Promise.all([loadCatalog(), loadCredentials(), loadAssets()]);
-        showMessage('Credential 建立成功。');
+        showSuccess('Credential 建立成功。');
     } catch (error) {
-        showMessage(error.message);
+        showError(error.message);
     }
 });
 
 refreshAllButton.addEventListener('click', () => {
-    Promise.all([loadCatalog(), loadCredentials(), loadAssets(), loadScans(), loadReports()]).catch((error) => showMessage(error.message));
+    Promise.all([loadCatalog(), loadCredentials(), loadAssets(), loadScans(), loadReports()]).then(() => {
+        showSuccess('已同步最新資料。');
+    }).catch((error) => showError(error.message));
 });
 
 logoutButton.addEventListener('click', logout);

@@ -18,7 +18,8 @@
 - 為設備管理頁補上複製設備功能
 - 為設備管理頁補上 per-device remediation 任務與負責人追蹤
 - 為 dashboard 的 `報告` 分頁補上趨勢圖、掃描類型分布與可匯出報表
-- 為新的商用品 dashboard 補上 inline validation、toast 訊息與非阻斷式操作回饋，取代目前 `alert()` 為主的互動方式
+- 為新的商用品 dashboard 補上 inline validation 與欄位層級錯誤提示，目前已改為 toast，但表單仍缺少欄位內回饋
 - 為 dashboard 補上實機瀏覽器 UI smoke test，驗證三分頁版面在 `320px / 768px / 1024px / 1440px` 的可用性
+- 為掃描分頁補上真正的進度時間軸與步驟狀態，目前僅提供 Pending / Running / Completed / Failed 的營運判讀
 - 視需要補一鍵登入、建立測試資產、觸發掃描的自動化腳本
 - 視需要補停止系統與清除容器的 `stop_system.ps1` / `stop_system.bat`
