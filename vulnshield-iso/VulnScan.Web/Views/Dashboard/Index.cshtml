@@ -1,0 +1,102 @@
+@model VulnScan.Web.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "儀表板";
+}
+
+<section class="hero-grid">
+    <article class="metric-card">
+        <span class="metric-label">啟用資產</span>
+        <strong class="metric-value">@Model.AssetCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">高風險弱點</span>
+        <strong class="metric-value">@Model.HighRiskVulnerabilityCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">未結案弱點</span>
+        <strong class="metric-value">@Model.OpenVulnerabilityCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">逾期改善</span>
+        <strong class="metric-value">@Model.OverdueVulnerabilityCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">白名單範圍</span>
+        <strong class="metric-value">@Model.AllowedRangeCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">掃描任務 / 執行中</span>
+        <strong class="metric-value">@Model.ScanJobCount / @Model.RunningScanCount</strong>
+    </article>
+</section>
+
+<section class="panel-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>最近掃描紀錄</h3>
+            <a asp-controller="ScanRuns" asp-action="Index">查看全部</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>RunID</th>
+                        <th>任務</th>
+                        <th>目標</th>
+                        <th>狀態</th>
+                        <th>開始</th>
+                        <th>結束</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.RecentRuns)
+                {
+                    <tr>
+                        <td>@item.RunId</td>
+                        <td>@item.JobName</td>
+                        <td>@item.TargetRange</td>
+                        <td><span class="status-pill">@item.Status</span></td>
+                        <td>@item.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@(item.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? "-")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>最近弱點</h3>
+            <a asp-controller="Vulnerabilities" asp-action="Index">查看全部</a>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>資產</th>
+                        <th>弱點</th>
+                        <th>Severity</th>
+                        <th>狀態</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.RecentVulnerabilities)
+                {
+                    <tr>
+                        <td>@item.VulnId</td>
+                        <td>@item.AssetName</td>
+                        <td>@item.VulnName</td>
+                        <td>@item.Severity</td>
+                        <td><span class="status-pill">@item.Status</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <div class="last-scan-note">
+            最近完成掃描：@(Model.LastScanTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "尚無資料")
+        </div>
+    </article>
+</section>

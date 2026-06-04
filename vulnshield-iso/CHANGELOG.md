@@ -1,6 +1,15 @@
 # Changelog
 
 ## 2026-06-04
+- 依 `VulnScan_Web_SPEC.md` 新增平行專案 `VulnScan.Web`，採 `ASP.NET Core MVC + MSSQL + Hangfire + Nmap` 重新實作弱點掃描管理平台 V1
+- 新增 `VulnScan.Web.slnx`、`VulnScan.Web.csproj` 與完整 MVC 專案結構，避免再沿用舊 Python Dashboard 勉強承接新規格
+- 新增 spec 對應資料模型：`Users`、`Assets`、`ScanAllowedRanges`、`ScanJobs`、`ScanRuns`、`AssetPorts`、`Vulnerabilities`、`VulnerabilityActions`、`AuditLogs`、`ReportExports`
+- 新增服務骨架：`ScanAllowedRangeService`、`ScanJobService`、`NmapService`、`NmapXmlParserService`、`ReportService`、`AuditLogService`
+- 新增 `DbInitializer`：啟動時自動建立資料庫、預設本地帳號與初始內網白名單
+- 新增 `LocalAuth` 設定與 DB-based 角色登入，修正原本任意輸入帳密即可登入的高風險行為
+- 新增 `Dashboard`、`Assets`、`ScanAllowedRanges`、`ScanJobs`、`ScanRuns`、`AssetPorts`、`Vulnerabilities`、`Reports`、`AuditLogs` 的 Razor 畫面
+- 新增 V1 可用頁面流程：建立資產、維護白名單、建立掃描任務、手動觸發掃描、查掃描紀錄、查 Port/Service、查弱點、匯出 Excel、查稽核紀錄
+- 重寫 `VulnScan.Web` 版面為商用後台式樣：固定側欄、儀表板 KPI、任務面板、資產治理與報表區塊
 - 重新規劃 dashboard 商用品 UI：改為固定側欄 + 作業主區的控制台版型，明確拆分設備治理、掃描營運與報告決策三種工作情境
 - 重設 dashboard 視覺語言：導入深色導覽欄、亮色操作面、KPI Hero 區、決策型報告卡與更明確的狀態層級，改善原本 PoC 感過重的版面
 - 強化互動細節：補上表單 / 按鈕 / 卡片的 focus 樣式、區塊節奏、響應式佈局與較穩定的商用產品視覺階層

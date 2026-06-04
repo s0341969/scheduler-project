@@ -1,0 +1,61 @@
+@model VulnScan.Web.ViewModels.ReportsIndexViewModel
+@{
+    ViewData["Title"] = "報表匯出";
+}
+
+<section class="hero-grid">
+    <article class="metric-card">
+        <span class="metric-label">弱點總數</span>
+        <strong class="metric-value">@Model.VulnerabilityCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">高風險弱點</span>
+        <strong class="metric-value">@Model.HighRiskCount</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">歷史匯出</span>
+        <strong class="metric-value">@Model.ExportCount</strong>
+    </article>
+</section>
+
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>立即匯出</h3>
+        </div>
+        <form asp-action="ExportHighRisk" method="post" class="form-stack">
+            @Html.AntiForgeryToken()
+            <p>第一版先提供高風險弱點 Excel 匯出，產出位置會落在 `VulnScan:ResultRootPath\reports`。</p>
+            <button type="submit" class="btn btn-primary">匯出高風險弱點 Excel</button>
+        </form>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>最近匯出紀錄</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>報表名稱</th>
+                        <th>類型</th>
+                        <th>路徑</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.RecentExports)
+                {
+                    <tr>
+                        <td>@item.ReportName</td>
+                        <td>@item.ReportType</td>
+                        <td class="path-cell">@item.FilePath</td>
+                        <td>@item.ExportedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>

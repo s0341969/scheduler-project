@@ -1,0 +1,42 @@
+@model IReadOnlyList<VulnScan.Web.Models.AssetPort>
+@{
+    ViewData["Title"] = "Port / Service 結果";
+}
+
+<article class="panel-card">
+    <div class="panel-card-header">
+        <h3>Port 與服務結果</h3>
+        <span class="counter-pill">@Model.Count 筆</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark-table align-middle">
+            <thead>
+                <tr>
+                    <th>資產</th>
+                    <th>IP</th>
+                    <th>Port</th>
+                    <th>Protocol</th>
+                    <th>Service</th>
+                    <th>Product</th>
+                    <th>Version</th>
+                    <th>Risk Hint</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@(item.Asset?.AssetName ?? "-")</td>
+                    <td>@item.IPAddress</td>
+                    <td>@item.PortNumber</td>
+                    <td>@item.Protocol</td>
+                    <td>@item.ServiceName</td>
+                    <td>@item.ServiceProduct</td>
+                    <td>@item.ServiceVersion</td>
+                    <td>@(item.RiskHint ?? "-")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</article>

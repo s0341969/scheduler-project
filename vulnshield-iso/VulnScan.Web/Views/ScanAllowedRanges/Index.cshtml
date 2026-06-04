@@ -1,0 +1,67 @@
+@model VulnScan.Web.ViewModels.ScanAllowedRangesIndexViewModel
+@{
+    ViewData["Title"] = "掃描白名單";
+}
+
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>新增白名單範圍</h3>
+        </div>
+        <form asp-action="Create" method="post" class="form-grid">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <div>
+                <label asp-for="Form.RangeName" class="form-label"></label>
+                <input asp-for="Form.RangeName" class="form-control" />
+                <span asp-validation-for="Form.RangeName" class="text-danger"></span>
+            </div>
+            <div>
+                <label asp-for="Form.Cidr" class="form-label"></label>
+                <input asp-for="Form.Cidr" class="form-control" />
+                <span asp-validation-for="Form.Cidr" class="text-danger"></span>
+            </div>
+            <div class="full-width">
+                <label asp-for="Form.Description" class="form-label"></label>
+                <textarea asp-for="Form.Description" class="form-control" rows="3"></textarea>
+            </div>
+            <div class="form-check align-self-end">
+                <input asp-for="Form.IsEnabled" class="form-check-input" />
+                <label asp-for="Form.IsEnabled" class="form-check-label">啟用範圍</label>
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">新增白名單</button>
+            </div>
+        </form>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>白名單列表</h3>
+            <span class="counter-pill">@Model.Items.Count 筆</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>名稱</th>
+                        <th>CIDR / Range</th>
+                        <th>狀態</th>
+                        <th>說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.RangeName</td>
+                        <td>@item.Cidr</td>
+                        <td><span class="status-pill">@(item.IsEnabled ? "Enabled" : "Disabled")</span></td>
+                        <td>@(item.Description ?? "-")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>

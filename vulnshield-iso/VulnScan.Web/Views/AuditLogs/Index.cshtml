@@ -1,0 +1,38 @@
+@model IReadOnlyList<VulnScan.Web.Models.AuditLog>
+@{
+    ViewData["Title"] = "稽核紀錄";
+}
+
+<article class="panel-card">
+    <div class="panel-card-header">
+        <h3>Audit Logs</h3>
+        <span class="counter-pill">@Model.Count 筆</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark-table align-middle">
+            <thead>
+                <tr>
+                    <th>時間</th>
+                    <th>帳號</th>
+                    <th>動作</th>
+                    <th>目標類型</th>
+                    <th>目標 ID</th>
+                    <th>訊息</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@(item.UserAccount ?? "-")</td>
+                    <td>@item.ActionType</td>
+                    <td>@item.TargetType</td>
+                    <td>@(item.TargetId?.ToString() ?? "-")</td>
+                    <td>@(item.LogMessage ?? "-")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</article>

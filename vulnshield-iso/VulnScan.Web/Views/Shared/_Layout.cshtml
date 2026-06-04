@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - VulnScan Web</title>
+    <script type="importmap"></script>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/VulnScan.Web.styles.css" asp-append-version="true" />
+</head>
+<body>
+    <div class="app-shell">
+        <aside class="sidebar">
+            <div>
+                <div class="brand-mark">VS</div>
+                <h1 class="brand-title">VulnScan Web</h1>
+                <p class="brand-subtitle">企業弱點掃描管理平台</p>
+            </div>
+            <nav class="sidebar-nav">
+                <a asp-controller="Dashboard" asp-action="Index">儀表板</a>
+                <a asp-controller="Assets" asp-action="Index">資產清冊</a>
+                <a asp-controller="ScanAllowedRanges" asp-action="Index">掃描白名單</a>
+                <a asp-controller="ScanJobs" asp-action="Index">掃描任務</a>
+                <a asp-controller="ScanRuns" asp-action="Index">掃描紀錄</a>
+                <a asp-controller="AssetPorts" asp-action="Index">Port / Service</a>
+                <a asp-controller="Vulnerabilities" asp-action="Index">弱點清單</a>
+                <a asp-controller="Reports" asp-action="Index">報表匯出</a>
+                <a asp-controller="AuditLogs" asp-action="Index">稽核紀錄</a>
+            </nav>
+            <div class="sidebar-footer">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <div class="user-pill">
+                        <div class="user-name">@User.Identity.Name</div>
+                        <div class="user-role">@string.Join(", ", User.Claims.Where(item => item.Type == System.Security.Claims.ClaimTypes.Role).Select(item => item.Value))</div>
+                    </div>
+                    <form asp-controller="Auth" asp-action="Logout" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-light w-100">登出</button>
+                    </form>
+                }
+                else
+                {
+                    <a asp-controller="Auth" asp-action="Login" class="btn btn-light w-100">登入</a>
+                }
+            </div>
+        </aside>
+
+        <main class="main-panel">
+            <header class="topbar">
+                <div>
+                    <div class="eyebrow">Production-Safe Scanning</div>
+                    <h2 class="page-title">@ViewData["Title"]</h2>
+                </div>
+                <div class="topbar-note">僅允許白名單掃描，所有操作皆記錄 AuditLogs</div>
+            </header>
+
+            @if (TempData["StatusMessage"] is string statusMessage && !string.IsNullOrWhiteSpace(statusMessage))
+            {
+                <div class="alert alert-success shadow-sm">@statusMessage</div>
+            }
+
+            <section class="content-surface">
+                @RenderBody()
+            </section>
+        </main>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

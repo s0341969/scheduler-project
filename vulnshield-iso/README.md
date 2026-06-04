@@ -1,6 +1,67 @@
-# VulnShield-ISO 🛡️
+# VulnShield-ISO / VulnScan.Web 🛡️
+
+> 2026-06-04 起，repo 內已新增一條依 `VulnScan_Web_SPEC.md` 重新開發的平行產品線：`VulnScan.Web`。  
+> 舊的 `src/*` Python/FastAPI 系統保留不動，新的商用化弱掃平台開發以 `G:\codex_pg\vulnshield-iso\VulnScan.Web` 為主。
 
 VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nuclei` 建構的弱點掃描與漏洞管理系統。此版本已補上可實際使用的 JWT 認證、RBAC、啟動時資料表初始化、預設管理員建立，以及掃描結果正規化與去重邏輯。
+
+## 新版商用規格實作：`VulnScan.Web`
+
+`VulnScan.Web` 是依 [VulnScan_Web_SPEC.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_SPEC.md) 新建的 ASP.NET Core MVC 版本，定位是新的弱點掃描管理平台，而不是延伸舊 Python Dashboard。
+
+### 目前已完成的 V1 核心
+- ASP.NET Core MVC + MSSQL + Hangfire 專案骨架
+- 依 spec 建立資料模型：
+  - `Users`
+  - `Assets`
+  - `ScanAllowedRanges`
+  - `ScanJobs`
+  - `ScanRuns`
+  - `AssetPorts`
+  - `Vulnerabilities`
+  - `VulnerabilityActions`
+  - `AuditLogs`
+  - `ReportExports`
+- 白名單檢查服務：非白名單 IP 會直接拒絕並寫入 `AuditLogs`
+- `ScanJobs -> ScanRuns -> Hangfire -> Nmap -> XML Parser -> AssetPorts` 執行流程
+- Excel 匯出服務：可匯出高風險弱點報表
+- MVC 頁面：
+  - `Dashboard`
+  - `Assets`
+  - `ScanAllowedRanges`
+  - `ScanJobs`
+  - `ScanRuns`
+  - `AssetPorts`
+  - `Vulnerabilities`
+  - `Reports`
+  - `AuditLogs`
+- 啟動時會自動 `EnsureCreated()`，並建立預設使用者與內網白名單
+
+### `VulnScan.Web` 啟動方式
+1. 先確認 MSSQL 可連線，並依需求調整：
+   - [VulnScan.Web/appsettings.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.json)
+   - [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json)
+2. 於 repo 根目錄執行：
+
+```powershell
+dotnet build
+dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj
+```
+
+### `VulnScan.Web` 本地登入假設
+由於 spec 的 `Users` 資料表沒有密碼欄位，這版採用最小侵入的本地登入策略：
+- 帳號與角色由 `Users` 資料表管理
+- 密碼由 `LocalAuth:SharedPassword` 控制
+- Development 預設密碼在 [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json) 為 `Admin123!`
+- 啟動時會自動建立：
+  - `admin`
+  - `secmgr`
+  - `scanner`
+  - `viewer`
+
+正式環境應改為：
+- AD / LDAP / SSO
+- 或在後續版本為 `Users` 補齊獨立密碼/身分驗證機制
 
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`

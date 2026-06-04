@@ -1,0 +1,44 @@
+@model IReadOnlyList<VulnScan.Web.Models.ScanRun>
+@{
+    ViewData["Title"] = "掃描紀錄";
+}
+
+<article class="panel-card">
+    <div class="panel-card-header">
+        <h3>掃描執行紀錄</h3>
+        <span class="counter-pill">@Model.Count 筆</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark-table align-middle">
+            <thead>
+                <tr>
+                    <th>RunID</th>
+                    <th>任務</th>
+                    <th>狀態</th>
+                    <th>Host</th>
+                    <th>Open Port</th>
+                    <th>弱點數</th>
+                    <th>開始</th>
+                    <th>結束</th>
+                    <th>錯誤</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>@item.RunId</td>
+                    <td>@(item.ScanJob?.JobName ?? item.JobId.ToString())</td>
+                    <td><span class="status-pill">@item.Status</span></td>
+                    <td>@item.TotalHosts</td>
+                    <td>@item.TotalOpenPorts</td>
+                    <td>@item.TotalVulnerabilities</td>
+                    <td>@item.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@(item.EndTime?.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                    <td>@(item.ErrorMessage ?? "-")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</article>

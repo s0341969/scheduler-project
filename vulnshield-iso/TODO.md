@@ -1,5 +1,13 @@
 # TODO
 
+- 為 `VulnScan.Web` 導入正式 migration 流程，將 `EnsureCreated()` 升級為可版控的 EF Core Migration
+- 為 `VulnScan.Web` 補上 `Users` 的正式身份驗證設計，替換目前 spec 缺密碼欄位下採用的 `LocalAuth:SharedPassword`
+- 為 `VulnScan.Web` 補上 `ScanAllowedRanges` / `Assets` / `ScanJobs` / `Vulnerabilities` 的完整 Edit/Delete 與權限控管
+- 為 `VulnScan.Web` 補上 `VulnerabilityActionsController`、`UsersController` 與改善追蹤頁
+- 為 `VulnScan.Web` 補上 Nmap 高風險 Port 提示規則與 `RiskHint` 寫入
+- 為 `VulnScan.Web` 補上 Nessus / Nuclei / OpenVAS / Greenbone 匯入流程，進入 spec 的 V2 階段
+- 為 `VulnScan.Web` 補上 PDF 匯出與 ISO 27001 / 資安盤點報表
+- 為 `VulnScan.Web` 補上整合測試：白名單阻擋、Hangfire 任務建立、Nmap XML 解析、Excel 匯出
 - 導入 Alembic migration，取代啟動時 `create_all`
 - 新增 integration tests，覆蓋登入、建立資產、觸發掃描與狀態流轉
 - 將 `/reports/iso27001` 移入獨立 router 與 service
