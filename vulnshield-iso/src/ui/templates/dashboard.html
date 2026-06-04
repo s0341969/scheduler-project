@@ -10,14 +10,17 @@
     <div class="shell">
         <aside class="sidebar">
             <div class="brand">
-                <p class="eyebrow">VulnShield-ISO</p>
-                <h1>商用弱掃工作台</h1>
-                <p class="subtle">把設備、掃描與報告拆成獨立工作分頁，操作更清楚，後續也比較容易擴充成商用流程。</p>
+                <div class="brand-mark">VS</div>
+                <div class="brand-copy">
+                    <p class="eyebrow">VulnShield-ISO</p>
+                    <h1>Exposure Command Center</h1>
+                    <p class="subtle">把資產、排程、掃描與風險處置整合成單一弱掃控制台。</p>
+                </div>
             </div>
 
-            <section class="panel">
+            <section class="panel panel-dark">
                 <div class="panel-header">
-                    <h2>登入狀態</h2>
+                    <h2>操作席位</h2>
                     <span id="auth-status" class="status-chip muted">尚未登入</span>
                 </div>
                 <form id="login-form" class="stacked-form">
@@ -29,125 +32,167 @@
                         <span>密碼</span>
                         <input id="password" name="password" type="password" placeholder="請輸入密碼" required>
                     </label>
-                    <button type="submit" class="primary-button">登入系統</button>
+                    <button type="submit" class="primary-button">登入控制台</button>
                 </form>
                 <div class="helper-row">
-                    <button id="refresh-all" class="secondary-button" type="button">重新整理資料</button>
+                    <button id="refresh-all" class="secondary-button" type="button">同步最新資料</button>
                     <button id="logout" class="ghost-button" type="button">登出</button>
                 </div>
             </section>
 
             <nav class="panel nav-panel" aria-label="主要分頁">
-                <button class="nav-tab active" data-tab="devices" type="button">設備</button>
-                <button class="nav-tab" data-tab="scans" type="button">掃描</button>
-                <button class="nav-tab" data-tab="reports" type="button">報告</button>
+                <button class="nav-tab active" data-tab="devices" type="button">
+                    <span class="nav-kicker">Inventory</span>
+                    <strong>設備</strong>
+                    <small>建檔、預設策略、排程</small>
+                </button>
+                <button class="nav-tab" data-tab="scans" type="button">
+                    <span class="nav-kicker">Operations</span>
+                    <strong>掃描</strong>
+                    <small>任務狀態、掃描內容、例外</small>
+                </button>
+                <button class="nav-tab" data-tab="reports" type="button">
+                    <span class="nav-kicker">Decision</span>
+                    <strong>報告</strong>
+                    <small>風險分布、優先處理、建議</small>
+                </button>
             </nav>
+
+            <section class="panel panel-muted">
+                <div class="panel-header">
+                    <h2>平台原則</h2>
+                    <span class="status-chip accent">Commercial Mode</span>
+                </div>
+                <ul class="bullet-list">
+                    <li>退役設備不允許建立新掃描與新排程</li>
+                    <li>Credential 停用後不可再被綁定或執行</li>
+                    <li>排程由 `Celery beat` 每分鐘同步到期任務</li>
+                </ul>
+            </section>
         </aside>
 
         <main class="content">
             <section class="hero">
-                <div>
-                    <p class="eyebrow">Commercial Workflow</p>
-                    <h2>設備建檔、掃描任務與報告摘要分流處理</h2>
-                    <p class="subtle">設備頁專注 inventory 與單設備操作，掃描頁看任務歷史與內容，報告頁看整體風險與優先順序。</p>
+                <div class="hero-copy">
+                    <p class="eyebrow">Platform Overview</p>
+                    <h2>面向商用弱掃產品的資產與風險營運控制台</h2>
+                    <p class="subtle">把日常工作拆成三種節奏：設備建檔與治理、掃描執行與排程、風險報告與處置決策。</p>
+                    <div class="hero-notes">
+                        <span class="hero-pill">設備生命週期治理</span>
+                        <span class="hero-pill">排程掃描自動化</span>
+                        <span class="hero-pill">決策型報告摘要</span>
+                    </div>
                 </div>
                 <div class="metrics">
-                    <article class="metric-card">
-                        <span>設備數</span>
+                    <article class="metric-card metric-primary">
+                        <span>受管設備</span>
                         <strong id="metric-assets">0</strong>
+                        <p>納管中的 inventory 規模</p>
                     </article>
                     <article class="metric-card">
                         <span>高風險 finding</span>
                         <strong id="metric-high-risk">0</strong>
+                        <p>應優先處理的暴露</p>
                     </article>
                     <article class="metric-card">
                         <span>未關閉 finding</span>
                         <strong id="metric-open-findings">0</strong>
+                        <p>目前仍在待辦佇列中</p>
                     </article>
                 </div>
             </section>
 
             <section id="tab-devices" class="tab-panel active">
                 <div class="workspace">
-                    <div class="asset-column panel">
-                        <div class="panel-header">
-                            <h2 id="asset-form-title">新增設備</h2>
-                            <span id="asset-form-status" class="status-chip accent">資產建檔</span>
-                        </div>
-                        <form id="asset-form" class="stacked-form">
-                            <label>
-                                <span>設備名稱</span>
-                                <input name="name" type="text" placeholder="總部核心防火牆" required>
-                            </label>
-                            <label>
-                                <span>目標位址</span>
-                                <input name="target" type="text" placeholder="192.168.1.1 或 fw.example.com" required>
-                            </label>
-                            <div class="split-grid">
+                    <div class="asset-column">
+                        <section class="panel">
+                            <div class="panel-header">
+                                <div>
+                                    <p class="panel-kicker">Asset Intake</p>
+                                    <h2 id="asset-form-title">新增設備</h2>
+                                </div>
+                                <span id="asset-form-status" class="status-chip accent">資產建檔</span>
+                            </div>
+                            <form id="asset-form" class="stacked-form">
                                 <label>
-                                    <span>設備類型</span>
-                                    <select name="device_type" id="device-type-select"></select>
+                                    <span>設備名稱</span>
+                                    <input name="name" type="text" placeholder="總部核心防火牆" required>
                                 </label>
                                 <label>
-                                    <span>環境</span>
-                                    <select name="env">
-                                        <option value="Production">Production</option>
-                                        <option value="Staging">Staging</option>
-                                        <option value="Development">Development</option>
+                                    <span>目標位址</span>
+                                    <input name="target" type="text" placeholder="192.168.1.1 或 fw.example.com" required>
+                                </label>
+                                <div class="split-grid">
+                                    <label>
+                                        <span>設備類型</span>
+                                        <select name="device_type" id="device-type-select"></select>
+                                    </label>
+                                    <label>
+                                        <span>環境</span>
+                                        <select name="env">
+                                            <option value="Production">Production</option>
+                                            <option value="Staging">Staging</option>
+                                            <option value="Development">Development</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="split-grid">
+                                    <label>
+                                        <span>設備狀態</span>
+                                        <select name="status" id="asset-status-select">
+                                            <option value="Active">運作中</option>
+                                            <option value="Maintenance">維護中</option>
+                                            <option value="Retired">已退役</option>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>重要度</span>
+                                        <input name="criticality" type="number" min="1" max="5" value="3" required>
+                                    </label>
+                                </div>
+                                <div class="split-grid">
+                                    <label>
+                                        <span>位置</span>
+                                        <input name="location" type="text" placeholder="台北總部 / 機房 A">
+                                    </label>
+                                    <label>
+                                        <span>標籤</span>
+                                        <input name="tags" type="text" placeholder="總部, 外網, 核心設備">
+                                    </label>
+                                </div>
+                                <div class="split-grid">
+                                    <label>
+                                        <span>預設掃描模式</span>
+                                        <select name="default_scan_profile" id="asset-profile-select"></select>
+                                    </label>
+                                    <label>
+                                        <span>設備模板</span>
+                                        <select name="template_key" id="asset-template-select"></select>
+                                    </label>
+                                </div>
+                                <label>
+                                    <span>預設 credential</span>
+                                    <select name="default_credential_id" id="asset-credential-select">
+                                        <option value="">不綁定 credential</option>
                                     </select>
                                 </label>
-                            </div>
-                            <label>
-                                <span>設備狀態</span>
-                                <select name="status" id="asset-status-select">
-                                    <option value="Active">運作中</option>
-                                    <option value="Maintenance">維護中</option>
-                                    <option value="Retired">已退役</option>
-                                </select>
-                            </label>
-                            <div class="split-grid">
                                 <label>
-                                    <span>重要度</span>
-                                    <input name="criticality" type="number" min="1" max="5" value="3" required>
+                                    <span>備註</span>
+                                    <textarea name="notes" rows="3" placeholder="維護窗口、限制條件、對營運的影響"></textarea>
                                 </label>
-                                <label>
-                                    <span>位置</span>
-                                    <input name="location" type="text" placeholder="台北總部 / 機房 A">
-                                </label>
-                            </div>
-                            <div class="split-grid">
-                                <label>
-                                    <span>預設掃描模式</span>
-                                    <select name="default_scan_profile" id="asset-profile-select"></select>
-                                </label>
-                                <label>
-                                    <span>設備模板</span>
-                                    <select name="template_key" id="asset-template-select"></select>
-                                </label>
-                            </div>
-                            <label>
-                                <span>預設 credential</span>
-                                <select name="default_credential_id" id="asset-credential-select">
-                                    <option value="">不綁定 credential</option>
-                                </select>
-                            </label>
-                            <label>
-                                <span>標籤</span>
-                                <input name="tags" type="text" placeholder="例如：總部, 外網, 核心設備">
-                            </label>
-                            <label>
-                                <span>備註</span>
-                                <textarea name="notes" rows="3" placeholder="維護窗口、帳務系統相關、需夜間掃描等"></textarea>
-                            </label>
-                            <div class="helper-row">
-                                <button id="asset-form-submit" type="submit" class="primary-button">建立設備</button>
-                                <button id="asset-form-cancel" type="button" class="ghost-button" hidden>取消編輯</button>
-                            </div>
-                        </form>
+                                <div class="helper-row">
+                                    <button id="asset-form-submit" type="submit" class="primary-button">建立設備</button>
+                                    <button id="asset-form-cancel" type="button" class="ghost-button" hidden>取消編輯</button>
+                                </div>
+                            </form>
+                        </section>
 
-                        <section class="section-block credential-section">
+                        <section class="panel">
                             <div class="panel-header">
-                                <h2>Credential 庫</h2>
+                                <div>
+                                    <p class="panel-kicker">Credential Vault</p>
+                                    <h2>Credential 庫</h2>
+                                </div>
                                 <span class="status-chip accent">Authenticated Scan</span>
                             </div>
                             <form id="credential-form" class="stacked-form">
@@ -162,7 +207,7 @@
                                     </label>
                                     <label>
                                         <span>連線 Port</span>
-                                        <input name="port" id="credential-port-input" type="number" placeholder="例如 22 / 5985 / 161">
+                                        <input name="port" id="credential-port-input" type="number" placeholder="22 / 5985 / 161">
                                     </label>
                                 </div>
                                 <div class="split-grid">
@@ -194,39 +239,47 @@
                         </section>
                     </div>
 
-                    <div class="detail-column panel">
-                        <div class="panel-header">
-                            <h2>設備清單與詳情</h2>
-                            <span id="selected-asset-status" class="status-chip muted">尚未選取</span>
-                        </div>
-                        <div class="filter-row">
-                            <input id="asset-search" type="search" placeholder="搜尋設備名稱、IP、標籤">
-                            <select id="asset-type-filter">
-                                <option value="">全部類型</option>
-                            </select>
-                            <select id="asset-status-filter">
-                                <option value="">全部狀態</option>
-                                <option value="Active">運作中</option>
-                                <option value="Maintenance">維護中</option>
-                                <option value="Retired">已退役</option>
-                            </select>
-                        </div>
-                        <div class="device-split">
-                            <div id="asset-list" class="asset-list empty-state">
-                                請先登入，再載入設備清單。
+                    <div class="detail-column">
+                        <section class="panel panel-highlight">
+                            <div class="panel-header">
+                                <div>
+                                    <p class="panel-kicker">Managed Inventory</p>
+                                    <h2>設備清單與詳情</h2>
+                                </div>
+                                <span id="selected-asset-status" class="status-chip muted">尚未選取</span>
                             </div>
-                            <div id="asset-detail" class="detail-empty">
-                                選一台設備後，這裡會顯示設備資料、掃描歷史、掃描內容與弱點清單。
+                            <div class="filter-row">
+                                <input id="asset-search" type="search" placeholder="搜尋設備名稱、IP、標籤">
+                                <select id="asset-type-filter">
+                                    <option value="">全部類型</option>
+                                </select>
+                                <select id="asset-status-filter">
+                                    <option value="">全部狀態</option>
+                                    <option value="Active">運作中</option>
+                                    <option value="Maintenance">維護中</option>
+                                    <option value="Retired">已退役</option>
+                                </select>
                             </div>
-                        </div>
+                            <div class="device-split">
+                                <div id="asset-list" class="asset-list empty-state">
+                                    請先登入，再載入設備清單。
+                                </div>
+                                <div id="asset-detail" class="detail-empty">
+                                    選一台設備後，這裡會顯示設備概況、排程、掃描歷史與目前弱點。
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </section>
 
             <section id="tab-scans" class="tab-panel">
-                <div class="panel">
+                <section class="panel panel-highlight">
                     <div class="panel-header">
-                        <h2>掃描任務中心</h2>
+                        <div>
+                            <p class="panel-kicker">Scan Operations</p>
+                            <h2>掃描任務中心</h2>
+                        </div>
                         <span class="status-chip accent">全域檢視</span>
                     </div>
                     <div class="filter-row">
@@ -240,48 +293,65 @@
                         </select>
                     </div>
                     <div id="scan-list" class="detail-sections empty-state">請先登入，再載入掃描任務。</div>
-                </div>
+                </section>
             </section>
 
             <section id="tab-reports" class="tab-panel">
                 <div class="workspace reports-layout">
-                    <div class="panel">
+                    <section class="panel panel-highlight">
                         <div class="panel-header">
-                            <h2>風險總覽</h2>
+                            <div>
+                                <p class="panel-kicker">Executive Summary</p>
+                                <h2>風險總覽</h2>
+                            </div>
                             <span id="report-status" class="status-chip muted">尚未載入</span>
                         </div>
                         <div id="report-summary" class="detail-sections empty-state">請先登入，再載入報告資料。</div>
-                    </div>
-                    <div class="panel">
+                    </section>
+                    <section class="panel">
                         <div class="panel-header">
-                            <h2>高風險設備</h2>
+                            <div>
+                                <p class="panel-kicker">Top Exposure</p>
+                                <h2>高風險設備</h2>
+                            </div>
                             <span class="status-chip warning">優先處理</span>
                         </div>
                         <div id="report-assets" class="detail-sections empty-state">尚未有報告內容。</div>
-                    </div>
+                    </section>
                 </div>
-                <div class="panel">
+
+                <section class="panel">
                     <div class="panel-header">
-                        <h2>掃描面向彙總</h2>
+                        <div>
+                            <p class="panel-kicker">Signal Breakdown</p>
+                            <h2>掃描面向彙總</h2>
+                        </div>
                         <span class="status-chip accent">服務 / 漏洞 / 提示</span>
                     </div>
                     <div id="report-signals" class="detail-sections empty-state">尚未有掃描彙總資料。</div>
-                </div>
+                </section>
+
                 <div class="workspace reports-layout">
-                    <div class="panel">
+                    <section class="panel">
                         <div class="panel-header">
-                            <h2>優先處理清單</h2>
-                            <span class="status-chip danger">Priority Queue</span>
+                            <div>
+                                <p class="panel-kicker">Priority Queue</p>
+                                <h2>優先處理清單</h2>
+                            </div>
+                            <span class="status-chip danger">Queue</span>
                         </div>
                         <div id="report-priorities" class="detail-sections empty-state">尚未有優先處理資料。</div>
-                    </div>
-                    <div class="panel">
+                    </section>
+                    <section class="panel">
                         <div class="panel-header">
-                            <h2>營運建議</h2>
-                            <span class="status-chip accent">Product Guidance</span>
+                            <div>
+                                <p class="panel-kicker">Operational Advice</p>
+                                <h2>營運建議</h2>
+                            </div>
+                            <span class="status-chip accent">Action</span>
                         </div>
                         <div id="report-recommendations" class="detail-sections empty-state">尚未有建議內容。</div>
-                    </div>
+                    </section>
                 </div>
             </section>
         </main>

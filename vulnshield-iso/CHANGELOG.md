@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-06-04
+- 重新規劃 dashboard 商用品 UI：改為固定側欄 + 作業主區的控制台版型，明確拆分設備治理、掃描營運與報告決策三種工作情境
+- 重設 dashboard 視覺語言：導入深色導覽欄、亮色操作面、KPI Hero 區、決策型報告卡與更明確的狀態層級，改善原本 PoC 感過重的版面
+- 強化互動細節：補上表單 / 按鈕 / 卡片的 focus 樣式、區塊節奏、響應式佈局與較穩定的商用產品視覺階層
+
 ## 2026-06-03
 - 新增排程掃描第一版：加入 `scan_schedules` 資料模型、每日 / 每週 / Cron 排程、`Celery beat` 每分鐘同步到期任務
 - 新增排程 API：`GET /assets/{id}/schedules`、`POST /assets/{id}/schedules`、`GET /schedules`、`PATCH /schedules/{id}`、`DELETE /schedules/{id}`
