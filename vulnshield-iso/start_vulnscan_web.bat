@@ -29,6 +29,12 @@ if not exist "%PROJECT_FILE%" (
 if not exist "%PROJECT_ROOT%VulnScan.Web\App_Data" (
     mkdir "%PROJECT_ROOT%VulnScan.Web\App_Data" >nul 2>nul
 )
+if not exist "%PROJECT_ROOT%VulnScan.Web\App_Data\AutoImport\Nuclei\incoming" (
+    mkdir "%PROJECT_ROOT%VulnScan.Web\App_Data\AutoImport\Nuclei\incoming" >nul 2>nul
+)
+if not exist "%PROJECT_ROOT%VulnScan.Web\App_Data\AutoImport\Nessus\incoming" (
+    mkdir "%PROJECT_ROOT%VulnScan.Web\App_Data\AutoImport\Nessus\incoming" >nul 2>nul
+)
 
 echo [1/4] Building VulnScan.Web...
 dotnet build "%PROJECT_FILE%" --no-restore

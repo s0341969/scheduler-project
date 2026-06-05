@@ -22,6 +22,12 @@ public sealed class ReportsController(ApplicationDbContext dbContext, IReportSer
                 .OrderByDescending(item => item.ExportedAt)
                 .Take(10)
                 .ToListAsync(cancellationToken),
+            RecentFindings = await dbContext.Vulnerabilities
+                .AsNoTracking()
+                .Include(item => item.Asset)
+                .OrderByDescending(item => item.LastDetectedAt)
+                .Take(10)
+                .ToListAsync(cancellationToken),
         };
 
         return View(model);

@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `VulnScan.Web` 第一版自動匯入：背景服務會輪詢固定資料夾，自動匯入 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
+- 新增 `Vulnerabilities.DetectedVersion` 欄位與啟動相容性補欄邏輯，既有 SQLite / SQL Server 資料庫啟動時會自動補齊欄位
+- 強化匯入解析：Nuclei 與 Nessus 會從輸出內容中自動抽取檢查版本，並保存到 `DetectedVersion`
+- 強化報告與弱點清單：頁面與 Excel 匯出現在都會顯示 `檢查版本`
 - 修正 `VulnScan.Web` 開發環境啟動依賴：Development 預設改為 `SQLite + Hangfire.MemoryStorage`，不再依賴本機故障的 `LocalDB`
 - 修正 `VulnScan.Web` 開發環境 Data Protection：改為保存金鑰到 `App_Data/DataProtectionKeys`，並移除 Windows EventLog 依賴，避免啟動時噴出權限例外
 - 修正 `VulnScan.Web` 開發環境中 `HTTPS redirection` 的噪音警告：Development 不再強制 redirect，正式環境仍保留 `HSTS + HTTPS`

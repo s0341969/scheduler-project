@@ -29,7 +29,8 @@ public sealed class ReportService(
         worksheet.Cell(1, 4).Value = "VulnName";
         worksheet.Cell(1, 5).Value = "Severity";
         worksheet.Cell(1, 6).Value = "CVSS";
-        worksheet.Cell(1, 7).Value = "Status";
+        worksheet.Cell(1, 7).Value = "DetectedVersion";
+        worksheet.Cell(1, 8).Value = "Status";
 
         for (var index = 0; index < items.Count; index += 1)
         {
@@ -40,7 +41,8 @@ public sealed class ReportService(
             worksheet.Cell(row, 4).Value = items[index].VulnName;
             worksheet.Cell(row, 5).Value = items[index].Severity;
             worksheet.Cell(row, 6).Value = items[index].CVSS;
-            worksheet.Cell(row, 7).Value = items[index].Status;
+            worksheet.Cell(row, 7).Value = items[index].DetectedVersion ?? items[index].ServiceName;
+            worksheet.Cell(row, 8).Value = items[index].Status;
         }
 
         workbook.SaveAs(filePath);
@@ -61,7 +63,8 @@ public sealed class ReportService(
         worksheet.Cell(1, 1).Value = "IPAddress";
         worksheet.Cell(1, 2).Value = "VulnName";
         worksheet.Cell(1, 3).Value = "Severity";
-        worksheet.Cell(1, 4).Value = "DueDate";
+        worksheet.Cell(1, 4).Value = "DetectedVersion";
+        worksheet.Cell(1, 5).Value = "DueDate";
 
         for (var index = 0; index < items.Count; index += 1)
         {
@@ -69,7 +72,8 @@ public sealed class ReportService(
             worksheet.Cell(row, 1).Value = items[index].IPAddress;
             worksheet.Cell(row, 2).Value = items[index].VulnName;
             worksheet.Cell(row, 3).Value = items[index].Severity;
-            worksheet.Cell(row, 4).Value = items[index].DueDate?.ToString("yyyy-MM-dd");
+            worksheet.Cell(row, 4).Value = items[index].DetectedVersion ?? items[index].ServiceName;
+            worksheet.Cell(row, 5).Value = items[index].DueDate?.ToString("yyyy-MM-dd");
         }
 
         workbook.SaveAs(filePath);

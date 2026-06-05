@@ -18,6 +18,39 @@
     </article>
 </section>
 
+<section class="panel-card">
+    <div class="panel-card-header">
+        <h3>最近檢測弱點與版本</h3>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark-table align-middle">
+            <thead>
+                <tr>
+                    <th>資產</th>
+                    <th>IP</th>
+                    <th>弱點名稱</th>
+                    <th>檢查版本</th>
+                    <th>Severity</th>
+                    <th>最後發現時間</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var item in Model.RecentFindings)
+            {
+                <tr>
+                    <td>@(item.Asset?.AssetName ?? "-")</td>
+                    <td>@(item.IPAddress ?? "-")</td>
+                    <td>@item.VulnName</td>
+                    <td>@(item.DetectedVersion ?? item.ServiceName ?? "-")</td>
+                    <td>@(item.Severity ?? "-")</td>
+                    <td>@item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+
 <section class="split-grid">
     <article class="panel-card">
         <div class="panel-card-header">

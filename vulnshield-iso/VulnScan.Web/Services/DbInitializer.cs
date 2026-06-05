@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VulnScan.Web.Data;
@@ -14,6 +15,7 @@ public static class DbInitializer
         CancellationToken cancellationToken = default)
     {
         await dbContext.Database.EnsureCreatedAsync(cancellationToken);
+        await EnsureCompatibilityAsync(dbContext, cancellationToken);
 
         if (localAuthOptions.BootstrapUsers.Count > 0)
         {
@@ -68,5 +70,73 @@ public static class DbInitializer
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static async Task EnsureCompatibilityAsync(ApplicationDbContext dbContext, CancellationToken cancellationToken)
+    {
+        if (await ColumnExistsAsync(dbContext, "Vulnerabilities", "DetectedVersion", cancellationToken))
+        {
+            return;
+        }
+
+        var providerName = dbContext.Database.ProviderName ?? string.Empty;
+        if (providerName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE Vulnerabilities ADD COLUMN DetectedVersion TEXT NULL;", cancellationToken);
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE Vulnerabilities ADD DetectedVersion nvarchar(200) NULL;", cancellationToken);
+    }
+
+    private static async Task<bool> ColumnExistsAsync(ApplicationDbContext dbContext, string tableName, string columnName, CancellationToken cancellationToken)
+    {
+        var providerName = dbContext.Database.ProviderName ?? string.Empty;
+        var connection = dbContext.Database.GetDbConnection();
+        var shouldClose = connection.State != System.Data.ConnectionState.Open;
+        if (shouldClose)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            if (providerName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                command.CommandText = $"PRAGMA table_info([{tableName}]);";
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    if (string.Equals(reader["name"]?.ToString(), columnName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            command.CommandText = "SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @tableName AND COLUMN_NAME = @columnName;";
+            var tableNameParameter = command.CreateParameter();
+            tableNameParameter.ParameterName = "@tableName";
+            tableNameParameter.Value = tableName;
+            command.Parameters.Add(tableNameParameter);
+
+            var columnNameParameter = command.CreateParameter();
+            columnNameParameter.ParameterName = "@columnName";
+            columnNameParameter.Value = columnName;
+            command.Parameters.Add(columnNameParameter);
+
+            var result = await command.ExecuteScalarAsync(cancellationToken);
+            return result is not null && Convert.ToInt32(result, CultureInfo.InvariantCulture) > 0;
+        }
+        finally
+        {
+            if (shouldClose)
+            {
+                await connection.CloseAsync();
+            }
+        }
     }
 }

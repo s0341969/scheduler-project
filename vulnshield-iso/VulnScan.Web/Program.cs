@@ -24,6 +24,7 @@ builder.Logging.AddDebug();
 
 builder.Services.Configure<VulnScanOptions>(builder.Configuration.GetSection(VulnScanOptions.SectionName));
 builder.Services.Configure<LocalAuthOptions>(builder.Configuration.GetSection(LocalAuthOptions.SectionName));
+builder.Services.Configure<AutoImportOptions>(builder.Configuration.GetSection(AutoImportOptions.SectionName));
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
     .SetApplicationName("VulnScan.Web");
@@ -88,6 +89,7 @@ builder.Services.AddScoped<IScanJobService, ScanJobService>();
 builder.Services.AddScoped<IVulnerabilityService, VulnerabilityService>();
 builder.Services.AddScoped<IScanImportService, ScanImportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddHostedService<AutoImportBackgroundService>();
 
 var app = builder.Build();
 

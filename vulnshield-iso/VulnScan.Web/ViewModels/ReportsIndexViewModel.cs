@@ -11,4 +11,6 @@ public sealed class ReportsIndexViewModel
     public int ExportCount { get; set; }
 
     public IReadOnlyList<ReportExport> RecentExports { get; set; } = Array.Empty<ReportExport>();
+
+    public IReadOnlyList<Vulnerability> RecentFindings { get; set; } = Array.Empty<Vulnerability>();
 }

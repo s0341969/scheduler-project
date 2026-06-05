@@ -44,6 +44,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
   - 改善說明
   - 附件
 - 已補齊 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML` 匯入，匯入後會自動建立對應 `ScanJob`、`ScanRun` 與 `Vulnerabilities`
+- 已補上第一版自動匯入：系統會輪詢固定資料夾，自動接收 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 
 ### `VulnScan.Web` 啟動方式
@@ -91,6 +92,13 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 開發模式下，Hangfire 也會改用記憶體儲存，避免雙擊啟動時再額外依賴 SQL Server；正式環境則仍使用 SQL Server 儲存。
 開發模式的 Data Protection 金鑰會保存到 `VulnScan.Web/App_Data/DataProtectionKeys`，避免 Windows EventLog 權限問題干擾登入 cookie 與啟動日誌。
 開發模式下不再強制做 `HTTPS redirection`，避免 `http` 啟動設定時出現多餘的啟動警告；正式環境仍維持 `HSTS + HTTPS redirection`。
+開發模式預設會建立以下自動匯入目錄：
+- `VulnScan.Web\App_Data\AutoImport\Nuclei\incoming`
+- `VulnScan.Web\App_Data\AutoImport\Nessus\incoming`
+- `VulnScan.Web\App_Data\AutoImport\processed`
+- `VulnScan.Web\App_Data\AutoImport\failed`
+
+只要把掃描結果檔案放進對應 `incoming` 目錄，背景服務就會自動匯入並搬移檔案。
 
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
@@ -115,6 +123,13 @@ Development 預設 bootstrap 帳號：
 2. `OpenVAS / Greenbone` 匯入
 3. `PDF` 報表
 4. `EF Core Migration`，取代 `EnsureCreated()`
+
+### 自動匯入與版本欄位
+- `AutoImport:Enabled=true` 時，背景服務每 `PollIntervalSeconds` 秒掃描一次匯入目錄
+- `Nuclei` 會從 `extracted-results`、描述與比對內容中嘗試抽取版本
+- `Nessus` 會從 `Plugin Output` 與服務欄位嘗試抽取版本
+- 匯入後會寫入 `Vulnerabilities.DetectedVersion`
+- `弱點清單`、`報表頁` 與 Excel 匯出都會顯示 `檢查版本`
 
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`
