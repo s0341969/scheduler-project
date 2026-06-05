@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-06-05
+- 強化 `NmapInstallerService` 版本解析：不再依賴單一文案格式，改為從官方下載頁與 `dist` 頁蒐集所有 `nmap-*-setup.exe` 後自動選最新版本
 - 新增 `NmapInstallerService` 與 `SystemCheckController.InstallNmap`，在 Windows 上可直接從官方 `nmap.org` 下載最新版 self-installer 並啟動安裝精靈
 - 強化 `系統檢查` 與 `掃描任務` 頁：當 `Nmap` 缺失且使用者角色為 `Admin` / `SecurityManager` 時，會顯示 `直接安裝 Nmap` 按鈕
 - 新增 `VulnScan` 安裝設定：`NmapDownloadPageUrl`、`NmapInstallerBaseUrl`、`InstallerCachePath`

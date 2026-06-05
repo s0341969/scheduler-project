@@ -98,9 +98,10 @@ Development 預設帳號：
 
 此功能會：
 
-1. 從 `nmap.org` 官方下載頁解析最新版 Windows installer
-2. 下載到 `VulnScan.Web\App_Data\Installers`
-3. 直接啟動官方安裝程式
+1. 從 `nmap.org` 官方下載頁與 `dist` 頁蒐集所有 Windows installer 名稱
+2. 自動選擇最新版本
+3. 下載到 `VulnScan.Web\App_Data\Installers`
+4. 直接啟動官方安裝程式
 
 注意事項：
 

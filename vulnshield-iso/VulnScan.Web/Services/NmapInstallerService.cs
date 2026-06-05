@@ -75,15 +75,55 @@ public sealed partial class NmapInstallerService(
             throw new InvalidOperationException("VulnScan Nmap 安裝設定不完整，請確認 NmapDownloadPageUrl 與 NmapInstallerBaseUrl。");
         }
 
-        var html = await httpClient.GetStringAsync(downloadPageUrl, cancellationToken);
-        var match = NmapInstallerRegex().Match(html);
-        if (!match.Success)
+        var sources = new[]
         {
-            throw new InvalidOperationException("無法從 Nmap 官方下載頁解析最新 Windows 安裝檔名稱，請稍後再試或改以手動安裝。");
+            downloadPageUrl,
+            installerBaseUrl,
+        };
+
+        foreach (var source in sources)
+        {
+            var installerName = await TryResolveInstallerNameFromPageAsync(source, cancellationToken);
+            if (!string.IsNullOrWhiteSpace(installerName))
+            {
+                return new Uri(new Uri(installerBaseUrl, UriKind.Absolute), installerName).ToString();
+            }
         }
 
-        var installerName = match.Groups["file"].Value;
-        return new Uri(new Uri(installerBaseUrl, UriKind.Absolute), installerName).ToString();
+        throw new InvalidOperationException("無法從 Nmap 官方頁面解析最新 Windows 安裝檔名稱，請稍後再試或改以手動安裝。");
+    }
+
+    private async Task<string?> TryResolveInstallerNameFromPageAsync(string pageUrl, CancellationToken cancellationToken)
+    {
+        var html = await httpClient.GetStringAsync(pageUrl, cancellationToken);
+        var candidates = NmapInstallerRegex()
+            .Matches(html)
+            .Select(match => match.Groups["file"].Value)
+            .Where(static value => !string.IsNullOrWhiteSpace(value))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(name => new
+            {
+                Name = name,
+                Version = ParseVersion(name),
+            })
+            .Where(item => item.Version is not null)
+            .OrderByDescending(item => item.Version)
+            .ToList();
+
+        return candidates.FirstOrDefault()?.Name;
+    }
+
+    private static Version? ParseVersion(string installerName)
+    {
+        var versionText = VersionRegex().Match(installerName).Groups["version"].Value;
+        if (string.IsNullOrWhiteSpace(versionText))
+        {
+            return null;
+        }
+
+        return Version.TryParse(versionText, out var version)
+            ? version
+            : null;
     }
 
     private string ResolveInstallerDirectory()
@@ -125,6 +165,9 @@ public sealed partial class NmapInstallerService(
         }
     }
 
-    [GeneratedRegex("Latest stable release self-installer:\\s*(?:<[^>]+>\\s*)*(?<file>nmap-[0-9.]+-setup\\.exe)", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
+    [GeneratedRegex("(?<file>nmap-[0-9]+(?:\\.[0-9]+)*-setup\\.exe)", RegexOptions.IgnoreCase | RegexOptions.Singleline)]
     private static partial Regex NmapInstallerRegex();
+
+    [GeneratedRegex("nmap-(?<version>[0-9]+(?:\\.[0-9]+)*)-setup\\.exe", RegexOptions.IgnoreCase)]
+    private static partial Regex VersionRegex();
 }

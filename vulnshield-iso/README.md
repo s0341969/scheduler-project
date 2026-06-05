@@ -122,7 +122,7 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 
 此流程會：
 1. 從 `VulnScan:NmapDownloadPageUrl` 讀取官方下載頁
-2. 解析最新版 Windows self-installer 檔名
+2. 掃描官方下載頁與 `dist` 頁中的所有 `nmap-*-setup.exe`，自動選最新版本
 3. 從 `VulnScan:NmapInstallerBaseUrl` 下載到 `VulnScan:InstallerCachePath`
 4. 啟動官方安裝程式，交由使用者完成安裝精靈與 UAC
 
