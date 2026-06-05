@@ -6,6 +6,8 @@
 - `EF Core Migration`，取代目前的 `EnsureCreated()`
 
 - 為自動匯入管理頁補上可編輯設定，讓管理者可在 UI 調整來源目錄、輪詢頻率與啟停狀態
+- 視需要補 `Nmap` 安裝檢查頁或啟動前 preflight，讓管理者在執行掃描前先知道本機是否已安裝 `nmap.exe`
+- 後續若新增 `UsersController`、`Greenbone` 測試連線或報表版型，需同步更新 `VulnScan_Web_操作手冊.md`
 - 為 `Greenbone / OpenVAS` API 匯入補上「測試連線」與「僅驗證帳密 / TLS」按鈕，避免每次都要直接跑同步
 - 為 `Greenbone / OpenVAS` API 匯入補上密碼輪替審計與設定變更歷史
 - 為版本抽取補上更完整規則，目前是以 Nuclei / Nessus 文字輸出做啟發式解析

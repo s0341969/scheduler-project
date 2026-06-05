@@ -9,6 +9,9 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 
 `VulnScan.Web` 是依 [VulnScan_Web_SPEC.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_SPEC.md) 新建的 ASP.NET Core MVC 版本，定位是新的弱點掃描管理平台，而不是延伸舊 Python Dashboard。
 
+若要查看目前實際操作流程，請參考：
+- [VulnScan_Web_操作手冊.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_操作手冊.md)
+
 ### 目前已完成的 V1 核心
 - ASP.NET Core MVC + MSSQL + Hangfire 專案骨架
 - 依 spec 建立資料模型：
@@ -93,6 +96,18 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 正式環境若要使用 SQL Server，請在 `appsettings.json` 或正式環境設定中改成對應執行個體，例如：
 - `Server=.\\SQLEXPRESS;Database=VulnScanDB;Trusted_Connection=True;TrustServerCertificate=True;`
 - `Server=10.1.1.76;Database=VulnScanDB;User Id=...;Password=...;TrustServerCertificate=True;`
+
+若要執行 `VulnScan.Web` 內建的 `Nmap` 掃描，Windows 主機必須先安裝 `Nmap`。系統目前會依序嘗試：
+- `VulnScan:NmapPath` 設定值
+- 系統 `PATH`
+- Windows 常見安裝路徑：
+  - `C:\Program Files (x86)\Nmap\nmap.exe`
+  - `C:\Program Files\Nmap\nmap.exe`
+  - `C:\Nmap\nmap.exe`
+
+若都找不到，掃描任務會明確回報：
+- 請先安裝 Nmap
+- 或將 `VulnScan:NmapPath` 指向有效的 `nmap.exe`
 
 開發模式下，Hangfire 也會改用記憶體儲存，避免雙擊啟動時再額外依賴 SQL Server；正式環境則仍使用 SQL Server 儲存。
 開發模式的 Data Protection 金鑰會保存到 `VulnScan.Web/App_Data/DataProtectionKeys`，避免 Windows EventLog 權限問題干擾登入 cookie 與啟動日誌。
@@ -420,3 +435,4 @@ docker compose -p vulnshield-iso up -d --build
 - 目前設備管理頁使用瀏覽器本地儲存 `access_token`，適合內部 PoC 與單機部署；若要正式上線，建議後續改為更完整的 session / 前端權杖保護策略。
 - 正式環境不應依賴 `SECRET_KEY` 衍生 credential 加密金鑰，請明確設定 `CREDENTIAL_ENCRYPTION_KEY`。
 - `authenticated_windows` 與 `authenticated_linux` 目前尚未接入 WinRM、SMB、SSH 套件盤點或本機設定稽核，因此仍屬第二階段骨架而非完整已驗證掃描。
+- 若看到 `An error occurred trying to start process 'nmap'` 或 `找不到 Nmap 執行檔`，代表這台 Windows 主機尚未安裝 `Nmap`，或 `VulnScan:NmapPath` 沒有指到正確位置。

@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 [VulnScan_Web_操作手冊.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_操作手冊.md)，提供 `VulnScan.Web` 的繁體中文操作手冊
+- 強化 `NmapService`：掃描時會先嘗試 `VulnScan:NmapPath`、系統 `PATH` 與 Windows 常見安裝路徑，自動解析 `nmap.exe`
+- 修正 `Nmap` 缺失時的錯誤訊息：改為明確提示安裝 `Nmap` 或設定 `VulnScan:NmapPath`，不再只拋出模糊的 process start exception
 - 新增 `Greenbone` 設定管理頁：可直接在 UI 內維護 Host / Port / 帳密 / Filter，不必再手改 `appsettings`
 - 新增 `GreenboneIntegrationSetting` 與 `GreenboneSyncLog`，將 GMP 設定與同步成功 / 失敗明細正式保存到資料庫
 - 強化 `Greenbone` 同步治理：每次同步會記錄模式、端點、報表、任務名稱、匯入筆數與失敗訊息
