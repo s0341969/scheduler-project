@@ -4,30 +4,26 @@ using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using Microsoft.Extensions.Options;
 using VulnScan.Web.Models;
 using VulnScan.Web.ViewModels;
 
 namespace VulnScan.Web.Services;
 
 public sealed class GreenboneGmpClient(
-    IOptions<GreenboneOptions> options,
     ILogger<GreenboneGmpClient> logger) : IGreenboneGmpClient
 {
-    private readonly GreenboneOptions _options = options.Value;
-
-    public async Task<IReadOnlyList<GreenboneReportSummary>> GetRecentReportsAsync(CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<GreenboneReportSummary>> GetRecentReportsAsync(GreenboneOptions options, CancellationToken cancellationToken = default)
     {
-        if (!_options.Enabled || string.IsNullOrWhiteSpace(_options.Host))
+        if (!options.Enabled || string.IsNullOrWhiteSpace(options.Host))
         {
             return Array.Empty<GreenboneReportSummary>();
         }
 
-        using var session = await OpenSessionAsync(cancellationToken);
+        using var session = await OpenSessionAsync(options, cancellationToken);
         var request = new XElement(
             "get_reports",
             new XAttribute("details", "0"),
-            new XAttribute("filter", _options.ReportFilter));
+            new XAttribute("filter", options.ReportFilter));
 
         var response = await session.SendCommandAsync(request, cancellationToken);
         EnsureSuccess(response, "查詢 Greenbone 報表清單失敗");
@@ -47,24 +43,24 @@ public sealed class GreenboneGmpClient(
                     ?? string.Empty,
             })
             .Where(item => !string.IsNullOrWhiteSpace(item.ReportId))
-            .Take(Math.Max(1, _options.SyncTopReports))
+            .Take(Math.Max(1, options.SyncTopReports))
             .ToList();
     }
 
-    public async Task<string> DownloadReportXmlAsync(string reportId, CancellationToken cancellationToken = default)
+    public async Task<string> DownloadReportXmlAsync(GreenboneOptions options, string reportId, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(reportId))
         {
             throw new ArgumentException("reportId is required.", nameof(reportId));
         }
 
-        using var session = await OpenSessionAsync(cancellationToken);
+        using var session = await OpenSessionAsync(options, cancellationToken);
         var request = new XElement(
             "get_reports",
             new XAttribute("report_id", reportId),
             new XAttribute("details", "1"),
             new XAttribute("ignore_pagination", "1"),
-            new XAttribute("filter", _options.ResultFilter));
+            new XAttribute("filter", options.ResultFilter));
 
         var response = await session.SendCommandAsync(request, cancellationToken);
         EnsureSuccess(response, $"下載 Greenbone 報表失敗：{reportId}");
@@ -104,20 +100,20 @@ public sealed class GreenboneGmpClient(
         }
     }
 
-    private async Task<GmpSession> OpenSessionAsync(CancellationToken cancellationToken)
+    private async Task<GmpSession> OpenSessionAsync(GreenboneOptions options, CancellationToken cancellationToken)
     {
         var tcpClient = new TcpClient();
-        await tcpClient.ConnectAsync(_options.Host, _options.Port, cancellationToken);
+        await tcpClient.ConnectAsync(options.Host, options.Port, cancellationToken);
 
         var sslStream = new SslStream(
             tcpClient.GetStream(),
             leaveInnerStreamOpen: false,
-            (sender, certificate, chain, errors) => _options.IgnoreCertificateErrors || errors == SslPolicyErrors.None);
+            (sender, certificate, chain, errors) => options.IgnoreCertificateErrors || errors == SslPolicyErrors.None);
 
         await sslStream.AuthenticateAsClientAsync(
             new SslClientAuthenticationOptions
             {
-                TargetHost = _options.Host,
+                TargetHost = options.Host,
                 EnabledSslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
                 CertificateRevocationCheckMode = X509RevocationMode.NoCheck,
             },
@@ -128,8 +124,8 @@ public sealed class GreenboneGmpClient(
             "authenticate",
             new XElement(
                 "credentials",
-                new XElement("username", _options.Username),
-                new XElement("password", _options.Password)));
+                new XElement("username", options.Username),
+                new XElement("password", options.Password)));
 
         var authResponse = await session.SendCommandAsync(authRequest, cancellationToken);
         EnsureSuccess(authResponse, "Greenbone GMP 驗證失敗");

@@ -12,8 +12,12 @@ public sealed class ReportsController(ApplicationDbContext dbContext, IReportSer
 {
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
+        var endDate = DateTime.Today;
+        var startDate = endDate.AddDays(-30);
         var model = new ReportsIndexViewModel
         {
+            StartDate = startDate,
+            EndDate = endDate,
             VulnerabilityCount = await dbContext.Vulnerabilities.CountAsync(cancellationToken),
             HighRiskCount = await dbContext.Vulnerabilities.CountAsync(item => item.Severity == "Critical" || item.Severity == "High", cancellationToken),
             ExportCount = await dbContext.ReportExports.CountAsync(cancellationToken),
@@ -39,6 +43,21 @@ public sealed class ReportsController(ApplicationDbContext dbContext, IReportSer
     {
         var filePath = await reportService.ExportHighRiskExcelAsync(cancellationToken);
         TempData["StatusMessage"] = $"高風險弱點報表已產出：{filePath}";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ExportPdf(DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        if (endDate < startDate)
+        {
+            TempData["StatusMessage"] = "PDF 報表日期區間不正確：結束日期不得早於開始日期。";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var filePath = await reportService.ExportIso27001PdfAsync(startDate, endDate.AddDays(1).AddTicks(-1), cancellationToken);
+        TempData["StatusMessage"] = $"PDF 報表已產出：{filePath}";
         return RedirectToAction(nameof(Index));
     }
 }

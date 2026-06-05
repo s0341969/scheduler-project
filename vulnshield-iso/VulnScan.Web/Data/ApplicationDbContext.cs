@@ -25,6 +25,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<ReportExport> ReportExports => Set<ReportExport>();
 
+    public DbSet<GreenboneIntegrationSetting> GreenboneIntegrationSettings => Set<GreenboneIntegrationSetting>();
+
+    public DbSet<GreenboneSyncLog> GreenboneSyncLogs => Set<GreenboneSyncLog>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -38,6 +42,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
         modelBuilder.Entity<ScanAllowedRange>()
             .HasIndex(item => item.Cidr);
+
+        modelBuilder.Entity<GreenboneIntegrationSetting>()
+            .HasIndex(item => item.UpdatedAt);
+
+        modelBuilder.Entity<GreenboneSyncLog>()
+            .HasIndex(item => item.StartedAt);
 
         modelBuilder.Entity<ScanRun>()
             .HasOne(item => item.ScanJob)

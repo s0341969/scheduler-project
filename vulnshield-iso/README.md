@@ -47,7 +47,10 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已補上第一版自動匯入：系統會輪詢固定資料夾，自動接收 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
 - 已補上自動匯入管理頁：可查看來源目錄、待處理檔案、最近自動匯入紀錄，並手動觸發一次匯入
 - 已補上 `Greenbone / OpenVAS` GMP API 自動匯入：可直接透過平台 API 拉取最新報表，不再只靠人工撿檔
+- 已補上 `Greenbone` 設定管理頁：管理者可直接在系統內設定 Host / Port / 帳密 / Filter，無須再手改 `appsettings`
+- 已補上 `Greenbone` 同步失敗明細：每次同步成功或失敗都會留下端點、報表、訊息與匯入筆數
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
+- 已補上 PDF 匯出：報表可輸出 PDF，並包含 `軟體版本` 與 `特徵碼版本`
 
 ### `VulnScan.Web` 啟動方式
 1. 開發環境預設使用 `SQLite`，正式環境保留 `MSSQL`，請依需求調整：
@@ -103,30 +106,26 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 只要把掃描結果檔案放進對應 `incoming` 目錄，背景服務就會自動匯入並搬移檔案。
 管理者也可登入後到 `自動匯入` 頁面，直接執行「立即執行一次」。
 
-若要啟用 `Greenbone / OpenVAS` 直接串平台，請在：
-- [VulnScan.Web/appsettings.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.json)
-- [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json)
+若要啟用 `Greenbone / OpenVAS` 直接串平台，現在建議登入後到：
+- `http://localhost:5186/Greenbone`
 
-設定：
+由管理頁直接設定：
+- `Host`
+- `Port`
+- `Username`
+- `Password`
+- `IgnoreCertificateErrors`
+- `SyncTopReports`
+- `ReportFilter`
+- `ResultFilter`
 
-```json
-"Greenbone": {
-  "Enabled": true,
-  "Host": "10.1.1.50",
-  "Port": 9390,
-  "Username": "admin",
-  "Password": "your-password",
-  "IgnoreCertificateErrors": false,
-  "SyncTopReports": 10,
-  "ReportFilter": "rows=10 sort-reverse=date",
-  "ResultFilter": "rows=-1 min_qod=0 apply_overrides=1 levels=hmlg"
-}
-```
-
-啟用後：
+管理頁儲存後：
 - 背景自動匯入會同時處理 `Nuclei`、`Nessus` 目錄與 `Greenbone GMP API`
-- `自動匯入` 頁面會額外顯示 `Greenbone / OpenVAS` 來源卡與最近 API 同步紀錄
+- `Greenbone` 頁面會顯示最近同步成功 / 失敗明細
+- `自動匯入` 頁面也會額外顯示 `Greenbone / OpenVAS` 來源卡與最近 API 同步紀錄
 - 匯入資料會用 `greenbone://report/<reportId>` 作為去重標記，避免重複吃同一份報表
+
+`appsettings.json` / `appsettings.Development.json` 的 `Greenbone` 區段仍保留為首次啟動或 fallback 預設值，但日常維運已可直接透過 UI 管理。
 
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
@@ -150,7 +149,7 @@ Development 預設 bootstrap 帳號：
 1. `UsersController` 與使用者管理頁
 2. `PDF` 報表
 3. `EF Core Migration`，取代 `EnsureCreated()`
-4. `Greenbone / OpenVAS` 設定管理頁與同步錯誤明細
+4. `Greenbone` 連線測試 / 密碼輪替與更完整的同步治理
 
 ### 自動匯入與版本欄位
 - `AutoImport:Enabled=true` 時，背景服務每 `PollIntervalSeconds` 秒掃描一次匯入目錄
@@ -162,12 +161,20 @@ Development 預設 bootstrap 帳號：
 - `弱點清單`、`報表頁` 與 Excel 匯出都會顯示：
   - `軟體版本`
   - `特徵碼版本`
+- `報表匯出` 頁現在也支援 PDF，會輸出：
+  - 報表期間
+  - 弱點總數 / 高風險弱點 / 受影響資產
+  - 含 `軟體版本` 與 `特徵碼版本` 的弱點明細
 - `自動匯入` 頁面目前可顯示：
   - Nuclei / Nessus `incoming` 路徑
   - Greenbone / OpenVAS GMP 端點與最近同步量
   - 待處理檔案數
   - 最近自動匯入 `ScanRun`
   - 最近已處理與失敗檔案
+- `Greenbone` 頁面目前可顯示：
+  - 是否啟用
+  - 最近成功 / 失敗同步次數
+  - 最近同步明細與失敗原因
 
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`

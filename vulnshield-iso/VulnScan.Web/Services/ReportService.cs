@@ -1,6 +1,8 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using PdfSharpCore.Drawing;
+using PdfSharpCore.Pdf;
 using VulnScan.Web.Data;
 using VulnScan.Web.Models;
 
@@ -15,11 +17,8 @@ public sealed class ReportService(
 
     public async Task<string> ExportVulnerabilityExcelAsync(DateTime start, DateTime end, CancellationToken cancellationToken = default)
     {
-        var filePath = BuildReportPath("vulnerability-export");
-        var items = await dbContext.Vulnerabilities
-            .AsNoTracking()
-            .Where(item => item.FirstDetectedAt >= start && item.FirstDetectedAt <= end)
-            .ToListAsync(cancellationToken);
+        var filePath = BuildReportPath("vulnerability-export", "xlsx");
+        var items = await QueryVulnerabilitiesAsync(start, end, cancellationToken);
 
         using var workbook = new XLWorkbook();
         var worksheet = workbook.AddWorksheet("Vulnerabilities");
@@ -54,7 +53,7 @@ public sealed class ReportService(
 
     public async Task<string> ExportHighRiskExcelAsync(CancellationToken cancellationToken = default)
     {
-        var filePath = BuildReportPath("high-risk-export");
+        var filePath = BuildReportPath("high-risk-export", "xlsx");
         var items = await dbContext.Vulnerabilities
             .AsNoTracking()
             .Where(item => item.Severity == "Critical" || item.Severity == "High")
@@ -85,16 +84,91 @@ public sealed class ReportService(
         return filePath;
     }
 
-    public Task<string> ExportIso27001PdfAsync(DateTime start, DateTime end, CancellationToken cancellationToken = default)
+    public async Task<string> ExportIso27001PdfAsync(DateTime start, DateTime end, CancellationToken cancellationToken = default)
     {
-        throw new NotSupportedException("V1 尚未實作 PDF 匯出，依規格屬後續階段。");
+        var filePath = BuildReportPath("iso27001-summary", "pdf");
+        var items = await QueryVulnerabilitiesAsync(start, end, cancellationToken);
+        var document = new PdfDocument();
+        document.Info.Title = "VulnScan 弱點管理報告";
+        document.Info.Author = "VulnScan.Web";
+
+        var titleFont = new XFont(PdfFontResolver.DefaultFontName, 18, XFontStyle.Bold);
+        var headerFont = new XFont(PdfFontResolver.DefaultFontName, 10, XFontStyle.Bold);
+        var bodyFont = new XFont(PdfFontResolver.DefaultFontName, 9, XFontStyle.Regular);
+        var smallFont = new XFont(PdfFontResolver.DefaultFontName, 8, XFontStyle.Regular);
+
+        var page = document.AddPage();
+        page.Size = PdfSharpCore.PageSize.A4;
+        page.Orientation = PdfSharpCore.PageOrientation.Landscape;
+        var graphics = XGraphics.FromPdfPage(page);
+        var margin = 32d;
+        var y = margin;
+
+        graphics.DrawString("VulnScan 弱點管理報告", titleFont, XBrushes.Black, new XRect(margin, y, page.Width - margin * 2, 28), XStringFormats.TopLeft);
+        y += 30;
+        graphics.DrawString($"報表期間：{start:yyyy-MM-dd} 至 {end:yyyy-MM-dd}", bodyFont, XBrushes.Black, new XRect(margin, y, 320, 20), XStringFormats.TopLeft);
+        y += 24;
+
+        var vulnerabilityCount = items.Count;
+        var highRiskCount = items.Count(item => item.Severity is "Critical" or "High");
+        var assetsCount = items.Select(item => item.AssetId).Distinct().Count();
+        DrawSummaryCard(graphics, margin, y, 180, 58, "弱點總數", vulnerabilityCount.ToString());
+        DrawSummaryCard(graphics, margin + 196, y, 180, 58, "高風險弱點", highRiskCount.ToString());
+        DrawSummaryCard(graphics, margin + 392, y, 180, 58, "受影響資產", assetsCount.ToString());
+        y += 78;
+
+        var columns = new (string Header, double Width)[]
+        {
+            ("資產", 90),
+            ("IP", 90),
+            ("弱點名稱", 185),
+            ("Severity", 60),
+            ("CVSS", 45),
+            ("軟體版本", 90),
+            ("特徵碼版本", 95),
+            ("最後發現", 90),
+        };
+
+        DrawTableHeader(graphics, headerFont, margin, y, columns);
+        y += 20;
+
+        foreach (var item in items.OrderByDescending(item => item.LastDetectedAt))
+        {
+            if (y > page.Height - 36)
+            {
+                page = document.AddPage();
+                page.Size = PdfSharpCore.PageSize.A4;
+                page.Orientation = PdfSharpCore.PageOrientation.Landscape;
+                graphics = XGraphics.FromPdfPage(page);
+                y = margin;
+                DrawTableHeader(graphics, headerFont, margin, y, columns);
+                y += 20;
+            }
+
+            DrawTableRow(graphics, bodyFont, smallFont, margin, y, columns, new[]
+            {
+                item.Asset?.AssetName ?? "-",
+                item.IPAddress ?? "-",
+                item.VulnName,
+                item.Severity ?? "-",
+                item.CVSS?.ToString("0.0") ?? "-",
+                item.DetectedVersion ?? item.ServiceName ?? "-",
+                item.SignatureVersion ?? "-",
+                item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd"),
+            });
+            y += 18;
+        }
+
+        document.Save(filePath);
+        await SaveExportRecordAsync("ISO27001 弱點管理 PDF", "PDF", filePath, cancellationToken);
+        return filePath;
     }
 
-    private string BuildReportPath(string namePrefix)
+    private string BuildReportPath(string namePrefix, string extension)
     {
         var reportRoot = Path.Combine(_options.ResultRootPath, "reports");
         Directory.CreateDirectory(reportRoot);
-        return Path.Combine(reportRoot, $"{namePrefix}-{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx");
+        return Path.Combine(reportRoot, $"{namePrefix}-{DateTime.UtcNow:yyyyMMddHHmmss}.{extension}");
     }
 
     private async Task SaveExportRecordAsync(string reportName, string reportType, string filePath, CancellationToken cancellationToken)
@@ -108,5 +182,60 @@ public sealed class ReportService(
         });
         await dbContext.SaveChangesAsync(cancellationToken);
         await auditLogService.WriteAsync("ReportExported", "ReportExport", null, $"{reportName} => {filePath}", null, null, cancellationToken);
+    }
+
+    private Task<List<Vulnerability>> QueryVulnerabilitiesAsync(DateTime start, DateTime end, CancellationToken cancellationToken)
+    {
+        return dbContext.Vulnerabilities
+            .AsNoTracking()
+            .Include(item => item.Asset)
+            .Where(item => item.FirstDetectedAt >= start && item.FirstDetectedAt <= end)
+            .ToListAsync(cancellationToken);
+    }
+
+    private static void DrawSummaryCard(XGraphics graphics, double x, double y, double width, double height, string label, string value)
+    {
+        graphics.DrawRoundedRectangle(new XPen(XColor.FromArgb(208, 220, 235), 1), XBrushes.WhiteSmoke, x, y, width, height, 10, 10);
+        graphics.DrawString(label, new XFont(PdfFontResolver.DefaultFontName, 9, XFontStyle.Regular), XBrushes.DimGray, new XRect(x + 12, y + 10, width - 24, 16), XStringFormats.TopLeft);
+        graphics.DrawString(value, new XFont(PdfFontResolver.DefaultFontName, 16, XFontStyle.Bold), XBrushes.Black, new XRect(x + 12, y + 24, width - 24, 24), XStringFormats.TopLeft);
+    }
+
+    private static void DrawTableHeader(XGraphics graphics, XFont font, double x, double y, IReadOnlyList<(string Header, double Width)> columns)
+    {
+        var currentX = x;
+        foreach (var column in columns)
+        {
+            graphics.DrawRectangle(XBrushes.LightGray, currentX, y, column.Width, 18);
+            graphics.DrawString(column.Header, font, XBrushes.Black, new XRect(currentX + 4, y + 3, column.Width - 8, 12), XStringFormats.TopLeft);
+            currentX += column.Width;
+        }
+    }
+
+    private static void DrawTableRow(XGraphics graphics, XFont font, XFont smallFont, double x, double y, IReadOnlyList<(string Header, double Width)> columns, IReadOnlyList<string> values)
+    {
+        var currentX = x;
+        for (var index = 0; index < columns.Count; index += 1)
+        {
+            var column = columns[index];
+            var value = index < values.Count ? values[index] : string.Empty;
+            graphics.DrawRectangle(new XPen(XColor.FromArgb(220, 226, 235), 0.6), currentX, y, column.Width, 18);
+            graphics.DrawString(
+                TrimForCell(value, column.Width > 120 ? 40 : 20),
+                column.Width > 100 ? smallFont : font,
+                XBrushes.Black,
+                new XRect(currentX + 3, y + 3, column.Width - 6, 12),
+                XStringFormats.TopLeft);
+            currentX += column.Width;
+        }
+    }
+
+    private static string TrimForCell(string value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.Length <= maxLength)
+        {
+            return value;
+        }
+
+        return value[..Math.Max(0, maxLength - 1)] + "…";
     }
 }

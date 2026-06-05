@@ -58,11 +58,30 @@
         <div class="panel-card-header">
             <h3>立即匯出</h3>
         </div>
-        <form asp-action="ExportHighRisk" method="post" class="form-stack">
-            @Html.AntiForgeryToken()
-            <p>第一版先提供高風險弱點 Excel 匯出，產出位置會落在 `VulnScan:ResultRootPath\reports`。</p>
-            <button type="submit" class="btn btn-primary">匯出高風險弱點 Excel</button>
-        </form>
+        <div class="form-stack">
+            <form asp-action="ExportHighRisk" method="post" class="form-stack">
+                @Html.AntiForgeryToken()
+                <p>可立即匯出高風險弱點 Excel，內容會包含 `軟體版本` 與 `特徵碼版本`。</p>
+                <button type="submit" class="btn btn-primary">匯出高風險弱點 Excel</button>
+            </form>
+            <form asp-action="ExportPdf" method="post" class="form-grid">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label asp-for="StartDate" class="form-label">開始日期</label>
+                    <input asp-for="StartDate" type="date" class="form-control" />
+                </div>
+                <div>
+                    <label asp-for="EndDate" class="form-label">結束日期</label>
+                    <input asp-for="EndDate" type="date" class="form-control" />
+                </div>
+                <div class="full-width">
+                    <p>PDF 會輸出摘要 KPI 與弱點明細，並包含 `軟體版本 / 特徵碼版本`。</p>
+                </div>
+                <div class="action-row full-width">
+                    <button type="submit" class="btn btn-outline-secondary">匯出 PDF 報表</button>
+                </div>
+            </form>
+        </div>
     </article>
 
     <article class="panel-card">

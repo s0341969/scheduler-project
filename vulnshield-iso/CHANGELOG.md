@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `Greenbone` 設定管理頁：可直接在 UI 內維護 Host / Port / 帳密 / Filter，不必再手改 `appsettings`
+- 新增 `GreenboneIntegrationSetting` 與 `GreenboneSyncLog`，將 GMP 設定與同步成功 / 失敗明細正式保存到資料庫
+- 強化 `Greenbone` 同步治理：每次同步會記錄模式、端點、報表、任務名稱、匯入筆數與失敗訊息
+- 新增 PDF 報表匯出：`Reports` 頁可輸出含 `軟體版本 / 特徵碼版本` 的 PDF 報表
+- 新增 `PdfSharpCore` 與 Windows 字型解析，讓 PDF 可輸出中文欄位與版本資訊
 - 新增 `Greenbone / OpenVAS` GMP API 自動匯入：背景自動匯入不再只撿檔，現可直接連線平台拉取最新報表 XML
 - 新增 `GreenboneOptions`、`GreenboneGmpClient`、`GreenboneImportService`，支援最新報表列表查詢、單報表下載與去重匯入
 - 新增 `Vulnerabilities.SignatureVersion` 欄位與啟動相容性補欄邏輯，既有 SQLite / SQL Server 資料庫啟動時會自動補齊欄位

@@ -7,6 +7,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using PdfSharpCore.Fonts;
 using VulnScan.Web.Data;
 using VulnScan.Web.Models;
 using VulnScan.Web.Services;
@@ -17,6 +18,7 @@ var defaultConnectionString = ResolveConnectionString(builder.Configuration, bui
 var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
 
 Directory.CreateDirectory(dataProtectionKeysPath);
+GlobalFontSettings.FontResolver ??= new PdfFontResolver();
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -86,6 +88,7 @@ builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IAutoImportService, AutoImportService>();
 builder.Services.AddScoped<IGreenboneGmpClient, GreenboneGmpClient>();
 builder.Services.AddScoped<IGreenboneImportService, GreenboneImportService>();
+builder.Services.AddScoped<IGreenboneSettingsService, GreenboneSettingsService>();
 builder.Services.AddScoped<IScanAllowedRangeService, ScanAllowedRangeService>();
 builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();

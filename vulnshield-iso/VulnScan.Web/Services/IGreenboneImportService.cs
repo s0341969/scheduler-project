@@ -4,5 +4,5 @@ namespace VulnScan.Web.Services;
 
 public interface IGreenboneImportService
 {
-    Task<GreenboneSyncResult> RunOnceAsync(CancellationToken cancellationToken = default);
+    Task<GreenboneSyncResult> RunOnceAsync(string triggeredBy, string triggerMode, CancellationToken cancellationToken = default);
 }

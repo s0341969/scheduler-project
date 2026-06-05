@@ -4,6 +4,10 @@ namespace VulnScan.Web.ViewModels;
 
 public sealed class ReportsIndexViewModel
 {
+    public DateTime StartDate { get; set; }
+
+    public DateTime EndDate { get; set; }
+
     public int VulnerabilityCount { get; set; }
 
     public int HighRiskCount { get; set; }
