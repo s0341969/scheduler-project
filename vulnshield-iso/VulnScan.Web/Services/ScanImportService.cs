@@ -84,6 +84,15 @@ public sealed class ScanImportService(
         return run.RunId;
     }
 
+    public async Task<int> ImportGreenboneXmlFileAsync(string filePath, string reportId, string userAccount, CancellationToken cancellationToken = default)
+    {
+        var marker = $"greenbone://report/{reportId}";
+        var run = await CreateImportRunAsync("Greenbone", marker, userAccount, cancellationToken);
+        var importedCount = await ImportGreenboneXmlAsync(run.RunId, filePath, cancellationToken);
+        await CompleteImportRunAsync(run, importedCount, "GreenboneImported", reportId, userAccount, cancellationToken);
+        return run.RunId;
+    }
+
     private async Task CompleteImportRunAsync(
         ScanRun run,
         int importedCount,
@@ -181,6 +190,7 @@ public sealed class ScanImportService(
                 GetValue(headerMap, row, "Protocol"),
                 FirstNonEmpty(GetValue(headerMap, row, "Service"), GetValue(headerMap, row, "svc_name")),
                 ExtractVersion(GetValue(headerMap, row, "Plugin Output"), GetValue(headerMap, row, "Name")),
+                null,
                 GetValue(headerMap, row, "Description"),
                 GetValue(headerMap, row, "Solution"),
                 GetValue(headerMap, row, "Plugin Output"),
@@ -215,6 +225,7 @@ public sealed class ScanImportService(
                     reportItem.Attribute("protocol")?.Value,
                     reportItem.Attribute("svc_name")?.Value,
                     ExtractVersion(reportItem.Element("plugin_output")?.Value, reportItem.Attribute("pluginName")?.Value),
+                    null,
                     reportItem.Element("description")?.Value,
                     reportItem.Element("solution")?.Value,
                     reportItem.Element("plugin_output")?.Value,
@@ -222,6 +233,62 @@ public sealed class ScanImportService(
 
                 importedCount += 1;
             }
+        }
+
+        return importedCount;
+    }
+
+    private async Task<int> ImportGreenboneXmlAsync(int runId, string filePath, CancellationToken cancellationToken)
+    {
+        var document = XDocument.Load(filePath, LoadOptions.PreserveWhitespace);
+        var reportElement = document.Root?.Name.LocalName == "report"
+            ? document.Root
+            : document.Descendants().FirstOrDefault(item => item.Name.LocalName == "report");
+        var reportSignatureVersion = FirstNonEmpty(
+            reportElement?.Descendants().FirstOrDefault(item => item.Name.LocalName == "scan_nvt_version")?.Value,
+            ExtractFeedVersion(reportElement?.Descendants().FirstOrDefault(item => item.Name.LocalName == "report_format")?.Parent?.ToString(SaveOptions.DisableFormatting)),
+            ExtractFeedVersion(reportElement?.ToString(SaveOptions.DisableFormatting)));
+
+        var results = (reportElement ?? document.Root)?.Descendants()
+            .Where(item => item.Name.LocalName == "result")
+            .ToList() ?? new List<XElement>();
+
+        var importedCount = 0;
+        foreach (var result in results)
+        {
+            var nvt = result.Elements().FirstOrDefault(item => item.Name.LocalName == "nvt");
+            var portDescriptor = GetDescendantValue(result, "port");
+            var (portNumber, protocol, serviceName) = ParseGreenbonePort(portDescriptor);
+            var tags = FirstNonEmpty(GetDescendantValue(nvt, "tags"), GetDescendantValue(result, "description"));
+            var evidence = string.Join(
+                Environment.NewLine + Environment.NewLine,
+                new[]
+                {
+                    GetDescendantValue(result, "description"),
+                    tags,
+                    portDescriptor,
+                }.Where(item => !string.IsNullOrWhiteSpace(item)));
+            var severityScore = ParseNullableDecimal(GetDescendantValue(result, "severity"));
+
+            await UpsertImportedVulnerabilityAsync(
+                runId,
+                GetDescendantValue(result, "host"),
+                FirstNonEmpty(GetDescendantValue(result, "name"), GetDescendantValue(nvt, "name"), "Greenbone Finding"),
+                NormalizeSeverity(GetDescendantValue(result, "threat"), severityScore),
+                GetLocalAttribute(nvt, "oid"),
+                ExtractGreenboneCve(result),
+                severityScore,
+                portNumber,
+                protocol,
+                FirstNonEmpty(serviceName, GetDescendantValue(nvt, "family")),
+                ExtractVersion(GetDescendantValue(result, "description"), GetDescendantValue(result, "name"), tags),
+                FirstNonEmpty(GetDescendantValue(result, "scan_nvt_version"), GetLocalAttribute(nvt, "version"), reportSignatureVersion),
+                GetDescendantValue(result, "description"),
+                FirstNonEmpty(GetDescendantValue(nvt, "solution"), ExtractGreenboneTag(tags, "solution")),
+                evidence,
+                cancellationToken);
+
+            importedCount += 1;
         }
 
         return importedCount;
@@ -254,6 +321,7 @@ public sealed class ScanImportService(
             TryGetString(finding, "type"),
             TryGetString(finding, "type"),
             ExtractVersion(extractedResults, TryGetString(info, "description"), matchedAt),
+            null,
             TryGetString(info, "description"),
             TryGetString(info, "remediation"),
             string.Join(Environment.NewLine, evidenceParts),
@@ -272,6 +340,7 @@ public sealed class ScanImportService(
         string? protocol,
         string? serviceName,
         string? detectedVersion,
+        string? signatureVersion,
         string? description,
         string? solution,
         string? evidence,
@@ -303,6 +372,7 @@ public sealed class ScanImportService(
                 Protocol = string.IsNullOrWhiteSpace(protocol) ? null : protocol.Trim(),
                 ServiceName = string.IsNullOrWhiteSpace(serviceName) ? null : serviceName.Trim(),
                 DetectedVersion = string.IsNullOrWhiteSpace(detectedVersion) ? null : detectedVersion.Trim(),
+                SignatureVersion = string.IsNullOrWhiteSpace(signatureVersion) ? null : signatureVersion.Trim(),
                 Description = description,
                 Solution = solution,
                 Evidence = evidence,
@@ -320,6 +390,7 @@ public sealed class ScanImportService(
             existing.Protocol = string.IsNullOrWhiteSpace(protocol) ? existing.Protocol : protocol.Trim();
             existing.ServiceName = string.IsNullOrWhiteSpace(serviceName) ? existing.ServiceName : serviceName.Trim();
             existing.DetectedVersion = string.IsNullOrWhiteSpace(detectedVersion) ? existing.DetectedVersion : detectedVersion.Trim();
+            existing.SignatureVersion = string.IsNullOrWhiteSpace(signatureVersion) ? existing.SignatureVersion : signatureVersion.Trim();
             existing.Description = string.IsNullOrWhiteSpace(description) ? existing.Description : description;
             existing.Solution = string.IsNullOrWhiteSpace(solution) ? existing.Solution : solution;
             existing.Evidence = string.IsNullOrWhiteSpace(evidence) ? existing.Evidence : evidence;
@@ -356,14 +427,33 @@ public sealed class ScanImportService(
         return asset;
     }
 
-    private static string NormalizeSeverity(string? value)
+    private static string NormalizeSeverity(string? value, decimal? numericSeverity = null)
     {
+        if (numericSeverity.HasValue)
+        {
+            return numericSeverity.Value switch
+            {
+                >= 9.0m => "Critical",
+                >= 7.0m => "High",
+                >= 4.0m => "Medium",
+                > 0.0m => "Low",
+                _ => "Info",
+            };
+        }
+
+        if (decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedSeverity))
+        {
+            return NormalizeSeverity(null, parsedSeverity);
+        }
+
         return value?.Trim().ToLowerInvariant() switch
         {
             "critical" or "4" => "Critical",
             "high" or "3" => "High",
             "medium" or "moderate" or "2" => "Medium",
             "low" or "1" => "Low",
+            "alarm" => "Critical",
+            "log" => "Info",
             "info" or "informational" or "0" => "Info",
             _ => string.IsNullOrWhiteSpace(value) ? "Unknown" : value.Trim(),
         };
@@ -438,5 +528,89 @@ public sealed class ScanImportService(
         }
 
         return null;
+    }
+
+    private static string? GetDescendantValue(XElement? element, string localName)
+    {
+        return element?.Descendants().FirstOrDefault(item => item.Name.LocalName == localName)?.Value?.Trim();
+    }
+
+    private static string? GetLocalAttribute(XElement? element, string localName)
+    {
+        return element?.Attributes().FirstOrDefault(item => item.Name.LocalName == localName)?.Value?.Trim();
+    }
+
+    private static string? ExtractGreenboneCve(XElement result)
+    {
+        var nvt = result.Elements().FirstOrDefault(item => item.Name.LocalName == "nvt");
+        var cves = nvt?.Descendants()
+            .Where(item =>
+                item.Name.LocalName == "cve" ||
+                (item.Name.LocalName == "ref" && string.Equals(item.Attribute("type")?.Value, "cve", StringComparison.OrdinalIgnoreCase)))
+            .Select(item => string.Equals(item.Name.LocalName, "ref", StringComparison.OrdinalIgnoreCase)
+                ? item.Attribute("id")?.Value
+                : item.Value)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .Select(item => item!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return cves is { Count: > 0 } ? string.Join(",", cves) : null;
+    }
+
+    private static (int? PortNumber, string? Protocol, string? ServiceName) ParseGreenbonePort(string? portDescriptor)
+    {
+        if (string.IsNullOrWhiteSpace(portDescriptor))
+        {
+            return (null, null, null);
+        }
+
+        var trimmed = portDescriptor.Trim();
+        var slashMatch = Regex.Match(trimmed, @"(?<port>\d+)\/(?<protocol>[a-zA-Z]+)", RegexOptions.CultureInvariant);
+        if (slashMatch.Success)
+        {
+            var serviceName = trimmed[..slashMatch.Index].Trim().TrimEnd('(', ')', ' ');
+            if (string.IsNullOrWhiteSpace(serviceName) || string.Equals(serviceName, slashMatch.Value, StringComparison.OrdinalIgnoreCase))
+            {
+                serviceName = null;
+            }
+
+            return (
+                ParseNullableInt(slashMatch.Groups["port"].Value),
+                slashMatch.Groups["protocol"].Value.ToLowerInvariant(),
+                serviceName);
+        }
+
+        return (null, null, trimmed);
+    }
+
+    private static string? ExtractGreenboneTag(string? tags, string key)
+    {
+        if (string.IsNullOrWhiteSpace(tags) || string.IsNullOrWhiteSpace(key))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(
+            tags,
+            $@"(?:^|\|){Regex.Escape(key)}=(?<value>[^|]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        return match.Success ? match.Groups["value"].Value.Trim() : null;
+    }
+
+    private static string? ExtractFeedVersion(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var match = Regex.Match(
+            value,
+            @"(?:(?:feed|signature|nvt)[\s_-]*version|scan_nvt_version)[^0-9A-Za-z]*(?<version>[0-9A-Za-z._-]+)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+
+        return match.Success ? match.Groups["version"].Value.Trim() : null;
     }
 }

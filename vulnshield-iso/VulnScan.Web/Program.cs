@@ -25,6 +25,7 @@ builder.Logging.AddDebug();
 builder.Services.Configure<VulnScanOptions>(builder.Configuration.GetSection(VulnScanOptions.SectionName));
 builder.Services.Configure<LocalAuthOptions>(builder.Configuration.GetSection(LocalAuthOptions.SectionName));
 builder.Services.Configure<AutoImportOptions>(builder.Configuration.GetSection(AutoImportOptions.SectionName));
+builder.Services.Configure<GreenboneOptions>(builder.Configuration.GetSection(GreenboneOptions.SectionName));
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
     .SetApplicationName("VulnScan.Web");
@@ -83,6 +84,8 @@ builder.Services.AddHangfireServer(options =>
 
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IAutoImportService, AutoImportService>();
+builder.Services.AddScoped<IGreenboneGmpClient, GreenboneGmpClient>();
+builder.Services.AddScoped<IGreenboneImportService, GreenboneImportService>();
 builder.Services.AddScoped<IScanAllowedRangeService, ScanAllowedRangeService>();
 builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();

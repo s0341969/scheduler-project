@@ -74,19 +74,54 @@ public static class DbInitializer
 
     private static async Task EnsureCompatibilityAsync(ApplicationDbContext dbContext, CancellationToken cancellationToken)
     {
-        if (await ColumnExistsAsync(dbContext, "Vulnerabilities", "DetectedVersion", cancellationToken))
+        var providerName = dbContext.Database.ProviderName ?? string.Empty;
+        await EnsureColumnAsync(dbContext, providerName, "Vulnerabilities", "DetectedVersion", "TEXT NULL", "nvarchar(200) NULL", cancellationToken);
+        await EnsureColumnAsync(dbContext, providerName, "Vulnerabilities", "SignatureVersion", "TEXT NULL", "nvarchar(200) NULL", cancellationToken);
+    }
+
+    private static async Task EnsureColumnAsync(
+        ApplicationDbContext dbContext,
+        string providerName,
+        string tableName,
+        string columnName,
+        string sqliteTypeDefinition,
+        string sqlServerTypeDefinition,
+        CancellationToken cancellationToken)
+    {
+        if (await ColumnExistsAsync(dbContext, tableName, columnName, cancellationToken))
         {
             return;
         }
 
-        var providerName = dbContext.Database.ProviderName ?? string.Empty;
         if (providerName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
         {
-            await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE Vulnerabilities ADD COLUMN DetectedVersion TEXT NULL;", cancellationToken);
+            await dbContext.Database.ExecuteSqlRawAsync(
+                BuildCompatibilitySql(tableName, columnName, isSqlite: true),
+                cancellationToken);
             return;
         }
 
-        await dbContext.Database.ExecuteSqlRawAsync("ALTER TABLE Vulnerabilities ADD DetectedVersion nvarchar(200) NULL;", cancellationToken);
+        await dbContext.Database.ExecuteSqlRawAsync(
+            BuildCompatibilitySql(tableName, columnName, isSqlite: false),
+            cancellationToken);
+    }
+
+    private static string BuildCompatibilitySql(string tableName, string columnName, bool isSqlite)
+    {
+        if (!string.Equals(tableName, "Vulnerabilities", StringComparison.Ordinal) ||
+            (columnName != "DetectedVersion" && columnName != "SignatureVersion"))
+        {
+            throw new InvalidOperationException($"Unsupported compatibility patch target: {tableName}.{columnName}");
+        }
+
+        return (columnName, isSqlite) switch
+        {
+            ("DetectedVersion", true) => "ALTER TABLE Vulnerabilities ADD COLUMN DetectedVersion TEXT NULL;",
+            ("DetectedVersion", false) => "ALTER TABLE Vulnerabilities ADD DetectedVersion nvarchar(200) NULL;",
+            ("SignatureVersion", true) => "ALTER TABLE Vulnerabilities ADD COLUMN SignatureVersion TEXT NULL;",
+            ("SignatureVersion", false) => "ALTER TABLE Vulnerabilities ADD SignatureVersion nvarchar(200) NULL;",
+            _ => throw new InvalidOperationException($"Unsupported compatibility patch target: {tableName}.{columnName}"),
+        };
     }
 
     private static async Task<bool> ColumnExistsAsync(ApplicationDbContext dbContext, string tableName, string columnName, CancellationToken cancellationToken)

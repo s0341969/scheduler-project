@@ -1,6 +1,12 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `Greenbone / OpenVAS` GMP API 自動匯入：背景自動匯入不再只撿檔，現可直接連線平台拉取最新報表 XML
+- 新增 `GreenboneOptions`、`GreenboneGmpClient`、`GreenboneImportService`，支援最新報表列表查詢、單報表下載與去重匯入
+- 新增 `Vulnerabilities.SignatureVersion` 欄位與啟動相容性補欄邏輯，既有 SQLite / SQL Server 資料庫啟動時會自動補齊欄位
+- 強化匯入解析：Greenbone 結果會抽取 `軟體版本` 與 `特徵碼版本`，並保存到 `DetectedVersion` / `SignatureVersion`
+- 強化 `自動匯入` 管理頁：新增 `Greenbone / OpenVAS` API 來源卡與最近 API 同步紀錄
+- 強化 `弱點清單`、`報表頁` 與 Excel 匯出：改為同時顯示 `軟體版本` 與 `特徵碼版本`
 - 新增 `VulnScan.Web` 第一版自動匯入：背景服務會輪詢固定資料夾，自動匯入 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
 - 新增 `VulnScan.Web` 自動匯入管理頁：可查看來源目錄、待處理檔案、最近匯入紀錄，並手動觸發一次自動匯入
 - 新增 `Vulnerabilities.DetectedVersion` 欄位與啟動相容性補欄邏輯，既有 SQLite / SQL Server 資料庫啟動時會自動補齊欄位

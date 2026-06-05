@@ -46,6 +46,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已補齊 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML` 匯入，匯入後會自動建立對應 `ScanJob`、`ScanRun` 與 `Vulnerabilities`
 - 已補上第一版自動匯入：系統會輪詢固定資料夾，自動接收 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
 - 已補上自動匯入管理頁：可查看來源目錄、待處理檔案、最近自動匯入紀錄，並手動觸發一次匯入
+- 已補上 `Greenbone / OpenVAS` GMP API 自動匯入：可直接透過平台 API 拉取最新報表，不再只靠人工撿檔
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 
 ### `VulnScan.Web` 啟動方式
@@ -102,6 +103,31 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 只要把掃描結果檔案放進對應 `incoming` 目錄，背景服務就會自動匯入並搬移檔案。
 管理者也可登入後到 `自動匯入` 頁面，直接執行「立即執行一次」。
 
+若要啟用 `Greenbone / OpenVAS` 直接串平台，請在：
+- [VulnScan.Web/appsettings.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.json)
+- [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json)
+
+設定：
+
+```json
+"Greenbone": {
+  "Enabled": true,
+  "Host": "10.1.1.50",
+  "Port": 9390,
+  "Username": "admin",
+  "Password": "your-password",
+  "IgnoreCertificateErrors": false,
+  "SyncTopReports": 10,
+  "ReportFilter": "rows=10 sort-reverse=date",
+  "ResultFilter": "rows=-1 min_qod=0 apply_overrides=1 levels=hmlg"
+}
+```
+
+啟用後：
+- 背景自動匯入會同時處理 `Nuclei`、`Nessus` 目錄與 `Greenbone GMP API`
+- `自動匯入` 頁面會額外顯示 `Greenbone / OpenVAS` 來源卡與最近 API 同步紀錄
+- 匯入資料會用 `greenbone://report/<reportId>` 作為去重標記，避免重複吃同一份報表
+
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
 - 帳號、角色與密碼雜湊保存在 `Users`
@@ -122,18 +148,23 @@ Development 預設 bootstrap 帳號：
 ### 下次開發優先項目
 下次若延續 `VulnScan.Web`，優先順序以這四項為主：
 1. `UsersController` 與使用者管理頁
-2. `OpenVAS / Greenbone` 匯入
-3. `PDF` 報表
-4. `EF Core Migration`，取代 `EnsureCreated()`
+2. `PDF` 報表
+3. `EF Core Migration`，取代 `EnsureCreated()`
+4. `Greenbone / OpenVAS` 設定管理頁與同步錯誤明細
 
 ### 自動匯入與版本欄位
 - `AutoImport:Enabled=true` 時，背景服務每 `PollIntervalSeconds` 秒掃描一次匯入目錄
 - `Nuclei` 會從 `extracted-results`、描述與比對內容中嘗試抽取版本
 - `Nessus` 會從 `Plugin Output` 與服務欄位嘗試抽取版本
+- `Greenbone / OpenVAS` 會透過 `GMP over TLS` 直接拉取最新報表 XML，並從結果內容解析弱點、風險等級、軟體版本與特徵碼版本
 - 匯入後會寫入 `Vulnerabilities.DetectedVersion`
-- `弱點清單`、`報表頁` 與 Excel 匯出都會顯示 `檢查版本`
+- 匯入後也會寫入 `Vulnerabilities.SignatureVersion`
+- `弱點清單`、`報表頁` 與 Excel 匯出都會顯示：
+  - `軟體版本`
+  - `特徵碼版本`
 - `自動匯入` 頁面目前可顯示：
   - Nuclei / Nessus `incoming` 路徑
+  - Greenbone / OpenVAS GMP 端點與最近同步量
   - 待處理檔案數
   - 最近自動匯入 `ScanRun`
   - 最近已處理與失敗檔案

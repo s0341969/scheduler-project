@@ -11,9 +11,12 @@ public sealed class AutoImportService(
     IWebHostEnvironment environment,
     IScanImportService scanImportService,
     IOptions<AutoImportOptions> options,
+    IOptions<GreenboneOptions> greenboneOptions,
+    IGreenboneImportService greenboneImportService,
     ILogger<AutoImportService> logger) : IAutoImportService
 {
     private readonly AutoImportOptions _options = options.Value;
+    private readonly GreenboneOptions _greenboneOptions = greenboneOptions.Value;
 
     public Task EnsureFoldersAsync(CancellationToken cancellationToken = default)
     {
@@ -46,6 +49,13 @@ public sealed class AutoImportService(
             ResolvePath(_options.FailedPath),
             scanImportService.ImportNessusFileAsync,
             cancellationToken);
+
+        if (_greenboneOptions.Enabled)
+        {
+            var greenboneResult = await greenboneImportService.RunOnceAsync(cancellationToken);
+            totalImported += greenboneResult.ImportedCount;
+        }
+
         return totalImported;
     }
 
@@ -64,11 +74,12 @@ public sealed class AutoImportService(
             [
                 BuildSource("Nuclei", ResolvePath(_options.NucleiDropPath), ".json, .jsonl"),
                 BuildSource("Nessus", ResolvePath(_options.NessusDropPath), ".csv, .xml"),
+                BuildGreenboneSource(),
             ],
             RecentRuns = await dbContext.ScanRuns
                 .AsNoTracking()
                 .Include(item => item.ScanJob)
-                .Where(item => item.CreatedBy == "auto-import")
+                .Where(item => item.CreatedBy == "auto-import" || item.CreatedBy == "greenbone-api")
                 .OrderByDescending(item => item.CreatedAt)
                 .Take(12)
                 .Select(item => new AutoImportRunViewModel
@@ -80,6 +91,21 @@ public sealed class AutoImportService(
                     TotalVulnerabilities = item.TotalVulnerabilities,
                     StartTime = item.StartTime,
                     EndTime = item.EndTime,
+                })
+                .ToListAsync(cancellationToken),
+            RecentGreenboneReports = await dbContext.ScanRuns
+                .AsNoTracking()
+                .Include(item => item.ScanJob)
+                .Where(item => item.CreatedBy == "greenbone-api" && item.ScanJob != null)
+                .OrderByDescending(item => item.CreatedAt)
+                .Take(8)
+                .Select(item => new GreenboneReportSummary
+                {
+                    ReportId = item.RawResultPath ?? string.Empty,
+                    TaskName = item.ScanJob!.JobName,
+                    ScanStatus = item.Status,
+                    ScanDate = item.CreatedAt,
+                    ImportedCount = item.TotalVulnerabilities,
                 })
                 .ToListAsync(cancellationToken),
             RecentProcessedFiles = GetRecentFiles(processedRoot),
@@ -147,8 +173,33 @@ public sealed class AutoImportService(
         {
             SourceName = sourceName,
             IncomingPath = incomingPath,
+            ConnectionTarget = incomingPath,
             PendingFileCount = pendingFileCount,
             SampleExtensions = sampleExtensions,
+            SourceMode = "目錄輪詢",
+            CountLabel = "待處理",
+            Description = $"支援 {sampleExtensions}",
+        };
+    }
+
+    private AutoImportSourceViewModel BuildGreenboneSource()
+    {
+        var endpoint = string.IsNullOrWhiteSpace(_greenboneOptions.Host)
+            ? "未設定"
+            : $"{_greenboneOptions.Host}:{_greenboneOptions.Port}";
+
+        return new AutoImportSourceViewModel
+        {
+            SourceName = "Greenbone / OpenVAS",
+            IncomingPath = endpoint,
+            ConnectionTarget = endpoint,
+            PendingFileCount = _greenboneOptions.Enabled ? Math.Max(1, _greenboneOptions.SyncTopReports) : 0,
+            SampleExtensions = "GMP over TLS",
+            SourceMode = "API 同步",
+            CountLabel = "最近同步",
+            Description = _greenboneOptions.Enabled
+                ? $"帳號 {_greenboneOptions.Username}，每次最多同步 {_greenboneOptions.SyncTopReports} 份報表"
+                : "目前停用，啟用後會直接透過 GMP API 拉取報表",
         };
     }
 

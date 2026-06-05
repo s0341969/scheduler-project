@@ -19,8 +19,8 @@ public sealed class AutoImportController(IAutoImportService autoImportService) :
     {
         var importedCount = await autoImportService.RunOnceAsync(cancellationToken);
         TempData["StatusMessage"] = importedCount > 0
-            ? $"自動匯入完成，本次處理 {importedCount} 個檔案。"
-            : "自動匯入完成，目前沒有待處理檔案。";
+            ? $"自動匯入完成，本次同步 {importedCount} 個來源項目。"
+            : "自動匯入完成，目前沒有待處理檔案或可同步的 Greenbone 新報表。";
         return RedirectToAction(nameof(Index));
     }
 }

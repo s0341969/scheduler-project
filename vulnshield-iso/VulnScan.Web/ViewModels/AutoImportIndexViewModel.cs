@@ -10,6 +10,8 @@ public sealed class AutoImportIndexViewModel
 
     public IReadOnlyList<AutoImportRunViewModel> RecentRuns { get; set; } = Array.Empty<AutoImportRunViewModel>();
 
+    public IReadOnlyList<GreenboneReportSummary> RecentGreenboneReports { get; set; } = Array.Empty<GreenboneReportSummary>();
+
     public IReadOnlyList<AutoImportFileViewModel> RecentProcessedFiles { get; set; } = Array.Empty<AutoImportFileViewModel>();
 
     public IReadOnlyList<AutoImportFileViewModel> RecentFailedFiles { get; set; } = Array.Empty<AutoImportFileViewModel>();
@@ -21,9 +23,17 @@ public sealed class AutoImportSourceViewModel
 
     public string IncomingPath { get; set; } = string.Empty;
 
+    public string ConnectionTarget { get; set; } = string.Empty;
+
     public int PendingFileCount { get; set; }
 
     public string SampleExtensions { get; set; } = string.Empty;
+
+    public string SourceMode { get; set; } = string.Empty;
+
+    public string CountLabel { get; set; } = "待處理";
+
+    public string Description { get; set; } = string.Empty;
 }
 
 public sealed class AutoImportRunViewModel

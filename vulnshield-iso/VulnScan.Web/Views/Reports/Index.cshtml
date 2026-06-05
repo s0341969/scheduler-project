@@ -20,7 +20,7 @@
 
 <section class="panel-card">
     <div class="panel-card-header">
-        <h3>最近檢測弱點與版本</h3>
+        <h3>最近檢測弱點、軟體版本與特徵碼版本</h3>
     </div>
     <div class="table-responsive">
         <table class="table table-dark-table align-middle">
@@ -29,7 +29,8 @@
                     <th>資產</th>
                     <th>IP</th>
                     <th>弱點名稱</th>
-                    <th>檢查版本</th>
+                    <th>軟體版本</th>
+                    <th>特徵碼版本</th>
                     <th>Severity</th>
                     <th>最後發現時間</th>
                 </tr>
@@ -42,6 +43,7 @@
                     <td>@(item.IPAddress ?? "-")</td>
                     <td>@item.VulnName</td>
                     <td>@(item.DetectedVersion ?? item.ServiceName ?? "-")</td>
+                    <td>@(item.SignatureVersion ?? "-")</td>
                     <td>@(item.Severity ?? "-")</td>
                     <td>@item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
                 </tr>

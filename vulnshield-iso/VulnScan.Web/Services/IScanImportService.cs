@@ -9,4 +9,6 @@ public interface IScanImportService
     Task<int> ImportNucleiJsonFileAsync(string filePath, string userAccount, CancellationToken cancellationToken = default);
 
     Task<int> ImportNessusFileAsync(string filePath, string userAccount, CancellationToken cancellationToken = default);
+
+    Task<int> ImportGreenboneXmlFileAsync(string filePath, string reportId, string userAccount, CancellationToken cancellationToken = default);
 }

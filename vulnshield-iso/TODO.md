@@ -3,18 +3,18 @@
 ## 下次優先
 
 - `UsersController` 與使用者管理頁
-- `OpenVAS / Greenbone` 匯入
 - `PDF` 報表
 - `EF Core Migration`，取代目前的 `EnsureCreated()`
 
 - 為自動匯入管理頁補上可編輯設定，讓管理者可在 UI 調整來源目錄、輪詢頻率與啟停狀態
+- 為 `Greenbone / OpenVAS` API 匯入補上 UI 設定頁，讓管理者可直接在系統內維護 Host / Port / 帳密 / Filter，而不必改 `appsettings`
+- 為 `Greenbone / OpenVAS` API 匯入補上同步失敗原因明細與最近平台回應摘要，避免目前只看到成功的 `ScanRun`
 - 為版本抽取補上更完整規則，目前是以 Nuclei / Nessus 文字輸出做啟發式解析
 - 視需要補 `VulnScan.Web` 的資料庫提供者切換說明頁，讓開發 `SQLite` 與正式 `MSSQL` 的差異對管理者更明確
 - 為 `VulnScan.Web` 導入正式 migration 流程，將 `EnsureCreated()` 升級為可版控的 EF Core Migration
 - 為 `VulnScan.Web` 補上 `UsersController` 與使用者管理頁，讓 Admin 可重設密碼、停用帳號與建立新使用者
 - 為 `VulnScan.Web` 補上 `Vulnerabilities` 的編輯/刪除與更細的權限控管
 - 為 `VulnScan.Web` 補上 Nmap 高風險 Port 提示規則與 `RiskHint` 寫入
-- 為 `VulnScan.Web` 補上 OpenVAS / Greenbone 匯入流程，進入 spec 的 V2 階段
 - 為 `VulnScan.Web` 補上匯入歷史頁、匯入驗證與重複匯入對比規則
 - 為 `VulnScan.Web` 補上 PDF 匯出與 ISO 27001 / 資安盤點報表
 - 為 `VulnScan.Web` 補上整合測試：白名單阻擋、Hangfire 任務建立、Nmap XML 解析、Excel 匯出
