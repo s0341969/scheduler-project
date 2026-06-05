@@ -308,6 +308,31 @@ a {
   background: #f9fbfe;
 }
 
+.import-source-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+  background: #f9fbfe;
+  display: grid;
+  gap: 8px;
+}
+
+.import-source-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.path-block {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #eef4fb;
+  color: #233247;
+  word-break: break-all;
+}
+
 .subheading {
   margin: 10px 0 6px;
   font-size: 1.1rem;

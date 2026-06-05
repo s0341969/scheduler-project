@@ -7,7 +7,7 @@
 - `PDF` 報表
 - `EF Core Migration`，取代目前的 `EnsureCreated()`
 
-- 為自動匯入補上管理頁，讓管理者可在 UI 設定來源目錄、輪詢頻率與啟停狀態
+- 為自動匯入管理頁補上可編輯設定，讓管理者可在 UI 調整來源目錄、輪詢頻率與啟停狀態
 - 為版本抽取補上更完整規則，目前是以 Nuclei / Nessus 文字輸出做啟發式解析
 - 視需要補 `VulnScan.Web` 的資料庫提供者切換說明頁，讓開發 `SQLite` 與正式 `MSSQL` 的差異對管理者更明確
 - 為 `VulnScan.Web` 導入正式 migration 流程，將 `EnsureCreated()` 升級為可版控的 EF Core Migration

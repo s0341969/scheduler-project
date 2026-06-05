@@ -45,6 +45,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
   - 附件
 - 已補齊 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML` 匯入，匯入後會自動建立對應 `ScanJob`、`ScanRun` 與 `Vulnerabilities`
 - 已補上第一版自動匯入：系統會輪詢固定資料夾，自動接收 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
+- 已補上自動匯入管理頁：可查看來源目錄、待處理檔案、最近自動匯入紀錄，並手動觸發一次匯入
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 
 ### `VulnScan.Web` 啟動方式
@@ -99,6 +100,7 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 - `VulnScan.Web\App_Data\AutoImport\failed`
 
 只要把掃描結果檔案放進對應 `incoming` 目錄，背景服務就會自動匯入並搬移檔案。
+管理者也可登入後到 `自動匯入` 頁面，直接執行「立即執行一次」。
 
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
@@ -130,6 +132,11 @@ Development 預設 bootstrap 帳號：
 - `Nessus` 會從 `Plugin Output` 與服務欄位嘗試抽取版本
 - 匯入後會寫入 `Vulnerabilities.DetectedVersion`
 - `弱點清單`、`報表頁` 與 Excel 匯出都會顯示 `檢查版本`
+- `自動匯入` 頁面目前可顯示：
+  - Nuclei / Nessus `incoming` 路徑
+  - 待處理檔案數
+  - 最近自動匯入 `ScanRun`
+  - 最近已處理與失敗檔案
 
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`

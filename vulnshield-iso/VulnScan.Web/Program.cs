@@ -82,6 +82,7 @@ builder.Services.AddHangfireServer(options =>
 });
 
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+builder.Services.AddScoped<IAutoImportService, AutoImportService>();
 builder.Services.AddScoped<IScanAllowedRangeService, ScanAllowedRangeService>();
 builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();

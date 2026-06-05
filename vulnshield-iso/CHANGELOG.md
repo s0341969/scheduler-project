@@ -2,6 +2,7 @@
 
 ## 2026-06-05
 - 新增 `VulnScan.Web` 第一版自動匯入：背景服務會輪詢固定資料夾，自動匯入 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
+- 新增 `VulnScan.Web` 自動匯入管理頁：可查看來源目錄、待處理檔案、最近匯入紀錄，並手動觸發一次自動匯入
 - 新增 `Vulnerabilities.DetectedVersion` 欄位與啟動相容性補欄邏輯，既有 SQLite / SQL Server 資料庫啟動時會自動補齊欄位
 - 強化匯入解析：Nuclei 與 Nessus 會從輸出內容中自動抽取檢查版本，並保存到 `DetectedVersion`
 - 強化報告與弱點清單：頁面與 Excel 匯出現在都會顯示 `檢查版本`

@@ -1,0 +1,129 @@
+@model VulnScan.Web.ViewModels.AutoImportIndexViewModel
+@{
+    ViewData["Title"] = "自動匯入";
+}
+
+<section class="hero-grid">
+    <article class="metric-card">
+        <span class="metric-label">自動匯入狀態</span>
+        <strong class="metric-value">@(Model.Enabled ? "啟用中" : "停用")</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">輪詢間隔</span>
+        <strong class="metric-value">@Model.PollIntervalSeconds 秒</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">最近自動匯入</span>
+        <strong class="metric-value">@Model.RecentRuns.Count 筆</strong>
+    </article>
+</section>
+
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>來源目錄</h3>
+        </div>
+        <div class="form-stack">
+            @foreach (var source in Model.Sources)
+            {
+                <div class="import-source-card">
+                    <div class="import-source-head">
+                        <strong>@source.SourceName</strong>
+                        <span class="counter-pill">待處理 @source.PendingFileCount</span>
+                    </div>
+                    <div class="text-secondary">@source.SampleExtensions</div>
+                    <code class="path-block">@source.IncomingPath</code>
+                </div>
+            }
+            <form asp-action="RunNow" method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">立即執行一次</button>
+            </form>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>最近自動匯入紀錄</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>RunId</th>
+                        <th>工具</th>
+                        <th>來源檔案</th>
+                        <th>狀態</th>
+                        <th>弱點數</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.RecentRuns)
+                {
+                    <tr>
+                        <td>@item.RunId</td>
+                        <td>@item.ScanTool</td>
+                        <td class="path-cell">@item.FileName</td>
+                        <td>@item.Status</td>
+                        <td>@item.TotalVulnerabilities</td>
+                        <td>@item.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
+
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>最近已處理檔案</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>檔名</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.RecentProcessedFiles)
+                {
+                    <tr>
+                        <td class="path-cell">@item.FullPath</td>
+                        <td>@item.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>最近失敗檔案</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>檔名</th>
+                        <th>時間</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.RecentFailedFiles)
+                {
+                    <tr>
+                        <td class="path-cell">@item.FullPath</td>
+                        <td>@item.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
