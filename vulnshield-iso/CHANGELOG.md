@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `SystemCheckController` 與 `系統檢查` 頁，可直接在 UI 顯示 `Nmap` 安裝狀態、解析路徑、`Greenbone` 設定狀態，以及 `SQLite / MSSQL` 狀態
+- 強化 `NmapService`：新增可重用的安裝狀態解析，讓掃描流程與系統檢查頁共用同一套 `nmap.exe` 判斷邏輯
+- 新增 `SystemCheckService`：集中判斷目前資料庫 provider、實際連線狀態與本機資料庫設定，不主動探測未啟用的外部 SQL Server
 - 新增 [VulnScan_Web_操作手冊.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_操作手冊.md)，提供 `VulnScan.Web` 的繁體中文操作手冊
 - 強化 `NmapService`：掃描時會先嘗試 `VulnScan:NmapPath`、系統 `PATH` 與 Windows 常見安裝路徑，自動解析 `nmap.exe`
 - 修正 `Nmap` 缺失時的錯誤訊息：改為明確提示安裝 `Nmap` 或設定 `VulnScan:NmapPath`，不再只拋出模糊的 process start exception

@@ -52,6 +52,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已補上 `Greenbone / OpenVAS` GMP API 自動匯入：可直接透過平台 API 拉取最新報表，不再只靠人工撿檔
 - 已補上 `Greenbone` 設定管理頁：管理者可直接在系統內設定 Host / Port / 帳密 / Filter，無須再手改 `appsettings`
 - 已補上 `Greenbone` 同步失敗明細：每次同步成功或失敗都會留下端點、報表、訊息與匯入筆數
+- 已補上 `系統檢查` 頁：可直接在 UI 查看 `Nmap` 是否已安裝、實際解析到的路徑、`Greenbone` 是否完成設定，以及目前 `SQLite / MSSQL` 狀態
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 - 已補上 PDF 匯出：報表可輸出 PDF，並包含 `軟體版本` 與 `特徵碼版本`
 
@@ -190,6 +191,12 @@ Development 預設 bootstrap 帳號：
   - 是否啟用
   - 最近成功 / 失敗同步次數
   - 最近同步明細與失敗原因
+- `系統檢查` 頁面目前可顯示：
+  - `Nmap` 是否已安裝
+  - 實際解析到的 `nmap.exe` 路徑與來源
+  - `Greenbone` 是否已完成設定、是否啟用、目前端點與帳號
+  - 目前資料庫提供者
+  - `SQLite` 與 `MSSQL` 各自的設定 / 啟用 / 連線狀態
 
 ## 核心能力
 - JWT Bearer 認證，登入端點為 `POST /token`

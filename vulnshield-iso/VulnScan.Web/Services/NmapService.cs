@@ -9,6 +9,58 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
 {
     private readonly VulnScanOptions _options = options.Value;
 
+    public NmapInstallationStatus GetInstallationStatus()
+    {
+        var configured = _options.NmapPath?.Trim();
+        if (!string.IsNullOrWhiteSpace(configured))
+        {
+            if (Path.IsPathRooted(configured) && File.Exists(configured))
+            {
+                return new NmapInstallationStatus
+                {
+                    IsInstalled = true,
+                    ResolvedPath = configured,
+                    Source = "VulnScan:NmapPath",
+                    Message = "已從設定檔直接找到 Nmap 執行檔。",
+                };
+            }
+
+            var commandResolved = TryResolveFromCommand(configured);
+            if (!string.IsNullOrWhiteSpace(commandResolved))
+            {
+                return new NmapInstallationStatus
+                {
+                    IsInstalled = true,
+                    ResolvedPath = commandResolved,
+                    Source = "PATH / 命令解析",
+                    Message = "已透過系統命令解析找到 Nmap 執行檔。",
+                };
+            }
+        }
+
+        foreach (var candidate in EnumerateDefaultCandidates())
+        {
+            if (File.Exists(candidate))
+            {
+                return new NmapInstallationStatus
+                {
+                    IsInstalled = true,
+                    ResolvedPath = candidate,
+                    Source = "預設安裝路徑",
+                    Message = "已從常見安裝路徑找到 Nmap 執行檔。",
+                };
+            }
+        }
+
+        return new NmapInstallationStatus
+        {
+            IsInstalled = false,
+            ResolvedPath = string.Empty,
+            Source = string.IsNullOrWhiteSpace(configured) ? "未設定" : $"設定值：{configured}",
+            Message = "找不到 Nmap 執行檔。請先安裝 Nmap，或在 VulnScan 設定中把 `NmapPath` 指向有效的 nmap.exe。",
+        };
+    }
+
     public async Task<string> RunNmapAsync(string target, string outputPath, string scanProfile, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(target))
@@ -17,7 +69,13 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
         }
 
         Directory.CreateDirectory(Path.GetDirectoryName(outputPath) ?? _options.ResultRootPath);
-        var nmapPath = ResolveNmapPath();
+        var status = GetInstallationStatus();
+        if (!status.IsInstalled || string.IsNullOrWhiteSpace(status.ResolvedPath))
+        {
+            throw new InvalidOperationException(status.Message);
+        }
+
+        var nmapPath = status.ResolvedPath;
 
         var arguments = $"{BuildProfileArguments(scanProfile)} -oX \"{outputPath}\" {target}";
         var startInfo = new ProcessStartInfo
@@ -41,35 +99,6 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
         }
 
         return outputPath;
-    }
-
-    private string ResolveNmapPath()
-    {
-        var configured = _options.NmapPath?.Trim();
-        if (!string.IsNullOrWhiteSpace(configured))
-        {
-            if (Path.IsPathRooted(configured) && File.Exists(configured))
-            {
-                return configured;
-            }
-
-            var commandResolved = TryResolveFromCommand(configured);
-            if (!string.IsNullOrWhiteSpace(commandResolved))
-            {
-                return commandResolved;
-            }
-        }
-
-        foreach (var candidate in EnumerateDefaultCandidates())
-        {
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        throw new InvalidOperationException(
-            "找不到 Nmap 執行檔。請先安裝 Nmap，或在 VulnScan 設定中把 `NmapPath` 指向有效的 nmap.exe。建議路徑例如：`C:\\Program Files (x86)\\Nmap\\nmap.exe`。");
     }
 
     private static string? TryResolveFromCommand(string command)

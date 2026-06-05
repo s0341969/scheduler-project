@@ -1,0 +1,117 @@
+@model VulnScan.Web.ViewModels.SystemCheckIndexViewModel
+@{
+    ViewData["Title"] = "系統檢查";
+}
+
+<section class="hero-grid">
+    <article class="metric-card">
+        <span class="metric-label">Nmap</span>
+        <strong class="metric-value">@Model.Nmap.StatusText</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">Greenbone</span>
+        <strong class="metric-value">@Model.Greenbone.StatusText</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">目前資料庫</span>
+        <strong class="metric-value">@Model.ActiveDatabase.Provider</strong>
+    </article>
+    <article class="metric-card">
+        <span class="metric-label">資料庫連線</span>
+        <strong class="metric-value">@Model.ActiveDatabase.StatusText</strong>
+    </article>
+</section>
+
+<section class="split-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>Nmap 安裝狀態</h3>
+            <span class="status-pill">@(Model.Nmap.IsInstalled ? "Ready" : "Missing")</span>
+        </div>
+        <dl class="detail-grid">
+            <dt>是否已安裝</dt>
+            <dd>@(Model.Nmap.IsInstalled ? "是" : "否")</dd>
+            <dt>實際找到的路徑</dt>
+            <dd class="path-cell">@Model.Nmap.ResolvedPath</dd>
+            <dt>來源</dt>
+            <dd>@Model.Nmap.Source</dd>
+            <dt>說明</dt>
+            <dd>@Model.Nmap.Message</dd>
+        </dl>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>Greenbone 設定狀態</h3>
+            <span class="status-pill">@(Model.Greenbone.IsConfigured ? "Configured" : "Incomplete")</span>
+        </div>
+        <dl class="detail-grid">
+            <dt>是否已設定</dt>
+            <dd>@(Model.Greenbone.IsConfigured ? "是" : "否")</dd>
+            <dt>是否啟用</dt>
+            <dd>@(Model.Greenbone.IsEnabled ? "是" : "否")</dd>
+            <dt>端點</dt>
+            <dd>@Model.Greenbone.Endpoint</dd>
+            <dt>帳號</dt>
+            <dd>@Model.Greenbone.Account</dd>
+            <dt>說明</dt>
+            <dd>@Model.Greenbone.Message</dd>
+        </dl>
+    </article>
+</section>
+
+<section class="panel-grid">
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>目前資料庫提供者</h3>
+        </div>
+        <dl class="detail-grid">
+            <dt>Provider</dt>
+            <dd>@Model.ActiveDatabase.Provider</dd>
+            <dt>狀態</dt>
+            <dd>@Model.ActiveDatabase.StatusText</dd>
+            <dt>目標</dt>
+            <dd class="path-cell">@Model.ActiveDatabase.Target</dd>
+            <dt>說明</dt>
+            <dd>@Model.ActiveDatabase.Detail</dd>
+        </dl>
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>SQLite / MSSQL 狀態</h3>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark-table align-middle">
+                <thead>
+                    <tr>
+                        <th>類型</th>
+                        <th>是否設定</th>
+                        <th>是否為目前 Provider</th>
+                        <th>狀態</th>
+                        <th>目標</th>
+                        <th>說明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>@Model.Sqlite.Label</td>
+                        <td>@(Model.Sqlite.IsConfigured ? "是" : "否")</td>
+                        <td>@(Model.Sqlite.IsActiveProvider ? "是" : "否")</td>
+                        <td>@Model.Sqlite.StatusText</td>
+                        <td class="path-cell">@Model.Sqlite.Target</td>
+                        <td>@Model.Sqlite.Detail</td>
+                    </tr>
+                    <tr>
+                        <td>@Model.MsSql.Label</td>
+                        <td>@(Model.MsSql.IsConfigured ? "是" : "否")</td>
+                        <td>@(Model.MsSql.IsActiveProvider ? "是" : "否")</td>
+                        <td>@Model.MsSql.StatusText</td>
+                        <td class="path-cell">@Model.MsSql.Target</td>
+                        <td>@Model.MsSql.Detail</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </article>
+</section>
