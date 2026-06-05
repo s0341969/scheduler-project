@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `Nmap` 執行前檢查：`ScanJobService.CreateRunAsync()` 會在建立 `ScanRun` 前先驗證 `nmap.exe` 是否可用，避免任務先建出來再於背景失敗
+- 強化 `掃描任務` 頁：當系統找不到 `Nmap` 時，頁面會顯示阻擋警示，並停用 `立即掃描` 按鈕
+- 強化全站訊息顯示：`_Layout.cshtml` 新增 `TempData["ErrorMessage"]` 呈現，讓前置檢查失敗能直接回到 UI
 - 新增 `SystemCheckController` 與 `系統檢查` 頁，可直接在 UI 顯示 `Nmap` 安裝狀態、解析路徑、`Greenbone` 設定狀態，以及 `SQLite / MSSQL` 狀態
 - 強化 `NmapService`：新增可重用的安裝狀態解析，讓掃描流程與系統檢查頁共用同一套 `nmap.exe` 判斷邏輯
 - 新增 `SystemCheckService`：集中判斷目前資料庫 provider、實際連線狀態與本機資料庫設定，不主動探測未啟用的外部 SQL Server

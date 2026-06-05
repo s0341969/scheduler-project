@@ -9,6 +9,7 @@
 - 後續若新增 `UsersController`、`Greenbone` 測試連線或報表版型，需同步更新 `VulnScan_Web_操作手冊.md`
 - 為 `系統檢查` 頁補上 Greenbone 測試連線按鈕與最近連線結果，避免目前只能看設定是否完整
 - 為 `系統檢查` 頁補上 Hangfire / AutoImport / 匯入目錄健康度，讓維運檢查不只停留在 Nmap 與資料庫
+- 視需要為 `掃描任務` 頁補上「缺少 Nmap 時直接提供安裝指引 / 下載頁連結」的維運輔助流程
 - 為 `Greenbone / OpenVAS` API 匯入補上「測試連線」與「僅驗證帳密 / TLS」按鈕，避免每次都要直接跑同步
 - 為 `Greenbone / OpenVAS` API 匯入補上密碼輪替審計與設定變更歷史
 - 為版本抽取補上更完整規則，目前是以 Nuclei / Nessus 文字輸出做啟發式解析

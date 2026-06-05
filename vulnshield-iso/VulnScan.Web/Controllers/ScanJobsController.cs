@@ -13,13 +13,7 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
 {
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
-        return View(new ScanJobsIndexViewModel
-        {
-            Items = await dbContext.ScanJobs
-                .AsNoTracking()
-                .OrderBy(item => item.JobName)
-                .ToListAsync(cancellationToken),
-        });
+        return View(await BuildIndexViewModelAsync(cancellationToken));
     }
 
     [HttpPost]
@@ -28,11 +22,9 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
     {
         if (!ModelState.IsValid)
         {
-            return View("Index", new ScanJobsIndexViewModel
-            {
-                Form = form,
-                Items = await dbContext.ScanJobs.AsNoTracking().OrderBy(item => item.JobName).ToListAsync(cancellationToken),
-            });
+            var model = await BuildIndexViewModelAsync(cancellationToken);
+            model.Form = form;
+            return View("Index", model);
         }
 
         var job = new ScanJob
@@ -60,8 +52,16 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RunNow(int id, CancellationToken cancellationToken)
     {
-        await scanJobService.CreateRunAsync(id, User.Identity?.Name ?? "system", cancellationToken);
-        TempData["StatusMessage"] = $"已建立掃描任務 #{id} 的執行紀錄。";
+        try
+        {
+            await scanJobService.CreateRunAsync(id, User.Identity?.Name ?? "system", cancellationToken);
+            TempData["StatusMessage"] = $"已建立掃描任務 #{id} 的執行紀錄。";
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
         return RedirectToAction(nameof(Index));
     }
 
@@ -140,5 +140,26 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
         await dbContext.SaveChangesAsync(cancellationToken);
         TempData["StatusMessage"] = $"已刪除掃描任務：{job.JobName}";
         return RedirectToAction(nameof(Index));
+    }
+
+    private async Task<ScanJobsIndexViewModel> BuildIndexViewModelAsync(CancellationToken cancellationToken)
+    {
+        var nmapStatus = scanJobService.GetNmapInstallationStatus();
+
+        return new ScanJobsIndexViewModel
+        {
+            Items = await dbContext.ScanJobs
+                .AsNoTracking()
+                .OrderBy(item => item.JobName)
+                .ToListAsync(cancellationToken),
+            Nmap = new NmapCheckViewModel
+            {
+                IsInstalled = nmapStatus.IsInstalled,
+                StatusText = nmapStatus.IsInstalled ? "已就緒" : "缺少 Nmap",
+                ResolvedPath = string.IsNullOrWhiteSpace(nmapStatus.ResolvedPath) ? "未找到" : nmapStatus.ResolvedPath,
+                Source = string.IsNullOrWhiteSpace(nmapStatus.Source) ? "未判定" : nmapStatus.Source,
+                Message = nmapStatus.Message,
+            },
+        };
     }
 }

@@ -17,6 +17,8 @@ public sealed class ScanJobService(
 {
     private readonly VulnScanOptions _options = options.Value;
 
+    public NmapInstallationStatus GetNmapInstallationStatus() => nmapService.GetInstallationStatus();
+
     public async Task<int> CreateRunAsync(int jobId, string userAccount, CancellationToken cancellationToken = default)
     {
         var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == jobId, cancellationToken)
@@ -26,6 +28,8 @@ public sealed class ScanJobService(
         {
             throw new InvalidOperationException($"Target `{job.TargetRange}` 不在白名單內。");
         }
+
+        ValidateExecutionPrerequisites(job);
 
         var run = new ScanRun
         {
@@ -75,5 +79,23 @@ public sealed class ScanJobService(
             await auditLogService.WriteAsync("ScanRunFailed", "ScanRun", run.RunId, exception.Message, run.CreatedBy, null, cancellationToken);
             throw;
         }
+    }
+
+    private void ValidateExecutionPrerequisites(ScanJob job)
+    {
+        if (!string.Equals(job.ScanTool, "Nmap", StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var status = nmapService.GetInstallationStatus();
+        if (status.IsInstalled)
+        {
+            return;
+        }
+
+        var jobName = string.IsNullOrWhiteSpace(job.JobName) ? $"Job {job.JobId}" : job.JobName;
+        throw new InvalidOperationException(
+            $"無法執行掃描任務「{jobName}」。原因：{status.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
     }
 }

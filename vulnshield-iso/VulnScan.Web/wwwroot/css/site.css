@@ -366,6 +366,16 @@ a {
   text-align: center;
 }
 
+.preflight-alert-card {
+  border: 1px solid rgba(180, 35, 24, 0.18);
+  background: linear-gradient(180deg, #fff7f6 0%, #fffdfd 100%);
+}
+
+.preflight-status-pill {
+  background: #fee4e2;
+  color: var(--danger);
+}
+
 .last-scan-note {
   margin-top: 16px;
   color: var(--muted);

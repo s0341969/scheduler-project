@@ -3,6 +3,32 @@
     ViewData["Title"] = "掃描任務";
 }
 
+@if (Model.Nmap is not null && !Model.Nmap.IsInstalled)
+{
+    <section class="panel-card preflight-alert-card">
+        <div class="panel-card-header">
+            <h3>Nmap 執行前檢查未通過</h3>
+            <span class="status-pill preflight-status-pill">Blocked</span>
+        </div>
+        <div class="form-stack">
+            <p class="mb-0">目前系統找不到 `nmap.exe`，因此所有使用 `Nmap` 的掃描任務都會在建立執行紀錄前直接被阻擋。</p>
+            <dl class="detail-grid">
+                <dt>目前狀態</dt>
+                <dd>@Model.Nmap.StatusText</dd>
+                <dt>實際找到的路徑</dt>
+                <dd class="path-cell">@Model.Nmap.ResolvedPath</dd>
+                <dt>來源</dt>
+                <dd>@Model.Nmap.Source</dd>
+                <dt>處理方式</dt>
+                <dd>@Model.Nmap.Message</dd>
+            </dl>
+            <div class="action-row">
+                <a asp-controller="SystemCheck" asp-action="Index" class="btn btn-outline-secondary">前往系統檢查</a>
+            </div>
+        </div>
+    </section>
+}
+
 <section class="split-grid">
     <article class="panel-card">
         <div class="panel-card-header">
@@ -103,7 +129,14 @@
                                 <form asp-action="RunNow" method="post" class="inline-form">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@item.JobId" />
-                                    <button type="submit" class="btn btn-sm btn-primary">立即掃描</button>
+                                    @if (Model.Nmap is not null && !Model.Nmap.IsInstalled)
+                                    {
+                                        <button type="submit" class="btn btn-sm btn-primary" disabled>立即掃描</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-sm btn-primary">立即掃描</button>
+                                    }
                                 </form>
                                 <a asp-action="Edit" asp-route-id="@item.JobId" class="btn btn-sm btn-outline-secondary">編輯</a>
                                 <form asp-action="Delete" asp-route-id="@item.JobId" method="post" class="inline-form">

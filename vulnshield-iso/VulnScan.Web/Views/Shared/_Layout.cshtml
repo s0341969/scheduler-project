@@ -66,6 +66,11 @@
                 <div class="alert alert-success shadow-sm">@statusMessage</div>
             }
 
+            @if (TempData["ErrorMessage"] is string errorMessage && !string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="alert alert-danger shadow-sm">@errorMessage</div>
+            }
+
             <section class="content-surface">
                 @RenderBody()
             </section>

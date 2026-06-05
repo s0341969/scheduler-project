@@ -53,6 +53,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已補上 `Greenbone` 設定管理頁：管理者可直接在系統內設定 Host / Port / 帳密 / Filter，無須再手改 `appsettings`
 - 已補上 `Greenbone` 同步失敗明細：每次同步成功或失敗都會留下端點、報表、訊息與匯入筆數
 - 已補上 `系統檢查` 頁：可直接在 UI 查看 `Nmap` 是否已安裝、實際解析到的路徑、`Greenbone` 是否完成設定，以及目前 `SQLite / MSSQL` 狀態
+- 已補上 `Nmap` 執行前檢查：若系統找不到 `nmap.exe`，`掃描任務` 頁會先顯示阻擋警示，且 `立即掃描` 按鈕會停用；排程或手動建立執行紀錄前也會先攔住
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 - 已補上 PDF 匯出：報表可輸出 PDF，並包含 `軟體版本` 與 `特徵碼版本`
 
@@ -109,6 +110,11 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 若都找不到，掃描任務會明確回報：
 - 請先安裝 Nmap
 - 或將 `VulnScan:NmapPath` 指向有效的 `nmap.exe`
+
+現在系統也會在真正建立 `ScanRun` 前先做執行前檢查：
+- `掃描任務` 頁會直接顯示 `Nmap 執行前檢查未通過`
+- `立即掃描` 按鈕會停用，避免建立出必然失敗的執行紀錄
+- 若掃描是由其他流程呼叫 `CreateRunAsync()`，後端也會直接阻擋，避免失敗延後到背景工作才發生
 
 開發模式下，Hangfire 也會改用記憶體儲存，避免雙擊啟動時再額外依賴 SQL Server；正式環境則仍使用 SQL Server 儲存。
 開發模式的 Data Protection 金鑰會保存到 `VulnScan.Web/App_Data/DataProtectionKeys`，避免 Windows EventLog 權限問題干擾登入 cookie 與啟動日誌。
