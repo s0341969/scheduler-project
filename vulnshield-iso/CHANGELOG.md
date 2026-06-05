@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-06-05
+- 強化結果導覽體驗：將側欄名稱調整為 `掃描結果 / 紀錄`、`服務結果`、`弱點結果`、`報告 / 匯出`，並在各頁新增「這頁看什麼」說明卡
 - 強化 `NmapInstallerService` 版本解析：不再依賴單一文案格式，改為從官方下載頁與 `dist` 頁蒐集所有 `nmap-*-setup.exe` 後自動選最新版本
 - 新增 `NmapInstallerService` 與 `SystemCheckController.InstallNmap`，在 Windows 上可直接從官方 `nmap.org` 下載最新版 self-installer 並啟動安裝精靈
 - 強化 `系統檢查` 與 `掃描任務` 頁：當 `Nmap` 缺失且使用者角色為 `Admin` / `SecurityManager` 時，會顯示 `直接安裝 Nmap` 按鈕

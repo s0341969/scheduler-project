@@ -55,6 +55,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已補上 `系統檢查` 頁：可直接在 UI 查看 `Nmap` 是否已安裝、實際解析到的路徑、`Greenbone` 是否完成設定，以及目前 `SQLite / MSSQL` 狀態
 - 已補上 `Nmap` 執行前檢查：若系統找不到 `nmap.exe`，`掃描任務` 頁會先顯示阻擋警示，且 `立即掃描` 按鈕會停用；排程或手動建立執行紀錄前也會先攔住
 - 已補上 `Nmap` 一鍵安裝流程：在 Windows 上若未找到 `nmap.exe`，`系統檢查` 與 `掃描任務` 頁可直接從官方 `nmap.org` 下載最新版 Windows installer，並啟動安裝精靈
+- 已補上結果導覽型 UI：`掃描結果 / 紀錄`、`服務結果`、`弱點結果`、`報告 / 匯出` 四頁會先說明用途與下一步，降低使用者找不到結果的成本
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 - 已補上 PDF 匯出：報表可輸出 PDF，並包含 `軟體版本` 與 `特徵碼版本`
 
