@@ -1,6 +1,11 @@
 # Changelog
 
 ## 2026-06-05
+- 修正 `VulnScan.Web` 開發環境啟動依賴：Development 預設改為 `SQLite + Hangfire.MemoryStorage`，不再依賴本機故障的 `LocalDB`
+- 修正 `VulnScan.Web` 開發環境 Data Protection：改為保存金鑰到 `App_Data/DataProtectionKeys`，並移除 Windows EventLog 依賴，避免啟動時噴出權限例外
+- 修正 `VulnScan.Web` 開發環境中 `HTTPS redirection` 的噪音警告：Development 不再強制 redirect，正式環境仍保留 `HSTS + HTTPS`
+- 強化 `VulnScan.Web` 啟動錯誤可讀性：資料庫初始化若發生 `SqlException`，會輸出目前環境、連線字串與明確修正建議
+- 強化 `start_vulnscan_web.bat`：開發模式會預先確保 `App_Data` 目錄存在，讓 SQLite 首次啟動可直接建立資料庫檔案
 - 強化 `start_vulnscan_web.bat`：若 NuGet restore / build 失敗但本機已有既有 DLL，會直接沿用上一版輸出啟動，提升離線或受限環境可用性
 - 強化 `start_vulnscan_web.bat`：先走 `dotnet build --no-restore` 快路徑，只有缺套件時才回退完整 restore/build，降低日常雙擊啟動對 NuGet 的依賴
 - 修正 `start_vulnscan_web.bat` 的 Windows `cmd.exe` 相容性：改為純 ASCII 批次內容，避免中文編碼與換行格式造成命令被拆壞

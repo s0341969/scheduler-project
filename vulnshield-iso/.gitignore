@@ -5,3 +5,9 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 celerybeat-schedule
+_vulnscan_web.out.log
+_vulnscan_web.err.log
+VulnScan.Web/App_Data/*.db
+VulnScan.Web/App_Data/*.db-shm
+VulnScan.Web/App_Data/*.db-wal
+VulnScan.Web/App_Data/DataProtectionKeys/

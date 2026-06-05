@@ -26,6 +26,10 @@ if not exist "%PROJECT_FILE%" (
     exit /b 1
 )
 
+if not exist "%PROJECT_ROOT%VulnScan.Web\App_Data" (
+    mkdir "%PROJECT_ROOT%VulnScan.Web\App_Data" >nul 2>nul
+)
+
 echo [1/4] Building VulnScan.Web...
 dotnet build "%PROJECT_FILE%" --no-restore
 if errorlevel 1 (
@@ -83,7 +87,8 @@ echo.
 echo [ERROR] The app process started, but the login page did not respond within 120 seconds.
 echo Check the VulnScan.Web console window for details.
 echo Common causes:
-echo - invalid MSSQL connection string
+echo - invalid SQLite or MSSQL connection string
+echo - database file path is not writable
 echo - port 5186 already in use
 echo - invalid appsettings configuration
 pause

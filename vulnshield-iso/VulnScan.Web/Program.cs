@@ -1,6 +1,10 @@
 using Hangfire;
+using Hangfire.MemoryStorage;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Data.SqlClient;
+using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using VulnScan.Web.Data;
@@ -8,12 +12,32 @@ using VulnScan.Web.Models;
 using VulnScan.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+var databaseProvider = builder.Configuration["Database:Provider"] ?? "SqlServer";
+var defaultConnectionString = ResolveConnectionString(builder.Configuration, builder.Environment, databaseProvider);
+var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
+
+Directory.CreateDirectory(dataProtectionKeysPath);
+
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
 
 builder.Services.Configure<VulnScanOptions>(builder.Configuration.GetSection(VulnScanOptions.SectionName));
 builder.Services.Configure<LocalAuthOptions>(builder.Configuration.GetSection(LocalAuthOptions.SectionName));
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeysPath))
+    .SetApplicationName("VulnScan.Web");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (IsSqliteProvider(databaseProvider))
+    {
+        options.UseSqlite(defaultConnectionString);
+        return;
+    }
+
+    options.UseSqlServer(defaultConnectionString);
+});
 
 builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -30,17 +54,26 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddHangfire(configuration =>
+{
     configuration.SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
         .UseSimpleAssemblyNameTypeSerializer()
-        .UseRecommendedSerializerSettings()
-        .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection"), new SqlServerStorageOptions
-        {
-            CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
-            SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-            QueuePollInterval = TimeSpan.FromSeconds(15),
-            UseRecommendedIsolationLevel = true,
-            DisableGlobalLocks = true,
-        }));
+        .UseRecommendedSerializerSettings();
+
+    if (IsSqliteProvider(databaseProvider))
+    {
+        configuration.UseMemoryStorage();
+        return;
+    }
+
+    configuration.UseSqlServerStorage(defaultConnectionString, new SqlServerStorageOptions
+    {
+        CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+        SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+        QueuePollInterval = TimeSpan.FromSeconds(15),
+        UseRecommendedIsolationLevel = true,
+        DisableGlobalLocks = true,
+    });
+});
 
 builder.Services.AddHangfireServer(options =>
 {
@@ -63,16 +96,29 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher<User>>();
     var localAuthOptions = scope.ServiceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<LocalAuthOptions>>().Value;
-    await DbInitializer.InitializeAsync(dbContext, passwordHasher, localAuthOptions);
+    try
+    {
+        await DbInitializer.InitializeAsync(dbContext, passwordHasher, localAuthOptions);
+    }
+    catch (SqlException exception)
+    {
+        WriteDatabaseStartupError(app.Configuration, app.Environment, databaseProvider, exception);
+        throw;
+    }
+    catch (InvalidOperationException exception) when (exception.InnerException is SqlException sqlException)
+    {
+        WriteDatabaseStartupError(app.Configuration, app.Environment, databaseProvider, sqlException);
+        throw;
+    }
 }
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -86,3 +132,59 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
+
+static bool IsSqliteProvider(string databaseProvider) =>
+    string.Equals(databaseProvider, "Sqlite", StringComparison.OrdinalIgnoreCase);
+
+static string ResolveConnectionString(IConfiguration configuration, IWebHostEnvironment environment, string databaseProvider)
+{
+    var configured = configuration.GetConnectionString("DefaultConnection");
+    if (!IsSqliteProvider(databaseProvider))
+    {
+        return configured ?? throw new InvalidOperationException("Missing ConnectionStrings:DefaultConnection.");
+    }
+
+    var sqliteConnection = configured ?? "Data Source=App_Data\\vulnscan-dev.db";
+    var builder = new SqliteConnectionStringBuilder(sqliteConnection);
+    var dataSource = builder.DataSource;
+
+    if (string.IsNullOrWhiteSpace(dataSource))
+    {
+        builder.DataSource = Path.Combine(environment.ContentRootPath, "App_Data", "vulnscan-dev.db");
+    }
+    else if (!Path.IsPathRooted(dataSource))
+    {
+        builder.DataSource = Path.Combine(environment.ContentRootPath, dataSource);
+    }
+
+    var finalDataSource = builder.DataSource;
+    var directoryPath = Path.GetDirectoryName(finalDataSource);
+    if (!string.IsNullOrWhiteSpace(directoryPath))
+    {
+        Directory.CreateDirectory(directoryPath);
+    }
+
+    return builder.ToString();
+}
+
+static void WriteDatabaseStartupError(IConfiguration configuration, IWebHostEnvironment environment, string databaseProvider, SqlException exception)
+{
+    var connectionString = configuration.GetConnectionString("DefaultConnection") ?? "(missing)";
+    var environmentName = environment.EnvironmentName;
+
+    Console.Error.WriteLine("==================================================");
+    Console.Error.WriteLine("VulnScan.Web startup failed: database connection error.");
+    Console.Error.WriteLine($"Environment : {environmentName}");
+    Console.Error.WriteLine($"Provider    : {databaseProvider}");
+    Console.Error.WriteLine($"Connection  : {connectionString}");
+    Console.Error.WriteLine($"SQL Error   : {exception.Message}");
+    Console.Error.WriteLine();
+    Console.Error.WriteLine("Recommended actions:");
+    Console.Error.WriteLine("1. Development mode should normally use SQLite and should not require LocalDB.");
+    Console.Error.WriteLine("2. If you intentionally switched back to SQL Server, verify the connection string in:");
+    Console.Error.WriteLine("   VulnScan.Web/appsettings.json");
+    Console.Error.WriteLine("   VulnScan.Web/appsettings.Development.json");
+    Console.Error.WriteLine("3. If you need MSSQL for production, keep it in appsettings.json and deploy with a reachable SQL Server instance.");
+    Console.Error.WriteLine("4. Then rerun start_vulnscan_web.bat.");
+    Console.Error.WriteLine("==================================================");
+}

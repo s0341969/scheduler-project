@@ -47,7 +47,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 
 ### `VulnScan.Web` 啟動方式
-1. 先確認 MSSQL 可連線，並依需求調整：
+1. 開發環境預設使用 `SQLite`，正式環境保留 `MSSQL`，請依需求調整：
    - [VulnScan.Web/appsettings.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.json)
    - [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json)
 2. 於 repo 根目錄執行：
@@ -71,6 +71,26 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 - 等待 `http://localhost:5186/Auth/Login` 可用
 - 自動開啟登入頁
 - BAT 內容刻意維持純 ASCII，避免 Windows `cmd.exe` 因中文編碼或錯誤換行格式導致啟動失敗
+- 開發模式會自動使用 `VulnScan.Web/App_Data/vulnscan-dev.db`，不依賴本機 `LocalDB`
+
+`VulnScan.Web` 開發環境目前預設設定為：
+
+```json
+"Database": {
+  "Provider": "Sqlite"
+},
+"ConnectionStrings": {
+  "DefaultConnection": "Data Source=App_Data\\vulnscan-dev.db"
+}
+```
+
+正式環境若要使用 SQL Server，請在 `appsettings.json` 或正式環境設定中改成對應執行個體，例如：
+- `Server=.\\SQLEXPRESS;Database=VulnScanDB;Trusted_Connection=True;TrustServerCertificate=True;`
+- `Server=10.1.1.76;Database=VulnScanDB;User Id=...;Password=...;TrustServerCertificate=True;`
+
+開發模式下，Hangfire 也會改用記憶體儲存，避免雙擊啟動時再額外依賴 SQL Server；正式環境則仍使用 SQL Server 儲存。
+開發模式的 Data Protection 金鑰會保存到 `VulnScan.Web/App_Data/DataProtectionKeys`，避免 Windows EventLog 權限問題干擾登入 cookie 與啟動日誌。
+開發模式下不再強制做 `HTTPS redirection`，避免 `http` 啟動設定時出現多餘的啟動警告；正式環境仍維持 `HSTS + HTTPS redirection`。
 
 ### `VulnScan.Web` 本地登入機制
 這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
