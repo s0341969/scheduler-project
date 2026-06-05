@@ -24,6 +24,14 @@
             </dl>
             <div class="action-row">
                 <a asp-controller="SystemCheck" asp-action="Index" class="btn btn-outline-secondary">前往系統檢查</a>
+                @if (Model.Nmap.CanStartInstall && (User.IsInRole("Admin") || User.IsInRole("SecurityManager")))
+                {
+                    <form asp-controller="SystemCheck" asp-action="InstallNmap" method="post" class="inline-form">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="returnUrl" value="@Url.Action("Index", "ScanJobs")" />
+                        <button type="submit" class="btn btn-primary">直接安裝 Nmap</button>
+                    </form>
+                }
             </div>
         </div>
     </section>

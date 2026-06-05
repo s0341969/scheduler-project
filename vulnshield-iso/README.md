@@ -54,6 +54,7 @@ VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nucl
 - 已補上 `Greenbone` 同步失敗明細：每次同步成功或失敗都會留下端點、報表、訊息與匯入筆數
 - 已補上 `系統檢查` 頁：可直接在 UI 查看 `Nmap` 是否已安裝、實際解析到的路徑、`Greenbone` 是否完成設定，以及目前 `SQLite / MSSQL` 狀態
 - 已補上 `Nmap` 執行前檢查：若系統找不到 `nmap.exe`，`掃描任務` 頁會先顯示阻擋警示，且 `立即掃描` 按鈕會停用；排程或手動建立執行紀錄前也會先攔住
+- 已補上 `Nmap` 一鍵安裝流程：在 Windows 上若未找到 `nmap.exe`，`系統檢查` 與 `掃描任務` 頁可直接從官方 `nmap.org` 下載最新版 Windows installer，並啟動安裝精靈
 - 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
 - 已補上 PDF 匯出：報表可輸出 PDF，並包含 `軟體版本` 與 `特徵碼版本`
 
@@ -115,6 +116,26 @@ G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 - `掃描任務` 頁會直接顯示 `Nmap 執行前檢查未通過`
 - `立即掃描` 按鈕會停用，避免建立出必然失敗的執行紀錄
 - 若掃描是由其他流程呼叫 `CreateRunAsync()`，後端也會直接阻擋，避免失敗延後到背景工作才發生
+
+若目前主機是 Windows，且登入者角色為 `Admin` 或 `SecurityManager`，系統還會額外提供：
+- `直接安裝 Nmap`
+
+此流程會：
+1. 從 `VulnScan:NmapDownloadPageUrl` 讀取官方下載頁
+2. 解析最新版 Windows self-installer 檔名
+3. 從 `VulnScan:NmapInstallerBaseUrl` 下載到 `VulnScan:InstallerCachePath`
+4. 啟動官方安裝程式，交由使用者完成安裝精靈與 UAC
+
+預設設定如下：
+
+```json
+"VulnScan": {
+  "NmapPath": "nmap",
+  "NmapDownloadPageUrl": "https://nmap.org/download.html",
+  "NmapInstallerBaseUrl": "https://nmap.org/dist/",
+  "InstallerCachePath": "App_Data\\Installers"
+}
+```
 
 開發模式下，Hangfire 也會改用記憶體儲存，避免雙擊啟動時再額外依賴 SQL Server；正式環境則仍使用 SQL Server 儲存。
 開發模式的 Data Protection 金鑰會保存到 `VulnScan.Web/App_Data/DataProtectionKeys`，避免 Windows EventLog 權限問題干擾登入 cookie 與啟動日誌。

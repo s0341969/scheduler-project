@@ -155,6 +155,7 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
             Nmap = new NmapCheckViewModel
             {
                 IsInstalled = nmapStatus.IsInstalled,
+                CanStartInstall = OperatingSystem.IsWindows() && !nmapStatus.IsInstalled,
                 StatusText = nmapStatus.IsInstalled ? "已就緒" : "缺少 Nmap",
                 ResolvedPath = string.IsNullOrWhiteSpace(nmapStatus.ResolvedPath) ? "未找到" : nmapStatus.ResolvedPath,
                 Source = string.IsNullOrWhiteSpace(nmapStatus.Source) ? "未判定" : nmapStatus.Source,

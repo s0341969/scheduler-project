@@ -90,6 +90,7 @@ builder.Services.AddScoped<IGreenboneGmpClient, GreenboneGmpClient>();
 builder.Services.AddScoped<IGreenboneImportService, GreenboneImportService>();
 builder.Services.AddScoped<IGreenboneSettingsService, GreenboneSettingsService>();
 builder.Services.AddScoped<ISystemCheckService, SystemCheckService>();
+builder.Services.AddHttpClient<INmapInstallerService, NmapInstallerService>();
 builder.Services.AddScoped<IScanAllowedRangeService, ScanAllowedRangeService>();
 builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();

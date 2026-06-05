@@ -17,6 +17,8 @@ public sealed class NmapCheckViewModel
 {
     public bool IsInstalled { get; init; }
 
+    public bool CanStartInstall { get; init; }
+
     public string StatusText { get; init; } = string.Empty;
 
     public string ResolvedPath { get; init; } = string.Empty;

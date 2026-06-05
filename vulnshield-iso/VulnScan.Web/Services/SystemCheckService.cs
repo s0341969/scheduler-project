@@ -30,6 +30,7 @@ public sealed class SystemCheckService(
             Nmap = new NmapCheckViewModel
             {
                 IsInstalled = nmapStatus.IsInstalled,
+                CanStartInstall = OperatingSystem.IsWindows() && !nmapStatus.IsInstalled,
                 StatusText = nmapStatus.IsInstalled ? "已安裝" : "未安裝",
                 ResolvedPath = string.IsNullOrWhiteSpace(nmapStatus.ResolvedPath) ? "未找到" : nmapStatus.ResolvedPath,
                 Source = string.IsNullOrWhiteSpace(nmapStatus.Source) ? "未判定" : nmapStatus.Source,

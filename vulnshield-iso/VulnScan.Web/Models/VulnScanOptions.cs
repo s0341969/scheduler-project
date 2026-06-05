@@ -8,6 +8,12 @@ public sealed class VulnScanOptions
 
     public string NmapPath { get; set; } = "nmap";
 
+    public string NmapDownloadPageUrl { get; set; } = "https://nmap.org/download.html";
+
+    public string NmapInstallerBaseUrl { get; set; } = "https://nmap.org/dist/";
+
+    public string InstallerCachePath { get; set; } = "App_Data\\Installers";
+
     public int MaxConcurrentScans { get; set; } = 2;
 
     public bool AllowExternalTargets { get; set; }

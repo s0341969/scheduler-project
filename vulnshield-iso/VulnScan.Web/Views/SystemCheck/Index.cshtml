@@ -38,6 +38,14 @@
             <dt>說明</dt>
             <dd>@Model.Nmap.Message</dd>
         </dl>
+        @if (Model.Nmap.CanStartInstall && (User.IsInRole("Admin") || User.IsInRole("SecurityManager")))
+        {
+            <form asp-action="InstallNmap" method="post" class="action-row install-action-row">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="@Url.Action("Index", "SystemCheck")" />
+                <button type="submit" class="btn btn-primary">直接安裝 Nmap</button>
+            </form>
+        }
     </article>
 
     <article class="panel-card">

@@ -1,6 +1,9 @@
 # Changelog
 
 ## 2026-06-05
+- 新增 `NmapInstallerService` 與 `SystemCheckController.InstallNmap`，在 Windows 上可直接從官方 `nmap.org` 下載最新版 self-installer 並啟動安裝精靈
+- 強化 `系統檢查` 與 `掃描任務` 頁：當 `Nmap` 缺失且使用者角色為 `Admin` / `SecurityManager` 時，會顯示 `直接安裝 Nmap` 按鈕
+- 新增 `VulnScan` 安裝設定：`NmapDownloadPageUrl`、`NmapInstallerBaseUrl`、`InstallerCachePath`
 - 新增 `Nmap` 執行前檢查：`ScanJobService.CreateRunAsync()` 會在建立 `ScanRun` 前先驗證 `nmap.exe` 是否可用，避免任務先建出來再於背景失敗
 - 強化 `掃描任務` 頁：當系統找不到 `Nmap` 時，頁面會顯示阻擋警示，並停用 `立即掃描` 按鈕
 - 強化全站訊息顯示：`_Layout.cshtml` 新增 `TempData["ErrorMessage"]` 呈現，讓前置檢查失敗能直接回到 UI

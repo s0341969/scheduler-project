@@ -87,6 +87,27 @@ Development 預設帳號：
 - `立即掃描` 按鈕會停用
 - 其他透過系統建立 `ScanRun` 的流程，也會在建立前先被攔住，而不是等背景工作失敗後才知道
 
+若目前主機是 Windows，且登入者角色為：
+
+- `Admin`
+- `SecurityManager`
+
+則系統還會提供：
+
+- `直接安裝 Nmap`
+
+此功能會：
+
+1. 從 `nmap.org` 官方下載頁解析最新版 Windows installer
+2. 下載到 `VulnScan.Web\App_Data\Installers`
+3. 直接啟動官方安裝程式
+
+注意事項：
+
+- 這不是靜默安裝，系統會啟動官方安裝精靈
+- 若 Windows 跳出 `UAC`，請允許
+- 安裝完成後，建議回到 `系統檢查` 頁重新確認路徑是否已解析成功
+
 ### 4.2 建議做法
 
 建議先確認：

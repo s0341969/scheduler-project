@@ -376,6 +376,10 @@ a {
   color: var(--danger);
 }
 
+.install-action-row {
+  margin-top: 16px;
+}
+
 .last-scan-note {
   margin-top: 16px;
   color: var(--muted);
