@@ -1,4 +1,4 @@
-@model IReadOnlyList<VulnScan.Web.Models.ScanRun>
+@model VulnScan.Web.ViewModels.ScanRunsIndexViewModel
 @{
     ViewData["Title"] = "掃描紀錄";
 }
@@ -26,8 +26,23 @@
 <article class="panel-card">
     <div class="panel-card-header">
         <h3>掃描執行紀錄</h3>
-        <span class="counter-pill">@Model.Count 筆</span>
+        <span class="counter-pill">@Model.TotalCount 筆</span>
     </div>
+    <form method="get" class="search-bar filter-bar">
+        <input type="text" name="search" value="@Model.SearchTerm" placeholder="搜尋任務名稱、錯誤訊息..." class="form-control" />
+        <select name="status" class="form-select">
+            <option value="">全部狀態</option>
+            <option value="Pending" selected="@(Model.StatusFilter == "Pending")">Pending</option>
+            <option value="Running" selected="@(Model.StatusFilter == "Running")">Running</option>
+            <option value="Completed" selected="@(Model.StatusFilter == "Completed")">Completed</option>
+            <option value="Failed" selected="@(Model.StatusFilter == "Failed")">Failed</option>
+        </select>
+        <button type="submit" class="btn btn-outline-secondary">篩選</button>
+        @if (!string.IsNullOrWhiteSpace(Model.SearchTerm) || !string.IsNullOrWhiteSpace(Model.StatusFilter))
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary">清除</a>
+        }
+    </form>
     <div class="table-responsive">
         <table class="table table-dark-table align-middle">
             <thead>
@@ -44,7 +59,7 @@
                 </tr>
             </thead>
             <tbody>
-            @foreach (var item in Model)
+            @foreach (var item in Model.Items)
             {
                 <tr>
                     <td>@item.RunId</td>
@@ -61,4 +76,15 @@
             </tbody>
         </table>
     </div>
+    <nav class="pagination-nav">
+        @if (Model.Page > 1)
+        {
+            <a asp-action="Index" asp-route-search="@Model.SearchTerm" asp-route-status="@Model.StatusFilter" asp-route-page="@(Model.Page - 1)" class="btn btn-sm btn-outline-secondary">上一頁</a>
+        }
+        <span class="pagination-info">第 @Model.Page / @Model.TotalPages 頁（共 @Model.TotalCount 筆）</span>
+        @if (Model.Page < Model.TotalPages)
+        {
+            <a asp-action="Index" asp-route-search="@Model.SearchTerm" asp-route-status="@Model.StatusFilter" asp-route-page="@(Model.Page + 1)" class="btn btn-sm btn-outline-secondary">下一頁</a>
+        }
+    </nav>
 </article>

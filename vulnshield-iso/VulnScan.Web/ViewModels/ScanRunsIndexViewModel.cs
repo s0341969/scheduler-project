@@ -2,13 +2,11 @@ using VulnScan.Web.Models;
 
 namespace VulnScan.Web.ViewModels;
 
-public sealed class VulnerabilitiesIndexViewModel
+public sealed class ScanRunsIndexViewModel
 {
-    public IReadOnlyList<Vulnerability> Items { get; set; } = Array.Empty<Vulnerability>();
+    public IReadOnlyList<ScanRun> Items { get; set; } = Array.Empty<ScanRun>();
 
     public string? SearchTerm { get; set; }
-
-    public string? SeverityFilter { get; set; }
 
     public string? StatusFilter { get; set; }
 

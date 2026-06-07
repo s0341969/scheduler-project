@@ -18,7 +18,7 @@
 - `Nuclei` / `Nessus` 匯入
 - `Greenbone / OpenVAS` API 同步
 - 弱點清單與改善追蹤
-- `Excel / PDF` 報表匯出
+- `Excel / PDF` 報表匯出（含封面頁、摘要統計、風險等級分佈、弱點明細表）
 - 稽核紀錄保存
 - 系統檢查與 `Nmap` 一鍵安裝
 

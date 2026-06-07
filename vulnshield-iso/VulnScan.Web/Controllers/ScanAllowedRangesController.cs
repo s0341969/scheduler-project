@@ -7,17 +7,39 @@ using VulnScan.Web.ViewModels;
 
 namespace VulnScan.Web.Controllers;
 
-[Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
 public sealed class ScanAllowedRangesController(ApplicationDbContext dbContext) : Controller
 {
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    private const int PageSize = 20;
+
+    public async Task<IActionResult> Index(string? search, CancellationToken cancellationToken, int page = 1)
     {
+        var query = dbContext.ScanAllowedRanges.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(item =>
+                item.RangeName.Contains(term) ||
+                item.Cidr.Contains(term) ||
+                (item.Description != null && item.Description.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+        page = Math.Clamp(page, 1, totalPages);
+
         return View(new ScanAllowedRangesIndexViewModel
         {
-            Items = await dbContext.ScanAllowedRanges
-                .AsNoTracking()
+            Items = await query
                 .OrderBy(item => item.RangeName)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync(cancellationToken),
+            SearchTerm = search,
+            Page = page,
+            TotalPages = totalPages,
+            TotalCount = totalCount,
         });
     }
 

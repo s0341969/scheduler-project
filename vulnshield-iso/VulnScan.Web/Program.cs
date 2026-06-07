@@ -95,6 +95,7 @@ builder.Services.AddScoped<IScanAllowedRangeService, ScanAllowedRangeService>();
 builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();
 builder.Services.AddScoped<IScanJobService, ScanJobService>();
+builder.Services.AddScoped<IScanScheduleService, ScanScheduleService>();
 builder.Services.AddScoped<IVulnerabilityService, VulnerabilityService>();
 builder.Services.AddScoped<IScanImportService, ScanImportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
@@ -121,6 +122,9 @@ using (var scope = app.Services.CreateScope())
         WriteDatabaseStartupError(app.Configuration, app.Environment, databaseProvider, sqlException);
         throw;
     }
+
+    var scanScheduleService = scope.ServiceProvider.GetRequiredService<IScanScheduleService>();
+    await scanScheduleService.SyncRecurringJobsAsync();
 }
 
 if (!app.Environment.IsDevelopment())

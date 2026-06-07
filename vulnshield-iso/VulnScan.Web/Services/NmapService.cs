@@ -77,7 +77,7 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
 
         var nmapPath = status.ResolvedPath;
 
-        var arguments = $"{BuildProfileArguments(scanProfile)} -oX \"{outputPath}\" {target}";
+        var arguments = $"{BuildProfileArguments(scanProfile)} -oX \"{outputPath}\" {EscapeArg(target)}";
         var startInfo = new ProcessStartInfo
         {
             FileName = nmapPath,
@@ -159,4 +159,19 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
         "Deep" => "-sV -O --version-all",
         _ => "-sV -O",
     };
+
+    private static string EscapeArg(string arg)
+    {
+        if (string.IsNullOrWhiteSpace(arg))
+        {
+            return "\"\"";
+        }
+
+        if (!arg.Contains(' ') && !arg.Contains('\t') && !arg.Contains('"') && !arg.Contains('\\'))
+        {
+            return arg;
+        }
+
+        return "\"" + arg.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
+    }
 }

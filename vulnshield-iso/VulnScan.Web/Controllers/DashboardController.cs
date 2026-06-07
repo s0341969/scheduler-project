@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VulnScan.Web.Data;
+using VulnScan.Web.Models;
 using VulnScan.Web.ViewModels;
 
 namespace VulnScan.Web.Controllers;
@@ -19,11 +20,11 @@ public sealed class DashboardController(ApplicationDbContext dbContext) : Contro
         {
             AssetCount = await dbContext.Assets.CountAsync(item => item.IsActive, cancellationToken),
             HighRiskVulnerabilityCount = await dbContext.Vulnerabilities.CountAsync(
-                item => item.Status != "已關閉" &&
+                item => item.Status != VulnerabilityStatus.Closed &&
                         (item.Severity == "Critical" || item.Severity == "High" || (item.CVSS != null && item.CVSS >= 7m)),
                 cancellationToken),
-            OpenVulnerabilityCount = await dbContext.Vulnerabilities.CountAsync(item => item.Status != "已關閉", cancellationToken),
-            OverdueVulnerabilityCount = await dbContext.Vulnerabilities.CountAsync(item => item.DueDate != null && item.DueDate < DateOnly.FromDateTime(now) && item.Status != "已關閉", cancellationToken),
+            OpenVulnerabilityCount = await dbContext.Vulnerabilities.CountAsync(item => item.Status != VulnerabilityStatus.Closed, cancellationToken),
+            OverdueVulnerabilityCount = await dbContext.Vulnerabilities.CountAsync(item => item.DueDate != null && item.DueDate < DateOnly.FromDateTime(now) && item.Status != VulnerabilityStatus.Closed, cancellationToken),
             AllowedRangeCount = await dbContext.ScanAllowedRanges.CountAsync(item => item.IsEnabled, cancellationToken),
             ScanJobCount = await dbContext.ScanJobs.CountAsync(item => item.IsEnabled, cancellationToken),
             RunningScanCount = await dbContext.ScanRuns.CountAsync(item => item.Status == "Pending" || item.Status == "Running", cancellationToken),

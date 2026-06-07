@@ -16,17 +16,52 @@ public sealed class VulnerabilitiesController(
     IScanImportService scanImportService,
     IOptions<VulnScanOptions> options) : Controller
 {
+    private const int PageSize = 20;
     private readonly VulnScanOptions _options = options.Value;
 
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    public async Task<IActionResult> Index(string? search, string? severity, string? status, CancellationToken cancellationToken, int page = 1)
     {
+        IQueryable<Vulnerability> query = dbContext.Vulnerabilities
+            .AsNoTracking()
+            .Include(item => item.Asset);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(item =>
+                item.VulnName.Contains(term) ||
+                (item.IPAddress != null && item.IPAddress.Contains(term)) ||
+                (item.CVE != null && item.CVE.Contains(term)) ||
+                (item.PluginId != null && item.PluginId.Contains(term)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(severity) && severity != "All")
+        {
+            query = query.Where(item => item.Severity == severity);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && status != "All")
+        {
+            query = query.Where(item => item.Status == status);
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+        page = Math.Clamp(page, 1, totalPages);
+
         return View(new VulnerabilitiesIndexViewModel
         {
-            Items = await dbContext.Vulnerabilities
-                .AsNoTracking()
-                .Include(item => item.Asset)
+            Items = await query
                 .OrderByDescending(item => item.LastDetectedAt)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync(cancellationToken),
+            SearchTerm = search,
+            SeverityFilter = severity,
+            StatusFilter = status,
+            Page = page,
+            TotalPages = totalPages,
+            TotalCount = totalCount,
         });
     }
 

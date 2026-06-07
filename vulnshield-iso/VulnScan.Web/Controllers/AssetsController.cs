@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using VulnScan.Web.Data;
 using VulnScan.Web.Models;
+using VulnScan.Web.Services;
 using VulnScan.Web.ViewModels;
 
 namespace VulnScan.Web.Controllers;
@@ -10,14 +11,38 @@ namespace VulnScan.Web.Controllers;
 [Authorize]
 public sealed class AssetsController(ApplicationDbContext dbContext) : Controller
 {
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    private const int PageSize = 20;
+
+    public async Task<IActionResult> Index(string? search, CancellationToken cancellationToken, int page = 1)
     {
+        var query = dbContext.Assets.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(item =>
+                item.AssetName.Contains(term) ||
+                item.IPAddress.Contains(term) ||
+                (item.HostName != null && item.HostName.Contains(term)) ||
+                (item.OwnerDept != null && item.OwnerDept.Contains(term)) ||
+                (item.AssetType != null && item.AssetType.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+        page = Math.Clamp(page, 1, totalPages);
+
         return View(new AssetsIndexViewModel
         {
-            Items = await dbContext.Assets
-                .AsNoTracking()
+            Items = await query
                 .OrderBy(item => item.AssetName)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync(cancellationToken),
+            SearchTerm = search,
+            Page = page,
+            TotalPages = totalPages,
+            TotalCount = totalCount,
         });
     }
 
@@ -27,10 +52,17 @@ public sealed class AssetsController(ApplicationDbContext dbContext) : Controlle
     {
         if (!ModelState.IsValid)
         {
+            var query = dbContext.Assets.AsNoTracking();
+            var totalCount = await query.CountAsync(cancellationToken);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+
             return View("Index", new AssetsIndexViewModel
             {
                 Form = form,
-                Items = await dbContext.Assets.AsNoTracking().OrderBy(item => item.AssetName).ToListAsync(cancellationToken),
+                Items = await query.OrderBy(item => item.AssetName).Take(PageSize).ToListAsync(cancellationToken),
+                Page = 1,
+                TotalPages = totalPages,
+                TotalCount = totalCount,
             });
         }
 

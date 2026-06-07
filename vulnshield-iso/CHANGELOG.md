@@ -1,6 +1,19 @@
 # Changelog
 
 ## 2026-06-07
+- 新增 `VulnerabilityStatus` 常數類別，取代全專案弱點狀態魔術字串
+- 新增 `PaginationViewModel` 與 `QueryableExtensions` 通用分頁基礎建設
+- 新增 `AllowExternalTargets` 設定，`ScanAllowedRangeService` 可跳過白名單檢查
+- 新增 `EscapeArg()` 方法強化 `NmapService` 目標參數跳脫
+- 新增 `MaxConcurrentScans` 並行掃描控管，`ScanJobService` 會檢查執行中掃描數
+- 新增 `IScanScheduleService` / `ScanScheduleService`，支援 Hangfire 週期排程掃描管理
+- 新增 `RunningScans` API 端點與前端輪詢邏輯（site.js），每 5 秒顯示執行中掃描
+- 全站 Controller 與 View 補上搜尋、篩選、分頁功能（Assets、Vulnerabilities、ScanJobs、ScanRuns、ScanAllowedRanges）
+- 強化 PDF 報表匯出：新增封面頁、摘要統計頁（風險等級分佈、處理狀態分佈、前十大受影響資產）、頁尾與頁碼
+- 修正 ScanJobsController 選擇性參數順序與 BuildIndexViewModelAsync 呼叫簽章
+- 修正 ScanRunsController、VulnerabilitiesController 查詢型別為明確的 `IQueryable<T>`
+- 修正 DashboardController 遺漏 `using VulnScan.Web.Models`
+
 - 正式移除舊的 `Python / FastAPI / Celery / Docker` 弱點掃描系統
 - 刪除舊系統相關目錄與檔案：`src/`、`tests/`、`Dockerfile`、`docker-compose.yml`、`requirements.txt`、`start_system.ps1`、`start_system.bat`、`SYSTEM_DESIGN.md`、`.env.example`
 - 清理舊系統暫存與執行殘留檔，讓 repo 僅保留 `VulnScan.Web` 產品線

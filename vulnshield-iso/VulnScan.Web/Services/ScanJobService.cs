@@ -17,6 +17,21 @@ public sealed class ScanJobService(
 {
     private readonly VulnScanOptions _options = options.Value;
 
+    public async Task<int> GetRunningScanCountAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.ScanRuns
+            .CountAsync(item => item.Status == "Pending" || item.Status == "Running", cancellationToken);
+    }
+
+    private async Task EnsureConcurrencyLimitAsync(CancellationToken cancellationToken = default)
+    {
+        var running = await GetRunningScanCountAsync(cancellationToken);
+        if (running >= _options.MaxConcurrentScans)
+        {
+            throw new InvalidOperationException($"目前已達到最大並行掃描數限制（{_options.MaxConcurrentScans}），請等待執行中的掃描完成後再試。");
+        }
+    }
+
     public NmapInstallationStatus GetNmapInstallationStatus() => nmapService.GetInstallationStatus();
 
     public async Task<int> CreateRunAsync(int jobId, string userAccount, CancellationToken cancellationToken = default)
@@ -30,6 +45,7 @@ public sealed class ScanJobService(
         }
 
         ValidateExecutionPrerequisites(job);
+        await EnsureConcurrencyLimitAsync(cancellationToken);
 
         var run = new ScanRun
         {

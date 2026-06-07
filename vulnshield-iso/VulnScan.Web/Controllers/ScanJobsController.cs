@@ -8,12 +8,17 @@ using VulnScan.Web.ViewModels;
 
 namespace VulnScan.Web.Controllers;
 
-[Authorize]
-public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobService scanJobService) : Controller
+    [Authorize]
+public sealed class ScanJobsController(
+    ApplicationDbContext dbContext,
+    IScanJobService scanJobService,
+    IScanScheduleService scanScheduleService) : Controller
 {
-    public async Task<IActionResult> Index(CancellationToken cancellationToken)
+    private const int PageSize = 20;
+
+    public async Task<IActionResult> Index(string? search, CancellationToken cancellationToken, int page = 1)
     {
-        return View(await BuildIndexViewModelAsync(cancellationToken));
+        return View(await BuildIndexViewModelAsync(search, cancellationToken, page));
     }
 
     [HttpPost]
@@ -22,7 +27,7 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
     {
         if (!ModelState.IsValid)
         {
-            var model = await BuildIndexViewModelAsync(cancellationToken);
+            var model = await BuildIndexViewModelAsync(null, cancellationToken);
             model.Form = form;
             return View("Index", model);
         }
@@ -44,6 +49,12 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
 
         dbContext.ScanJobs.Add(job);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(job.CronExpression) && job.IsEnabled)
+        {
+            await scanScheduleService.AddOrUpdateJobAsync(job.JobId, job.CronExpression, cancellationToken);
+        }
+
         TempData["StatusMessage"] = $"已建立掃描任務：{job.JobName}";
         return RedirectToAction(nameof(Index));
     }
@@ -54,8 +65,8 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
     {
         try
         {
-            await scanJobService.CreateRunAsync(id, User.Identity?.Name ?? "system", cancellationToken);
-            TempData["StatusMessage"] = $"已建立掃描任務 #{id} 的執行紀錄。";
+            var runId = await scanJobService.CreateRunAsync(id, User.Identity?.Name ?? "system", cancellationToken);
+            TempData["StatusMessage"] = $"已建立掃描任務 #{id} 的執行紀錄 (Run #{runId})。";
         }
         catch (InvalidOperationException exception)
         {
@@ -63,6 +74,26 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
         }
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> RunningScans(CancellationToken cancellationToken)
+    {
+        var runs = await dbContext.ScanRuns
+            .AsNoTracking()
+            .Include(item => item.ScanJob)
+            .Where(item => item.Status == "Pending" || item.Status == "Running")
+            .OrderByDescending(item => item.StartTime)
+            .Select(item => new
+            {
+                item.RunId,
+                JobName = item.ScanJob != null ? item.ScanJob.JobName : $"Job {item.JobId}",
+                item.Status,
+                StartedAt = item.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss"),
+            })
+            .ToListAsync(cancellationToken);
+
+        return Json(runs);
     }
 
     [HttpGet]
@@ -121,6 +152,24 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
         job.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (!string.IsNullOrWhiteSpace(job.CronExpression))
+        {
+            if (job.IsEnabled)
+            {
+                await scanScheduleService.RemoveJobAsync(job.JobId, cancellationToken);
+            }
+
+            if (!string.IsNullOrWhiteSpace(form.CronExpression) && form.IsEnabled)
+            {
+                await scanScheduleService.AddOrUpdateJobAsync(job.JobId, form.CronExpression, cancellationToken);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(form.CronExpression) && form.IsEnabled)
+        {
+            await scanScheduleService.AddOrUpdateJobAsync(job.JobId, form.CronExpression, cancellationToken);
+        }
+
         TempData["StatusMessage"] = $"已更新掃描任務：{job.JobName}";
         return RedirectToAction(nameof(Index));
     }
@@ -136,21 +185,41 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
             return RedirectToAction(nameof(Index));
         }
 
+        if (!string.IsNullOrWhiteSpace(job.CronExpression) && job.IsEnabled)
+        {
+            await scanScheduleService.RemoveJobAsync(job.JobId, cancellationToken);
+        }
+
         dbContext.ScanJobs.Remove(job);
         await dbContext.SaveChangesAsync(cancellationToken);
         TempData["StatusMessage"] = $"已刪除掃描任務：{job.JobName}";
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task<ScanJobsIndexViewModel> BuildIndexViewModelAsync(CancellationToken cancellationToken)
+    private async Task<ScanJobsIndexViewModel> BuildIndexViewModelAsync(string? search, CancellationToken cancellationToken, int page = 1)
     {
         var nmapStatus = scanJobService.GetNmapInstallationStatus();
+        var query = dbContext.ScanJobs.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim();
+            query = query.Where(item =>
+                item.JobName.Contains(term) ||
+                item.TargetRange.Contains(term) ||
+                (item.ScanType != null && item.ScanType.Contains(term)));
+        }
+
+        var totalCount = await query.CountAsync(cancellationToken);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalCount / (double)PageSize));
+        page = Math.Clamp(page, 1, totalPages);
 
         return new ScanJobsIndexViewModel
         {
-            Items = await dbContext.ScanJobs
-                .AsNoTracking()
+            Items = await query
                 .OrderBy(item => item.JobName)
+                .Skip((page - 1) * PageSize)
+                .Take(PageSize)
                 .ToListAsync(cancellationToken),
             Nmap = new NmapCheckViewModel
             {
@@ -161,6 +230,10 @@ public sealed class ScanJobsController(ApplicationDbContext dbContext, IScanJobS
                 Source = string.IsNullOrWhiteSpace(nmapStatus.Source) ? "未判定" : nmapStatus.Source,
                 Message = nmapStatus.Message,
             },
+            SearchTerm = search,
+            Page = page,
+            TotalPages = totalPages,
+            TotalCount = totalCount,
         };
     }
 }

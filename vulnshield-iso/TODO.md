@@ -17,7 +17,6 @@
 - 為 `VulnScan.Web` 補上使用者停用、重設密碼與角色治理
 - 為 `Vulnerabilities` 補上更細的搜尋、篩選、編輯與刪除治理
 - 為 `ScanRuns / Reports` 補上更完整的趨勢與週期分析
-- 強化 PDF 匯出版型：頁尾、公司識別、圖表與更清楚的弱點分群摘要
 - 補上 `stop_vulnscan_web.bat`，讓新版系統可一鍵停止
 
 ## 原則

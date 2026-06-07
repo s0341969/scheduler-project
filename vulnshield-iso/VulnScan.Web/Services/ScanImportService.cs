@@ -376,7 +376,7 @@ public sealed class ScanImportService(
                 Description = description,
                 Solution = solution,
                 Evidence = evidence,
-                Status = "未處理",
+                Status = VulnerabilityStatus.Unprocessed,
                 FirstDetectedAt = DateTime.UtcNow,
                 LastDetectedAt = DateTime.UtcNow,
             });
@@ -395,9 +395,9 @@ public sealed class ScanImportService(
             existing.Solution = string.IsNullOrWhiteSpace(solution) ? existing.Solution : solution;
             existing.Evidence = string.IsNullOrWhiteSpace(evidence) ? existing.Evidence : evidence;
             existing.LastDetectedAt = DateTime.UtcNow;
-            if (string.Equals(existing.Status, "已關閉", StringComparison.OrdinalIgnoreCase))
+            if (VulnerabilityStatus.IsClosed(existing.Status))
             {
-                existing.Status = "待確認";
+                existing.Status = VulnerabilityStatus.PendingConfirm;
                 existing.ClosedAt = null;
             }
         }

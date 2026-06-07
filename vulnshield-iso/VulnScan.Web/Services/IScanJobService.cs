@@ -6,5 +6,7 @@ public interface IScanJobService
 
     Task RunScanAsync(int runId, CancellationToken cancellationToken = default);
 
+    Task<int> GetRunningScanCountAsync(CancellationToken cancellationToken = default);
+
     NmapInstallationStatus GetNmapInstallationStatus();
 }
