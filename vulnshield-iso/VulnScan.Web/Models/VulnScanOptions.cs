@@ -12,6 +12,8 @@ public sealed class VulnScanOptions
 
     public string NmapInstallerBaseUrl { get; set; } = "https://nmap.org/dist/";
 
+    public string NucleiPath { get; set; } = "nuclei";
+
     public string InstallerCachePath { get; set; } = "App_Data\\Installers";
 
     public int MaxConcurrentScans { get; set; } = 2;

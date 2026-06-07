@@ -94,6 +94,8 @@ builder.Services.AddHttpClient<INmapInstallerService, NmapInstallerService>();
 builder.Services.AddScoped<IScanAllowedRangeService, ScanAllowedRangeService>();
 builder.Services.AddScoped<INmapService, NmapService>();
 builder.Services.AddScoped<INmapXmlParserService, NmapXmlParserService>();
+builder.Services.AddScoped<INucleiService, NucleiService>();
+builder.Services.AddScoped<INucleiResultParserService, NucleiResultParserService>();
 builder.Services.AddScoped<IScanJobService, ScanJobService>();
 builder.Services.AddScoped<IScanScheduleService, ScanScheduleService>();
 builder.Services.AddScoped<IVulnerabilityService, VulnerabilityService>();

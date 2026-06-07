@@ -19,7 +19,7 @@
             <span class="status-pill preflight-status-pill">Blocked</span>
         </div>
         <div class="form-stack">
-            <p class="mb-0">目前系統找不到 `nmap.exe`，因此所有使用 `Nmap` 的掃描任務都會在建立執行紀錄前直接被阻擋。</p>
+            <p class="mb-0">目前系統找不到 `nmap.exe`，因此使用 `Nmap` 的掃描任務會在建立執行紀錄前直接被阻擋。</p>
             <dl class="detail-grid">
                 <dt>目前狀態</dt>
                 <dd>@Model.Nmap.StatusText</dd>
@@ -69,20 +69,36 @@
                     <option>PortScan</option>
                     <option>ServiceDetect</option>
                     <option>BaselineScan</option>
+                    <option>VulnerabilityScan</option>
+                    <option>WebScan</option>
                 </select>
             </div>
             <div>
                 <label asp-for="Form.ScanTool" class="form-label"></label>
-                <select asp-for="Form.ScanTool" class="form-select">
-                    <option>Nmap</option>
+                <select asp-for="Form.ScanTool" class="form-select" id="scanToolSelect">
+                    <option value="Nmap">Nmap</option>
+                    <option value="Nuclei">Nuclei</option>
                 </select>
             </div>
             <div>
-                <label asp-for="Form.ScanProfile" class="form-label"></label>
-                <select asp-for="Form.ScanProfile" class="form-select">
-                    <option>Low</option>
-                    <option selected>Normal</option>
-                    <option>Deep</option>
+                <label asp-for="Form.ScanProfile" class="form-label" id="scanProfileLabel">掃描強度</label>
+                <select asp-for="Form.ScanProfile" class="form-select" id="scanProfileSelect">
+                    <optgroup label="Nmap 模式">
+                        <option value="Quick">Quick - 快速連接埠掃描</option>
+                        <option value="QuickPlus" selected>QuickPlus - 快速+版本偵測</option>
+                        <option value="Standard">Standard - 標準+版本+OS</option>
+                        <option value="Deep">Deep - 深度掃描+A+完整版本</option>
+                        <option value="Stealth">Stealth - 隱匿模式</option>
+                        <option value="VulnScript">VulnScript - 安全腳本掃描</option>
+                    </optgroup>
+                    <optgroup label="Nuclei 範本">
+                        <option value="All">All - 所有範本</option>
+                        <option value="cves">CVEs - 已知 CVE</option>
+                        <option value="vulnerabilities">Vulnerabilities - 一般弱點</option>
+                        <option value="misconfiguration">Misconfig - 錯誤設定</option>
+                        <option value="exposures">Exposures - 曝露</option>
+                        <option value="default-logins">DefaultLogins - 預設登入</option>
+                    </optgroup>
                 </select>
             </div>
             <div>
@@ -153,9 +169,12 @@
                                 <form asp-action="RunNow" method="post" class="inline-form">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@item.JobId" />
-                                    @if (Model.Nmap is not null && !Model.Nmap.IsInstalled)
+                                    @{
+                                        var isDisabled = (item.ScanTool == "Nmap" && Model.Nmap is not null && !Model.Nmap.IsInstalled);
+                                    }
+                                    @if (isDisabled)
                                     {
-                                        <button type="submit" class="btn btn-sm btn-primary" disabled>立即掃描</button>
+                                        <button type="submit" class="btn btn-sm btn-primary" disabled title="Nmap 未安裝或路徑不正確">立即掃描</button>
                                     }
                                     else
                                     {
@@ -189,4 +208,36 @@
 </section>
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toolSelect = document.getElementById('scanToolSelect');
+            var profileSelect = document.getElementById('scanProfileSelect');
+            var profileLabel = document.getElementById('scanProfileLabel');
+
+            function updateProfileOptions() {
+                var tool = toolSelect.value;
+                for (var i = 0; i < profileSelect.options.length; i++) {
+                    var opt = profileSelect.options[i];
+                    if (opt.tagName === 'OPTGROUP') {
+                        opt.style.display = (tool === 'Nuclei' && opt.label === 'Nuclei 範本') || (tool === 'Nmap' && opt.label === 'Nmap 模式') ? '' : 'none';
+                    }
+                }
+                // Auto-select first visible option if current is hidden
+                var visibleGroup = null;
+                for (var i = 0; i < profileSelect.options.length; i++) {
+                    var opt = profileSelect.options[i];
+                    if (opt.tagName === 'OPTGROUP') {
+                        visibleGroup = opt.style.display !== 'none' ? opt : null;
+                    } else if (opt.tagName !== 'OPTGROUP' && visibleGroup && opt.style.display !== 'none') {
+                        profileSelect.value = opt.value;
+                        break;
+                    }
+                }
+                profileLabel.textContent = tool === 'Nuclei' ? '弱點範本' : '掃描強度';
+            }
+
+            toolSelect.addEventListener('change', updateProfileOptions);
+            updateProfileOptions();
+        });
+    </script>
 }

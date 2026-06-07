@@ -12,6 +12,8 @@ public sealed class ScanJobService(
     IScanAllowedRangeService scanAllowedRangeService,
     INmapService nmapService,
     INmapXmlParserService nmapXmlParserService,
+    INucleiService nucleiService,
+    INucleiResultParserService nucleiResultParserService,
     IAuditLogService auditLogService,
     IOptions<VulnScanOptions> options) : IScanJobService
 {
@@ -33,6 +35,8 @@ public sealed class ScanJobService(
     }
 
     public NmapInstallationStatus GetNmapInstallationStatus() => nmapService.GetInstallationStatus();
+
+    public bool IsNucleiInstalled() => nucleiService.IsInstalled();
 
     public async Task<int> CreateRunAsync(int jobId, string userAccount, CancellationToken cancellationToken = default)
     {
@@ -77,13 +81,17 @@ public sealed class ScanJobService(
             run.StartTime = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            var outputPath = Path.Combine(_options.ResultRootPath, $"run-{run.RunId}.xml");
-            var xmlPath = await nmapService.RunNmapAsync(job.TargetRange, outputPath, job.ScanProfile ?? "Normal", cancellationToken);
-            await nmapXmlParserService.ParseAndSaveAsync(run.RunId, xmlPath, cancellationToken);
+            if (string.Equals(job.ScanTool, "Nuclei", StringComparison.OrdinalIgnoreCase))
+            {
+                await RunNucleiScanAsync(run, job, cancellationToken);
+            }
+            else
+            {
+                await RunNmapScanAsync(run, job, cancellationToken);
+            }
 
             run.Status = "Completed";
             run.EndTime = DateTime.UtcNow;
-            run.RawResultPath = xmlPath;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (Exception exception)
@@ -97,21 +105,44 @@ public sealed class ScanJobService(
         }
     }
 
+    private async Task RunNmapScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
+    {
+        var outputPath = Path.Combine(_options.ResultRootPath, $"run-{run.RunId}.xml");
+        var xmlPath = await nmapService.RunNmapAsync(job.TargetRange, outputPath, job.ScanProfile ?? "Standard", cancellationToken);
+        await nmapXmlParserService.ParseAndSaveAsync(run.RunId, xmlPath, cancellationToken);
+        run.RawResultPath = xmlPath;
+    }
+
+    private async Task RunNucleiScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
+    {
+        var outputPath = Path.Combine(_options.ResultRootPath, $"nuclei-run-{run.RunId}.json");
+        var jsonPath = await nucleiService.RunNucleiAsync(job.TargetRange, outputPath, job.ScanProfile ?? "All", cancellationToken);
+        var importedCount = await nucleiResultParserService.ParseAndSaveAsync(run.RunId, jsonPath, cancellationToken);
+        run.RawResultPath = jsonPath;
+        run.TotalVulnerabilities = importedCount;
+    }
+
     private void ValidateExecutionPrerequisites(ScanJob job)
     {
-        if (!string.Equals(job.ScanTool, "Nmap", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(job.ScanTool, "Nuclei", StringComparison.OrdinalIgnoreCase))
         {
-            return;
+            if (nucleiService.IsInstalled())
+                return;
+
+            var jobName = string.IsNullOrWhiteSpace(job.JobName) ? $"Job {job.JobId}" : job.JobName;
+            throw new InvalidOperationException(
+                $"無法執行掃描任務「{jobName}」。找不到 nuclei.exe。請先在系統 PATH 中安裝 Nuclei 或設定 VulnScan:NucleiPath，確認後再重新執行。");
         }
+
+        if (!string.Equals(job.ScanTool, "Nmap", StringComparison.OrdinalIgnoreCase))
+            return;
 
         var status = nmapService.GetInstallationStatus();
         if (status.IsInstalled)
-        {
             return;
-        }
 
-        var jobName = string.IsNullOrWhiteSpace(job.JobName) ? $"Job {job.JobId}" : job.JobName;
+        var name = string.IsNullOrWhiteSpace(job.JobName) ? $"Job {job.JobId}" : job.JobName;
         throw new InvalidOperationException(
-            $"無法執行掃描任務「{jobName}」。原因：{status.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
+            $"無法執行掃描任務「{name}」。原因：{status.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
     }
 }

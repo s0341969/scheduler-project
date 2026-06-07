@@ -9,4 +9,6 @@ public interface IScanJobService
     Task<int> GetRunningScanCountAsync(CancellationToken cancellationToken = default);
 
     NmapInstallationStatus GetNmapInstallationStatus();
+
+    bool IsNucleiInstalled();
 }

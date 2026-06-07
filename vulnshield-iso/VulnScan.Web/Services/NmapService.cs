@@ -155,9 +155,13 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
 
     private static string BuildProfileArguments(string scanProfile) => scanProfile switch
     {
-        "Low" => "-sV",
-        "Deep" => "-sV -O --version-all",
-        _ => "-sV -O",
+        "Quick" => "-T4 -F",
+        "QuickPlus" => "-T4 -sV -F",
+        "Standard" => "-T4 -sV -O",
+        "Deep" => "-T4 -sV -O -A --version-all",
+        "Stealth" => "-T2 -sV -O",
+        "VulnScript" => "-T4 -sV -sC --script vuln",
+        _ => "-T4 -sV -O",
     };
 
     private static string EscapeArg(string arg)

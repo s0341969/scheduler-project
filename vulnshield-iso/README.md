@@ -14,8 +14,8 @@
 - 資產清冊管理
 - 掃描白名單控管
 - 掃描任務與掃描執行紀錄
-- `Nmap` 掃描與 `Port / Service` 結果解析
-- `Nuclei` / `Nessus` 匯入
+- `Nmap` 掃描（6 種掃描模式）與 `Port / Service` 結果解析
+- `Nuclei` 直接掃描（支援多種範本分類）與 `Nuclei` / `Nessus` 匯入
 - `Greenbone / OpenVAS` API 同步
 - 弱點清單與改善追蹤
 - `Excel / PDF` 報表匯出（含封面頁、摘要統計、風險等級分佈、弱點明細表）
@@ -71,6 +71,37 @@ Development 預設 bootstrap 帳號：
 - `secmgr / Security123!Demo`
 - `scanner / Scanner123!Demo`
 - `viewer / Viewer123!Demo`
+
+## Nuclei 相關行為
+
+若要執行 Nuclei 直接掃描，系統需可取得 `nuclei.exe`。系統會依序檢查：
+
+1. `VulnScan:NucleiPath`（appsettings.json）
+2. 系統 `PATH`
+
+若未找到，執行 Nuclei 掃描任務時會拋出 `InvalidOperationException` 並記錄失敗的 `ScanRun`。
+
+支援的 Nuclei 範本分類（ScanProfile）：
+- `All` - 所有範本
+- `cves` - 已知 CVE
+- `vulnerabilities` - 一般弱點
+- `misconfiguration` - 錯誤設定
+- `exposures` - 曝露
+- `default-logins` - 預設登入
+
+## Nmap 掃描模式
+
+支援 6 種掃描強度：
+- `Quick` - 快速連接埠掃描（-T4 -F）
+- `QuickPlus` - 快速 + 版本偵測（-T4 -sV）
+- `Standard` - 標準 + 版本 + OS（-T4 -sV -O）
+- `Deep` - 深度掃描（-T4 -A -sV --version-intensity 9）
+- `Stealth` - 隱匿模式（-T2 -sS -sV）
+- `VulnScript` - 安全腳本掃描（-T4 -sV --script vuln）
+
+## 掃描工具選擇
+
+建立或編輯掃描任務時，可在表單中切換掃描工具（Nmap / Nuclei），並根據所選工具自動切換對應的 profile 選項。
 
 ## Nmap 相關行為
 

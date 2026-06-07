@@ -6,6 +6,7 @@
 2. `EF Core Migration`，取代目前的 `EnsureCreated()`
 3. `Greenbone` 測試連線、帳密驗證與同步治理強化
 4. `VulnScan.Web` 整合測試
+5. 為 `ScanJobs` 頁補上 `Nuclei` 安裝狀態檢查卡（類似 Nmap preflight alert）
 
 ## VulnScan.Web 後續項目
 

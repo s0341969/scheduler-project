@@ -22,8 +22,8 @@ public sealed class ScanJobViewModel
     [Display(Name = "掃描工具")]
     public string ScanTool { get; set; } = "Nmap";
 
-    [Display(Name = "掃描強度")]
-    public string? ScanProfile { get; set; } = "Normal";
+    [Display(Name = "掃描強度 / 範本")]
+    public string? ScanProfile { get; set; } = "Standard";
 
     [Display(Name = "排程類型")]
     public string? ScheduleType { get; set; }

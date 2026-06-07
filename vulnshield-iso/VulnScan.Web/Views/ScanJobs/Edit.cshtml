@@ -23,15 +23,41 @@
         </div>
         <div>
             <label asp-for="ScanType" class="form-label"></label>
-            <input asp-for="ScanType" class="form-control" />
+            <select asp-for="ScanType" class="form-select">
+                <option>PortScan</option>
+                <option>ServiceDetect</option>
+                <option>BaselineScan</option>
+                <option>VulnerabilityScan</option>
+                <option>WebScan</option>
+            </select>
         </div>
         <div>
             <label asp-for="ScanTool" class="form-label"></label>
-            <input asp-for="ScanTool" class="form-control" />
+            <select asp-for="ScanTool" class="form-select" id="editScanTool">
+                <option value="Nmap">Nmap</option>
+                <option value="Nuclei">Nuclei</option>
+            </select>
         </div>
         <div>
-            <label asp-for="ScanProfile" class="form-label"></label>
-            <input asp-for="ScanProfile" class="form-control" />
+            <label asp-for="ScanProfile" class="form-label" id="editProfileLabel">掃描強度</label>
+            <select asp-for="ScanProfile" class="form-select" id="editScanProfile">
+                <optgroup label="Nmap 模式">
+                    <option value="Quick">Quick - 快速連接埠掃描</option>
+                    <option value="QuickPlus">QuickPlus - 快速+版本偵測</option>
+                    <option value="Standard">Standard - 標準+版本+OS</option>
+                    <option value="Deep">Deep - 深度掃描+A+完整版本</option>
+                    <option value="Stealth">Stealth - 隱匿模式</option>
+                    <option value="VulnScript">VulnScript - 安全腳本掃描</option>
+                </optgroup>
+                <optgroup label="Nuclei 範本">
+                    <option value="All">All - 所有範本</option>
+                    <option value="cves">CVEs - 已知 CVE</option>
+                    <option value="vulnerabilities">Vulnerabilities - 一般弱點</option>
+                    <option value="misconfiguration">Misconfig - 錯誤設定</option>
+                    <option value="exposures">Exposures - 曝露</option>
+                    <option value="default-logins">DefaultLogins - 預設登入</option>
+                </optgroup>
+            </select>
         </div>
         <div>
             <label asp-for="ScheduleType" class="form-label"></label>
@@ -57,4 +83,25 @@
 </article>
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var toolSelect = document.getElementById('editScanTool');
+            var profileSelect = document.getElementById('editScanProfile');
+            var profileLabel = document.getElementById('editProfileLabel');
+
+            function updateProfileOptions() {
+                var tool = toolSelect.value;
+                for (var i = 0; i < profileSelect.options.length; i++) {
+                    var opt = profileSelect.options[i];
+                    if (opt.tagName === 'OPTGROUP') {
+                        opt.style.display = (tool === 'Nuclei' && opt.label === 'Nuclei 範本') || (tool === 'Nmap' && opt.label === 'Nmap 模式') ? '' : 'none';
+                    }
+                }
+                profileLabel.textContent = tool === 'Nuclei' ? '弱點範本' : '掃描強度';
+            }
+
+            toolSelect.addEventListener('change', updateProfileOptions);
+            updateProfileOptions();
+        });
+    </script>
 }

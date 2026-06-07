@@ -1,6 +1,13 @@
 # Changelog
 
 ## 2026-06-07
+- 新增 Nuclei 直接掃描：`INucleiService` / `NucleiService` 支援直接執行 `nuclei.exe`，以 `-json` 輸出 NDJSON 結果
+- 新增 `INucleiResultParserService` / `NucleiResultParserService`：解析 Nuclei NDJSON 輸出並寫入資料庫
+- 強化 Nmap 掃描模式：支援 Quick、QuickPlus、Standard、Deep、Stealth、VulnScript 六種 profile
+- 更新 `ScanJobService` 支援雙工具調度（Nmap / Nuclei），各自檢查對應執行檔是否存在
+- 更新 `ScanJobs` 前端表單：可在建立 / 編輯任務時切換掃描工具，profile 選項會依工具自動切換
+- 新增 `VulnScan:NucleiPath` 設定於 `appsettings.json` 與 `appsettings.Development.json`
+- 新增 README.md 說明：Nuclei 掃描行為、Nmap 掃描模式、掃描工具選擇
 - 修正 PDF 亂碼問題：`PdfFontResolver` 現在會從 TTC（TrueType Collection）字型檔中自動提取第一個 TTF 字型，讓 PdfSharpCore 能正確解析中文字型
 - 新增 `VulnerabilityStatus` 常數類別，取代全專案弱點狀態魔術字串
 - 新增 `PaginationViewModel` 與 `QueryableExtensions` 通用分頁基礎建設
