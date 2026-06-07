@@ -2,48 +2,25 @@
 
 ## 下次優先
 
-- `UsersController` 與使用者管理頁
-- `EF Core Migration`，取代目前的 `EnsureCreated()`
+1. `UsersController` 與使用者管理頁
+2. `EF Core Migration`，取代目前的 `EnsureCreated()`
+3. `Greenbone` 測試連線、帳密驗證與同步治理強化
+4. `VulnScan.Web` 整合測試
 
-- 為自動匯入管理頁補上可編輯設定，讓管理者可在 UI 調整來源目錄、輪詢頻率與啟停狀態
-- 後續若新增 `UsersController`、`Greenbone` 測試連線或報表版型，需同步更新 `VulnScan_Web_操作手冊.md`
-- 視需要將「這頁看什麼」導覽卡擴充到 `資產清冊`、`改善追蹤` 與 `自動匯入`，讓整套後台導引一致
-- 為 `系統檢查` 頁補上 Greenbone 測試連線按鈕與最近連線結果，避免目前只能看設定是否完整
-- 為 `系統檢查` 頁補上 Hangfire / AutoImport / 匯入目錄健康度，讓維運檢查不只停留在 Nmap 與資料庫
-- 視需要為 `掃描任務` 頁補上「缺少 Nmap 時直接提供安裝指引 / 下載頁連結」的維運輔助流程
-- 視需要為 `Nmap` 一鍵安裝流程補上下載進度、校驗碼驗證與安裝完成後自動重新檢查
-- 為 `Greenbone / OpenVAS` API 匯入補上「測試連線」與「僅驗證帳密 / TLS」按鈕，避免每次都要直接跑同步
-- 為 `Greenbone / OpenVAS` API 匯入補上密碼輪替審計與設定變更歷史
-- 為版本抽取補上更完整規則，目前是以 Nuclei / Nessus 文字輸出做啟發式解析
-- 視需要補 `VulnScan.Web` 的資料庫提供者切換說明頁，讓開發 `SQLite` 與正式 `MSSQL` 的差異對管理者更明確
-- 為 `VulnScan.Web` 導入正式 migration 流程，將 `EnsureCreated()` 升級為可版控的 EF Core Migration
-- 為 `VulnScan.Web` 補上 `UsersController` 與使用者管理頁，讓 Admin 可重設密碼、停用帳號與建立新使用者
-- 為 `VulnScan.Web` 補上 `Vulnerabilities` 的編輯/刪除與更細的權限控管
-- 為 `VulnScan.Web` 補上 Nmap 高風險 Port 提示規則與 `RiskHint` 寫入
-- 為 `VulnScan.Web` 補上匯入歷史頁、匯入驗證與重複匯入對比規則
-- 強化 PDF 匯出版型：加入頁尾、公司識別、圖表與更細的弱點分群摘要
-- 為 `VulnScan.Web` 補上整合測試：白名單阻擋、Hangfire 任務建立、Nmap XML 解析、Excel 匯出
-- 視需要補 `stop_vulnscan_web.bat`，讓新版 ASP.NET MVC 系統可一鍵停止
-- 導入 Alembic migration，取代啟動時 `create_all`
-- 新增 integration tests，覆蓋登入、建立資產、觸發掃描與狀態流轉
-- 將 `/reports/iso27001` 移入獨立 router 與 service
-- 為報告頁補上可匯出報表與時間趨勢，讓 priority queue 能看週期變化
-- 為排程掃描補上 blackout window、執行衝突保護與排程歷史視圖
-- 為 `authenticated_windows` 補上 WinRM / SMB / 本機安全設定盤點與弱點規則
-- 為 `authenticated_linux` 補上 SSH 套件盤點、服務設定稽核與本機弱點檢查
-- 為 credential 補上輪替、細粒度權限控管，以及跨使用者 delegated-use 規則
-- 補齊設備模板與 scan_profile 的權限、排程與審計規則，避免高強度掃描被誤用
-- 為 Docker build 補上 image build 驗證流程，避免掃描器安裝路徑失效後才在手動啟動時發現
-- 為 `docker compose up` 補上啟動整合測試，驗證 API、worker、db、redis 的實際依賴與健康狀態
-- 為 Celery queue 補上任務註冊與 queue health 的 smoke test，避免掃描任務停在 `Pending`
-- 將 Nmap 服務探測升級為結構化掃描輸出，而不只依賴文字解析
-- 為 Nmap / Nuclei 執行失敗增加更完整的 observability 與 retry 策略
-- 為 `start_system.ps1` 補上可選的 `--no-browser` / `-NoBrowser` 模式，避免在無桌面環境自動開啟 Swagger
-- 為設備管理頁補上複製設備功能
-- 為設備管理頁補上 per-device remediation 任務與負責人追蹤
-- 為 dashboard 的 `報告` 分頁補上可匯出報表與更完整的趨勢圖，目前已有近 7 天任務趨勢，但仍缺匯出與更細粒度分析
-- 為 dashboard 補上實機瀏覽器 UI smoke test，驗證三分頁版面在 `320px / 768px / 1024px / 1440px` 的可用性
-- 為掃描分頁補上更精細的進度時間軸與引擎層級狀態，目前已有簡化 `Queue / Probe / Analysis / Report`，但尚未做到實際執行百分比或每引擎時間線
-- 為掃描分頁補上批次掃描的模板 / credential 覆蓋選項，目前批次模式僅統一指定 `scan_profile`，模板仍沿用各設備預設
-- 視需要補一鍵登入、建立測試資產、觸發掃描的自動化腳本
-- 視需要補停止系統與清除容器的 `stop_system.ps1` / `stop_system.bat`
+## VulnScan.Web 後續項目
+
+- 為 `資產清冊`、`改善追蹤`、`自動匯入` 補上與結果頁一致的導覽卡
+- 為 `系統檢查` 頁補上 `Hangfire`、自動匯入目錄與背景服務健康度
+- 為 `Nmap` 一鍵安裝流程補上下載進度、校驗碼驗證與安裝後自動重新檢查
+- 為 `Greenbone / OpenVAS` 補上測試連線按鈕、僅驗證帳密 / TLS 模式與設定異動審計
+- 為版本抽取規則補上更完整解析，降低 `Nuclei / Nessus / Greenbone` 文字輸出的啟發式誤差
+- 為 `VulnScan.Web` 補上使用者停用、重設密碼與角色治理
+- 為 `Vulnerabilities` 補上更細的搜尋、篩選、編輯與刪除治理
+- 為 `ScanRuns / Reports` 補上更完整的趨勢與週期分析
+- 強化 PDF 匯出版型：頁尾、公司識別、圖表與更清楚的弱點分群摘要
+- 補上 `stop_vulnscan_web.bat`，讓新版系統可一鍵停止
+
+## 原則
+
+- repo 現在只保留 `VulnScan.Web`
+- 不再回補或恢復舊的 `Python / FastAPI / Celery / Docker` 版本

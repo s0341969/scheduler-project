@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-06-07
+- 正式移除舊的 `Python / FastAPI / Celery / Docker` 弱點掃描系統
+- 刪除舊系統相關目錄與檔案：`src/`、`tests/`、`Dockerfile`、`docker-compose.yml`、`requirements.txt`、`start_system.ps1`、`start_system.bat`、`SYSTEM_DESIGN.md`、`.env.example`
+- 清理舊系統暫存與執行殘留檔，讓 repo 僅保留 `VulnScan.Web` 產品線
+- 重寫 `README.md`，改為只描述 `VulnScan.Web` 的啟動、設定、功能頁面與維運方式
+- 重整 `TODO.md`，移除舊 Python 系統待辦，僅保留 `VulnScan.Web` 後續項目
+
 ## 2026-06-05
 - 強化結果導覽體驗：將側欄名稱調整為 `掃描結果 / 紀錄`、`服務結果`、`弱點結果`、`報告 / 匯出`，並在各頁新增「這頁看什麼」說明卡
 - 強化 `NmapInstallerService` 版本解析：不再依賴單一文案格式，改為從官方下載頁與 `dist` 頁蒐集所有 `nmap-*-setup.exe` 後自動選最新版本

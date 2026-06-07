@@ -1,473 +1,127 @@
-# VulnShield-ISO / VulnScan.Web 🛡️
+# VulnScan.Web
 
-> 2026-06-04 起，repo 內已新增一條依 `VulnScan_Web_SPEC.md` 重新開發的平行產品線：`VulnScan.Web`。  
-> 舊的 `src/*` Python/FastAPI 系統保留不動，新的商用化弱掃平台開發以 `G:\codex_pg\vulnshield-iso\VulnScan.Web` 為主。
+`VulnScan.Web` 是目前這個 repo 唯一保留的正式版本。  
+舊的 `Python / FastAPI / Celery / Docker` 弱掃系統已自 repo 移除，不再維護。
 
-VulnShield-ISO 是一套以 `FastAPI + Celery + Redis + PostgreSQL + Nmap + Nuclei` 建構的弱點掃描與漏洞管理系統。此版本已補上可實際使用的 JWT 認證、RBAC、啟動時資料表初始化、預設管理員建立，以及掃描結果正規化與去重邏輯。
-
-## 新版商用規格實作：`VulnScan.Web`
-
-`VulnScan.Web` 是依 [VulnScan_Web_SPEC.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_SPEC.md) 新建的 ASP.NET Core MVC 版本，定位是新的弱點掃描管理平台，而不是延伸舊 Python Dashboard。
-
-若要查看目前實際操作流程，請參考：
+若要查看使用方式，請優先參考：
 - [VulnScan_Web_操作手冊.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_操作手冊.md)
+- [VulnScan_Web_SPEC.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_SPEC.md)
 
-### 目前已完成的 V1 核心
-- ASP.NET Core MVC + MSSQL + Hangfire 專案骨架
-- 依 spec 建立資料模型：
-  - `Users`
-  - `Assets`
-  - `ScanAllowedRanges`
-  - `ScanJobs`
-  - `ScanRuns`
-  - `AssetPorts`
-  - `Vulnerabilities`
-  - `VulnerabilityActions`
-  - `AuditLogs`
-  - `ReportExports`
-- 白名單檢查服務：非白名單 IP 會直接拒絕並寫入 `AuditLogs`
-- `ScanJobs -> ScanRuns -> Hangfire -> Nmap -> XML Parser -> AssetPorts` 執行流程
-- Excel 匯出服務：可匯出高風險弱點報表
-- MVC 頁面：
-  - `Dashboard`
-  - `Assets`
-  - `ScanAllowedRanges`
-  - `ScanJobs`
-  - `ScanRuns`
-  - `AssetPorts`
-  - `Vulnerabilities`
-  - `Reports`
-  - `AuditLogs`
-- 啟動時會自動 `EnsureCreated()`，並建立預設使用者與內網白名單
-- 已補齊 `Assets` / `ScanAllowedRanges` / `ScanJobs` 的新增、列表、編輯、刪除完整 CRUD
-- 已補齊 `VulnerabilityActions` 改善追蹤與弱點詳情頁，可更新：
-  - 負責人
-  - 狀態
-  - 改善期限
-  - 改善說明
-  - 附件
-- 已補齊 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML` 匯入，匯入後會自動建立對應 `ScanJob`、`ScanRun` 與 `Vulnerabilities`
-- 已補上第一版自動匯入：系統會輪詢固定資料夾，自動接收 `Nuclei JSON/JSONL` 與 `Nessus CSV/XML`
-- 已補上自動匯入管理頁：可查看來源目錄、待處理檔案、最近自動匯入紀錄，並手動觸發一次匯入
-- 已補上 `Greenbone / OpenVAS` GMP API 自動匯入：可直接透過平台 API 拉取最新報表，不再只靠人工撿檔
-- 已補上 `Greenbone` 設定管理頁：管理者可直接在系統內設定 Host / Port / 帳密 / Filter，無須再手改 `appsettings`
-- 已補上 `Greenbone` 同步失敗明細：每次同步成功或失敗都會留下端點、報表、訊息與匯入筆數
-- 已補上 `系統檢查` 頁：可直接在 UI 查看 `Nmap` 是否已安裝、實際解析到的路徑、`Greenbone` 是否完成設定，以及目前 `SQLite / MSSQL` 狀態
-- 已補上 `Nmap` 執行前檢查：若系統找不到 `nmap.exe`，`掃描任務` 頁會先顯示阻擋警示，且 `立即掃描` 按鈕會停用；排程或手動建立執行紀錄前也會先攔住
-- 已補上 `Nmap` 一鍵安裝流程：在 Windows 上若未找到 `nmap.exe`，`系統檢查` 與 `掃描任務` 頁可直接從官方 `nmap.org` 下載最新版 Windows installer，並啟動安裝精靈
-- 已補上結果導覽型 UI：`掃描結果 / 紀錄`、`服務結果`、`弱點結果`、`報告 / 匯出` 四頁會先說明用途與下一步，降低使用者找不到結果的成本
-- 已將本地登入升級為 per-user 密碼雜湊，不再使用 shared password
-- 已補上 PDF 匯出：報表可輸出 PDF，並包含 `軟體版本` 與 `特徵碼版本`
+## 專案定位
 
-### `VulnScan.Web` 啟動方式
-1. 開發環境預設使用 `SQLite`，正式環境保留 `MSSQL`，請依需求調整：
-   - [VulnScan.Web/appsettings.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.json)
-   - [VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json)
-2. 於 repo 根目錄執行：
+`VulnScan.Web` 是一套以 `ASP.NET Core MVC` 建構的企業弱點掃描管理平台，核心能力包含：
 
-```powershell
-dotnet build
-dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj
-```
+- 資產清冊管理
+- 掃描白名單控管
+- 掃描任務與掃描執行紀錄
+- `Nmap` 掃描與 `Port / Service` 結果解析
+- `Nuclei` / `Nessus` 匯入
+- `Greenbone / OpenVAS` API 同步
+- 弱點清單與改善追蹤
+- `Excel / PDF` 報表匯出
+- 稽核紀錄保存
+- 系統檢查與 `Nmap` 一鍵安裝
 
-若要直接雙擊啟動新版 ASP.NET MVC 弱掃平台，可使用：
+## 目前保留的主要內容
+
+- [VulnScan.Web](G:\codex_pg\vulnshield-iso\VulnScan.Web)
+- [VulnScan.Web.slnx](G:\codex_pg\vulnshield-iso\VulnScan.Web.slnx)
+- [start_vulnscan_web.bat](G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat)
+- [VulnScan_Web_操作手冊.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_操作手冊.md)
+- [VulnScan_Web_SPEC.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_SPEC.md)
+
+## 啟動方式
+
+### 一鍵啟動
+
+直接執行：
 
 ```bat
 G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat
 ```
 
-此 BAT 會自動執行：
-- 先嘗試 `dotnet build --no-restore`
-- 若缺套件才回退到完整 `dotnet build`
-- 若完整 build 失敗但本機已有先前建好的 DLL，會直接沿用既有輸出啟動
-- 新開視窗執行 `dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj --launch-profile http --no-build`
-- 等待 `http://localhost:5186/Auth/Login` 可用
-- 自動開啟登入頁
-- BAT 內容刻意維持純 ASCII，避免 Windows `cmd.exe` 因中文編碼或錯誤換行格式導致啟動失敗
-- 開發模式會自動使用 `VulnScan.Web/App_Data/vulnscan-dev.db`，不依賴本機 `LocalDB`
+啟動後登入頁：
 
-`VulnScan.Web` 開發環境目前預設設定為：
+- `http://localhost:5186/Auth/Login`
 
-```json
-"Database": {
-  "Provider": "Sqlite"
-},
-"ConnectionStrings": {
-  "DefaultConnection": "Data Source=App_Data\\vulnscan-dev.db"
-}
+### 手動啟動
+
+```powershell
+Set-Location G:\codex_pg\vulnshield-iso
+dotnet build
+dotnet run --project .\VulnScan.Web\VulnScan.Web.csproj
 ```
 
-正式環境若要使用 SQL Server，請在 `appsettings.json` 或正式環境設定中改成對應執行個體，例如：
-- `Server=.\\SQLEXPRESS;Database=VulnScanDB;Trusted_Connection=True;TrustServerCertificate=True;`
-- `Server=10.1.1.76;Database=VulnScanDB;User Id=...;Password=...;TrustServerCertificate=True;`
+## 開發環境設定
 
-若要執行 `VulnScan.Web` 內建的 `Nmap` 掃描，Windows 主機必須先安裝 `Nmap`。系統目前會依序嘗試：
-- `VulnScan:NmapPath` 設定值
-- 系統 `PATH`
-- Windows 常見安裝路徑：
-  - `C:\Program Files (x86)\Nmap\nmap.exe`
-  - `C:\Program Files\Nmap\nmap.exe`
-  - `C:\Nmap\nmap.exe`
+開發模式預設使用 `SQLite`：
 
-若都找不到，掃描任務會明確回報：
-- 請先安裝 Nmap
-- 或將 `VulnScan:NmapPath` 指向有效的 `nmap.exe`
+- 設定檔：[VulnScan.Web/appsettings.Development.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.Development.json)
+- DB 檔案：`G:\codex_pg\vulnshield-iso\VulnScan.Web\App_Data\vulnscan-dev.db`
 
-現在系統也會在真正建立 `ScanRun` 前先做執行前檢查：
-- `掃描任務` 頁會直接顯示 `Nmap 執行前檢查未通過`
-- `立即掃描` 按鈕會停用，避免建立出必然失敗的執行紀錄
-- 若掃描是由其他流程呼叫 `CreateRunAsync()`，後端也會直接阻擋，避免失敗延後到背景工作才發生
+正式環境可切換為 `SQL Server`：
 
-若目前主機是 Windows，且登入者角色為 `Admin` 或 `SecurityManager`，系統還會額外提供：
-- `直接安裝 Nmap`
+- 設定檔：[VulnScan.Web/appsettings.json](G:\codex_pg\vulnshield-iso\VulnScan.Web\appsettings.json)
 
-此流程會：
-1. 從 `VulnScan:NmapDownloadPageUrl` 讀取官方下載頁
-2. 掃描官方下載頁與 `dist` 頁中的所有 `nmap-*-setup.exe`，自動選最新版本
-3. 從 `VulnScan:NmapInstallerBaseUrl` 下載到 `VulnScan:InstallerCachePath`
-4. 啟動官方安裝程式，交由使用者完成安裝精靈與 UAC
-
-預設設定如下：
-
-```json
-"VulnScan": {
-  "NmapPath": "nmap",
-  "NmapDownloadPageUrl": "https://nmap.org/download.html",
-  "NmapInstallerBaseUrl": "https://nmap.org/dist/",
-  "InstallerCachePath": "App_Data\\Installers"
-}
-```
-
-開發模式下，Hangfire 也會改用記憶體儲存，避免雙擊啟動時再額外依賴 SQL Server；正式環境則仍使用 SQL Server 儲存。
-開發模式的 Data Protection 金鑰會保存到 `VulnScan.Web/App_Data/DataProtectionKeys`，避免 Windows EventLog 權限問題干擾登入 cookie 與啟動日誌。
-開發模式下不再強制做 `HTTPS redirection`，避免 `http` 啟動設定時出現多餘的啟動警告；正式環境仍維持 `HSTS + HTTPS redirection`。
-開發模式預設會建立以下自動匯入目錄：
-- `VulnScan.Web\App_Data\AutoImport\Nuclei\incoming`
-- `VulnScan.Web\App_Data\AutoImport\Nessus\incoming`
-- `VulnScan.Web\App_Data\AutoImport\processed`
-- `VulnScan.Web\App_Data\AutoImport\failed`
-
-只要把掃描結果檔案放進對應 `incoming` 目錄，背景服務就會自動匯入並搬移檔案。
-管理者也可登入後到 `自動匯入` 頁面，直接執行「立即執行一次」。
-
-若要啟用 `Greenbone / OpenVAS` 直接串平台，現在建議登入後到：
-- `http://localhost:5186/Greenbone`
-
-由管理頁直接設定：
-- `Host`
-- `Port`
-- `Username`
-- `Password`
-- `IgnoreCertificateErrors`
-- `SyncTopReports`
-- `ReportFilter`
-- `ResultFilter`
-
-管理頁儲存後：
-- 背景自動匯入會同時處理 `Nuclei`、`Nessus` 目錄與 `Greenbone GMP API`
-- `Greenbone` 頁面會顯示最近同步成功 / 失敗明細
-- `自動匯入` 頁面也會額外顯示 `Greenbone / OpenVAS` 來源卡與最近 API 同步紀錄
-- 匯入資料會用 `greenbone://report/<reportId>` 作為去重標記，避免重複吃同一份報表
-
-`appsettings.json` / `appsettings.Development.json` 的 `Greenbone` 區段仍保留為首次啟動或 fallback 預設值，但日常維運已可直接透過 UI 管理。
-
-### `VulnScan.Web` 本地登入機制
-這版已擴充 `Users.PasswordHash` 與 `Users.PasswordChangedAt`，並採 ASP.NET Core `PasswordHasher<User>` 做正式密碼雜湊驗證：
-- 帳號、角色與密碼雜湊保存在 `Users`
-- 啟動時會依 `LocalAuth:BootstrapUsers` 建立初始使用者
-- 若資料庫中的使用者尚未有密碼雜湊，系統會在啟動時自動補齊
-- 使用者登入後可於介面直接變更自己的密碼
+## 預設登入帳號
 
 Development 預設 bootstrap 帳號：
+
 - `admin / Admin123!Demo`
 - `secmgr / Security123!Demo`
 - `scanner / Scanner123!Demo`
 - `viewer / Viewer123!Demo`
 
-正式環境應改為：
-- AD / LDAP / SSO
-- 或整合正式 Identity Provider / Secret Store 管理 bootstrap credentials
+## Nmap 相關行為
 
-### 下次開發優先項目
-下次若延續 `VulnScan.Web`，優先順序以這四項為主：
+若要執行內建掃描，Windows 主機仍需可取得 `nmap.exe`。系統會依序檢查：
+
+1. `VulnScan:NmapPath`
+2. 系統 `PATH`
+3. 常見安裝路徑
+   - `C:\Program Files (x86)\Nmap\nmap.exe`
+   - `C:\Program Files\Nmap\nmap.exe`
+   - `C:\Nmap\nmap.exe`
+
+若未找到：
+
+- `掃描任務` 頁會先顯示前置檢查未通過
+- `立即掃描` 按鈕會停用
+- `SystemCheck` 頁可直接查看狀態
+- Windows 上若角色為 `Admin` 或 `SecurityManager`，可直接按 `直接安裝 Nmap`
+
+`Nmap` 一鍵安裝流程會：
+
+1. 讀取官方下載頁 `https://nmap.org/download.html`
+2. 掃描官方下載頁與 `https://nmap.org/dist/` 中所有 `nmap-*-setup.exe`
+3. 自動選擇最新版本
+4. 下載到 `VulnScan.Web\App_Data\Installers`
+5. 啟動官方 Windows installer
+
+## 主要功能頁面
+
+- `掃描結果 / 紀錄`
+  - 看每次掃描是否成功、錯誤原因、Host / Open Port / 弱點數
+- `服務結果`
+  - 看實際掃到的 `Port / Service / Product / Version`
+- `弱點結果`
+  - 看真正的弱點明細、版本、嚴重度、改善狀態
+- `報告 / 匯出`
+  - 看摘要 KPI，並輸出 `Excel / PDF`
+- `系統檢查`
+  - 看 `Nmap`、`Greenbone`、`SQLite / MSSQL` 狀態
+
+## 重要現況
+
+- 本 repo 現在只維護 `VulnScan.Web`
+- 舊的 `src/`、`tests/`、`Dockerfile`、`docker-compose.yml`、`start_system.*` 已移除
+- 啟動、使用、報告與維運流程都應以 `VulnScan.Web` 為準
+
+## 後續優先項目
+
+目前下一輪優先項目：
+
 1. `UsersController` 與使用者管理頁
-2. `PDF` 報表
-3. `EF Core Migration`，取代 `EnsureCreated()`
-4. `Greenbone` 連線測試 / 密碼輪替與更完整的同步治理
-
-### 自動匯入與版本欄位
-- `AutoImport:Enabled=true` 時，背景服務每 `PollIntervalSeconds` 秒掃描一次匯入目錄
-- `Nuclei` 會從 `extracted-results`、描述與比對內容中嘗試抽取版本
-- `Nessus` 會從 `Plugin Output` 與服務欄位嘗試抽取版本
-- `Greenbone / OpenVAS` 會透過 `GMP over TLS` 直接拉取最新報表 XML，並從結果內容解析弱點、風險等級、軟體版本與特徵碼版本
-- 匯入後會寫入 `Vulnerabilities.DetectedVersion`
-- 匯入後也會寫入 `Vulnerabilities.SignatureVersion`
-- `弱點清單`、`報表頁` 與 Excel 匯出都會顯示：
-  - `軟體版本`
-  - `特徵碼版本`
-- `報表匯出` 頁現在也支援 PDF，會輸出：
-  - 報表期間
-  - 弱點總數 / 高風險弱點 / 受影響資產
-  - 含 `軟體版本` 與 `特徵碼版本` 的弱點明細
-- `自動匯入` 頁面目前可顯示：
-  - Nuclei / Nessus `incoming` 路徑
-  - Greenbone / OpenVAS GMP 端點與最近同步量
-  - 待處理檔案數
-  - 最近自動匯入 `ScanRun`
-  - 最近已處理與失敗檔案
-- `Greenbone` 頁面目前可顯示：
-  - 是否啟用
-  - 最近成功 / 失敗同步次數
-  - 最近同步明細與失敗原因
-- `系統檢查` 頁面目前可顯示：
-  - `Nmap` 是否已安裝
-  - 實際解析到的 `nmap.exe` 路徑與來源
-  - `Greenbone` 是否已完成設定、是否啟用、目前端點與帳號
-  - 目前資料庫提供者
-  - `SQLite` 與 `MSSQL` 各自的設定 / 啟用 / 連線狀態
-
-## 核心能力
-- JWT Bearer 認證，登入端點為 `POST /token`
-- 角色權限管控：`Admin`、`Analyst`、`Auditor`
-- 啟動時自動建立資料表與預設管理員
-- 內建設備管理頁：`GET /dashboard`
-- Dashboard 已拆成三個工作分頁：`設備`、`掃描`、`報告`
-- Dashboard 已重新規劃為商用品控制台版面，採深色側欄、亮色作業主區、決策型 KPI 卡與分頁式工作區
-- Dashboard 互動已改為非阻斷式通知模式，設備、排程、掃描與 credential 操作會以 toast 顯示結果，而不是中斷式 `alert()`
-- Dashboard 表單已補上 inline validation，登入、設備、credential 與排程欄位錯誤會直接顯示在欄位旁，不再只依賴 submit 後錯誤訊息
-- Dashboard 三個主分頁已真正分工：`設備` 只做設備治理，`掃描` 只做設備勾選與批次掃描，`報告` 只看掃描紀錄與風險報表
-- 設備導向資產模型，支援設備類型、位置、標籤與備註
-- 設備支援生命週期狀態：`運作中`、`維護中`、`已退役`
-- 支援 DB-backed 排程掃描，透過 `Celery beat` 每分鐘同步到期任務
-- 商用化第二階段骨架已完成：`scan_profile`、設備模板、掃描分層摘要、Credential 管理、Authenticated Scan 策略與 API
-- Nmap + Nuclei 非同步掃描流程
-- 弱點風險分數：`CVSS/Severity × Asset Criticality`
-- Finding 狀態機：`Open -> Acknowledged -> Fixed -> Verified`，並保留 `Risk-Accepted`
-- 狀態變更會寫入 `audit_logs`
-- 掃描原始輸出會保存到 `ScanTask.raw_output_path`
-- 設備頁可查看每次掃描的內容摘要：使用引擎、探測到的服務、漏洞命中、資訊/風險提示
-
-## 部署方式
-
-### 必要環境
-- Docker
-- Docker Compose
-
-### 內建掃描工具安裝方式
-- Docker image 會在建置時安裝 `nmap`
-- `Nuclei` 會使用固定版本 release binary 安裝，目前預設為 `3.3.8`
-- 若未來 `Nuclei` 版本需要升級，請同步更新 `Dockerfile` 的 `NUCLEI_VERSION`
-
-### 環境變數
-先複製 `G:\codex_pg\vulnshield-iso\.env.example` 為 `.env`，至少調整以下值：
-- `SECRET_KEY`
-- `CREDENTIAL_ENCRYPTION_KEY`：建議正式環境獨立設定，用於加密保存掃描帳密
-- `DEFAULT_ADMIN_PASSWORD`
-- `POSTGRES_PASSWORD`
-
-### 啟動
-```bash
-docker compose -p vulnshield-iso up -d --build
-```
-
-或直接執行一鍵啟動檔：
-- PowerShell：`G:\codex_pg\vulnshield-iso\start_system.ps1`
-- 雙擊版：`G:\codex_pg\vulnshield-iso\start_system.bat`
-
-一鍵啟動腳本目前會先檢查：
-- `.env` 是否存在
-- `docker` 指令是否可用
-- Docker Desktop 是否已啟動
-- `http://localhost:8000/healthz` 是否在 180 秒內回應成功
-- `worker` 容器是否已進入 running 狀態
-- `beat` 容器是否已進入 running 狀態
-- 啟動失敗時自動列出 `api` 與 `worker` 的近期 logs
-- 啟動失敗時也會列出 `beat` 的近期 logs
-- `docker compose` 會固定使用專案名 `vulnshield-iso`
-- `db` 與 `redis` 會先經過 healthcheck，`api` / `worker` 會等依賴服務健康後再啟動
-- `beat` 會和 `worker` 一起啟動，用於排程同步
-
-### 驗證
-- 健康檢查：`GET http://localhost:8000/healthz`
-- Swagger：`GET http://localhost:8000/docs`
-- 設備管理頁：`GET http://localhost:8000/dashboard`
-
-## 預設登入流程
-1. 系統啟動時，會依 `.env` 建立預設管理員。
-2. 呼叫 `POST /token`，使用 `application/x-www-form-urlencoded` 提交：
-   - `username`
-   - `password`
-3. 取得 `access_token` 後，以 `Authorization: Bearer <token>` 呼叫其他 API。
-
-## 角色權限
-| 角色 | 可執行操作 | 限制 |
-| :--- | :--- | :--- |
-| `Admin` | 建立使用者、管理資產、觸發掃描、更新 finding | 無 |
-| `Analyst` | 建立自己的資產、掃描自己的資產、更新 finding | 不可驗證 `Verified`，不可操作他人資產 |
-| `Auditor` | 查看 finding、驗證 `Fixed -> Verified` | 不負責建立資產與觸發掃描 |
-
-## API 流程
-
-### 1. 建立使用者
-- `POST /users`
-- 僅 `Admin`
-
-### 2. 建立資產
-- `POST /assets`
-- 重要欄位：
-  - `name`
-  - `target`
-  - `device_type`：`Computer` / `Server` / `Firewall` / `Router` / `Switch` / `NAS` / `NetworkDevice` / `Other`
-  - `criticality`：1 到 5
-  - `owner_id`
-  - `env`：`Production` / `Staging` / `Development`
-  - `location`
-  - `tags`
-  - `notes`
-
-### 3. 觸發掃描
-- `POST /scans/trigger`
-- 參數：
-  - `asset_id`
-  - `scan_profile`：`quick` / `standard` / `aggressive` / `web_only` / `network_only` / `authenticated_windows` / `authenticated_linux` / `authenticated_snmp`
-  - `device_template`：可選，覆蓋設備預設模板
-  - `credential_id`：若為認證型掃描，可指定覆蓋設備預設 credential
-
-或使用設備導向入口：
-- `POST /assets/{asset_id}/scan`
-  - Body 可選：
-```json
-{
-  "scan_profile": "quick",
-  "device_template": "generic",
-  "credential_id": null
-}
-```
-
-### 4. 查詢掃描狀態
-- `GET /scans/{task_id}/status`
-
-掃描策略與模板目錄：
-- `GET /scans/profiles`
-- `GET /scans/templates`
-- `GET /credentials/kinds`
-- `GET /credentials`
-- `POST /credentials`
-- `GET /credentials/{credential_id}`
-- `PATCH /credentials/{credential_id}`
-- `GET /credentials/{credential_id}/audit`
-- `DELETE /credentials/{credential_id}`
-- `GET /schedules`
-- `PATCH /schedules/{schedule_id}`
-- `DELETE /schedules/{schedule_id}`
-
-設備專用：
-- `GET /assets/{asset_id}/scans`
-  - 會一併回傳 `scan_summary`，用於設備頁展示掃描內容
-- `GET /assets/{asset_id}/schedules`
-- `POST /assets/{asset_id}/schedules`
-
-### 5. 查詢 findings
-- `GET /findings`
-
-設備專用：
-- `GET /assets/{asset_id}/findings`
-
-### 6. 更新 finding 狀態
-- `PATCH /findings/{finding_id}/status`
-- Body：
-```json
-{
-  "new_status": "Acknowledged"
-}
-```
-
-### 7. 合規摘要
-- `GET /reports/iso27001`
-
-### 8. 目前登入者
-- `GET /users/me`
-
-## 設備管理頁使用方式
-1. 開啟 `http://localhost:8000/dashboard`
-2. 使用 `.env` 內預設帳號密碼登入
-3. 在 `設備` 分頁左側建立設備，填入設備類型、目標位址、標籤、預設掃描模式、設備模板與預設 credential
-4. 若要使用認證型掃描，可在同一頁下方的 `Credential 庫` 建立 Windows、Linux SSH 或 SNMP 憑證
-5. 在 `設備` 分頁的清單選取目標設備
-6. 在設備詳情頁可直接按 `編輯設備` 回填左側表單，修改設備的目標、模板、credential 與備註
-7. 在設備詳情頁可改選當次掃描模式與 credential，再按 `執行弱點掃描`
-8. 在 `Credential 庫` 可直接停用、重新啟用或刪除 credential；若仍被設備綁定或有執行中掃描，系統會阻擋刪除
-9. 在設備詳情可直接建立每日 / 每週 / Cron 排程，指定掃描模式、模板與 credential
-10. 切到 `掃描` 分頁時，才會出現可勾選的設備清單；可一次勾多台設備，選定掃描模式後批次觸發
-11. 切到 `報告` 分頁時，才會顯示所有掃描過的紀錄，以及風險摘要、趨勢與優先處理資訊
-12. Dashboard 視覺已改為商用導向：左側固定控制欄負責登入與導航，右側依工作情境拆成設備治理、批次掃描與報告決策三個主要工作面
-
-## 目前行為重點
-- `scan_profile` 目前支援：
-  - `quick`
-  - `standard`
-  - `aggressive`
-  - `web_only`
-  - `network_only`
-  - `authenticated_windows`
-  - `authenticated_linux`
-  - `authenticated_snmp`
-- 設備模板目前支援：
-  - `generic`
-  - `firewall`
-  - `switch`
-  - `nas`
-  - `web_server`
-- Credential 類型目前支援：
-  - `WindowsPassword`
-  - `LinuxSSHPassword`
-  - `LinuxSSHKey`
-  - `SNMPv2c`
-- 排程週期目前支援：
-  - `Daily`
-  - `Weekly`
-  - `Cron`
-- 若 Nuclei severity 是文字等級（如 `critical`、`medium`），系統會先正規化為數值。
-- 相同弱點會以 `template-id | matcher-name | info.name` 組成穩定 key，避免每次掃描都新增重複 `Vulnerability`。
-- 相同 `asset + vulnerability` 會更新既有 `Finding`，而不是無限制重複新增。
-- 已驗證關閉的 finding 若在後續掃描再次出現，會重新回到 `Open`。
-- `Asset` 已明確作為設備 inventory 使用，並支援依設備查看最近掃描、風險摘要與設備專屬 findings。
-- 設備狀態目前支援：
-  - `Active`：可正常執行掃描
-  - `Maintenance`：仍可掃描，但表示設備處於維護窗口
-  - `Retired`：不可再建立新的掃描任務
-- Celery worker 啟動時會主動匯入 `src.worker.tasks`，避免掃描任務因未註冊而停在 `Pending`。
-- 掃描摘要目前分成：
-  - `服務發現`
-  - `漏洞發現`
-  - `錯誤設定`
-  - `憑證風險`
-  - `曝露管理介面`
-  - `資訊 / 風險提示`
-- 掃描摘要會額外記錄 `authentication` 區塊，標示本次是否要求 credential，以及實際使用的 credential 名稱與種類
-- Dashboard 目前採三分頁工作台：設備頁做 inventory 與單設備掃描策略、掃描頁做全域任務檢視，報告頁做風險與掃描面向彙總。
-- Dashboard 目前採真正分工式三分頁：設備頁顯示設備清單與新增設備，掃描頁顯示可勾選設備清單與批次掃描，報告頁集中顯示所有掃描紀錄與報表。
-- Dashboard UI 已改成商用品資訊架構：使用固定側欄、Hero KPI、決策型報告卡、設備治理工作區與亮暗對比明確的操作層級，避免 PoC 風格卡片堆疊。
-- 掃描分頁目前會顯示可掃描設備數、目前勾選數、退役設備數，並提供多選設備後批次觸發掃描。
-- 掃描任務卡目前會顯示簡化步驟時間軸：`Queue -> Probe -> Analysis -> Report`，協助判斷任務卡在哪一層。
-- 設備詳情頁目前會先顯示單設備 KPI：設備狀態、進行中任務、已完成任務、失敗任務與排程數量，再往下看掃描與 finding 明細。
-- 報告分頁目前已加入條帶式風險分布與設備狀態分布，並集中顯示所有掃描紀錄，讓畫面不只列數字，也能直接往下翻歷史任務。
-- 報告分頁目前已補上近 7 天掃描趨勢，區分完成、失敗與執行中任務，便於看週期波動。
-- 排程掃描會先寫入 `scan_schedules`，再由 `Celery beat` 每分鐘檢查 `next_run_at` 是否到期，到期後建立 `scan_tasks` 並交給 worker 執行。
-- 排程若未明確指定 credential，會沿用設備預設 credential。
-- 報告頁已補上商用導向資訊：設備狀態分布、優先處理清單與營運建議，可直接看出先處理哪台設備與哪類營運問題。
-- Credential 的敏感內容會以對稱加密方式存入資料庫，不會經由 API 回傳明文。
-- Credential 已支援停用與刪除保護：停用後不可再綁定到設備或發動掃描；若仍被設備綁定或有 `Pending` / `Running` 任務，系統會拒絕刪除。
-- Credential 與設備編輯都會寫入 `audit_logs`，credential 另外可透過 `GET /credentials/{id}/audit` 查最近審計紀錄。
-- `authenticated_snmp` 已接上 Nmap `snmp-info` 腳本與 SNMP community 注入；`authenticated_windows` 與 `authenticated_linux` 目前先完成 credential 管理、相容性驗證、任務綁定與摘要呈現，後續再補真正的深度稽核引擎。
-
-## 注意事項
-- `DEFAULT_ADMIN_PASSWORD` 僅適合首次啟動，正式環境必須立即更換。
-- 目前資料表初始化採用啟動時 `create_all`，尚未導入 Alembic migration。
-- 本機若要執行測試或啟動 API，需要先安裝 `requirements.txt` 內相依套件。
-- `Dockerfile` 已避免使用遠端 shell install script 安裝 `Nuclei`，改為固定版本 binary，以降低建置失敗與供應鏈風險。
-- `API` 啟動時會重試資料庫初始化；即使 PostgreSQL 比 API 慢幾秒起來，也不會立刻因一次拒絕連線就退出。
-- 目前設備管理頁使用瀏覽器本地儲存 `access_token`，適合內部 PoC 與單機部署；若要正式上線，建議後續改為更完整的 session / 前端權杖保護策略。
-- 正式環境不應依賴 `SECRET_KEY` 衍生 credential 加密金鑰，請明確設定 `CREDENTIAL_ENCRYPTION_KEY`。
-- `authenticated_windows` 與 `authenticated_linux` 目前尚未接入 WinRM、SMB、SSH 套件盤點或本機設定稽核，因此仍屬第二階段骨架而非完整已驗證掃描。
-- 若看到 `An error occurred trying to start process 'nmap'` 或 `找不到 Nmap 執行檔`，代表這台 Windows 主機尚未安裝 `Nmap`，或 `VulnScan:NmapPath` 沒有指到正確位置。
+2. `EF Core Migration`，取代 `EnsureCreated()`
+3. `Greenbone` 測試連線與更完整的同步治理
+4. 更完整的整合測試與匯出治理
