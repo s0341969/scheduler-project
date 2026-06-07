@@ -9,6 +9,10 @@
         <strong class="metric-value">@Model.Nmap.StatusText</strong>
     </article>
     <article class="metric-card">
+        <span class="metric-label">Nuclei</span>
+        <strong class="metric-value">@Model.Nuclei.StatusText</strong>
+    </article>
+    <article class="metric-card">
         <span class="metric-label">Greenbone</span>
         <strong class="metric-value">@Model.Greenbone.StatusText</strong>
     </article>
@@ -46,6 +50,23 @@
                 <button type="submit" class="btn btn-primary">直接安裝 Nmap</button>
             </form>
         }
+    </article>
+
+    <article class="panel-card">
+        <div class="panel-card-header">
+            <h3>Nuclei 安裝狀態</h3>
+            <span class="status-pill">@(Model.Nuclei.IsInstalled ? "Ready" : "Missing")</span>
+        </div>
+        <dl class="detail-grid">
+            <dt>是否已安裝</dt>
+            <dd>@(Model.Nuclei.IsInstalled ? "是" : "否")</dd>
+            <dt>實際找到的路徑</dt>
+            <dd class="path-cell">@Model.Nuclei.ResolvedPath</dd>
+            <dt>來源</dt>
+            <dd>@Model.Nuclei.Source</dd>
+            <dt>說明</dt>
+            <dd>@Model.Nuclei.Message</dd>
+        </dl>
     </article>
 
     <article class="panel-card">

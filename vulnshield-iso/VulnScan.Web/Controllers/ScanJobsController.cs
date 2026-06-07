@@ -199,6 +199,7 @@ public sealed class ScanJobsController(
     private async Task<ScanJobsIndexViewModel> BuildIndexViewModelAsync(string? search, CancellationToken cancellationToken, int page = 1)
     {
         var nmapStatus = scanJobService.GetNmapInstallationStatus();
+        var nucleiStatus = scanJobService.IsNucleiInstalled();
         var query = dbContext.ScanJobs.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -229,6 +230,15 @@ public sealed class ScanJobsController(
                 ResolvedPath = string.IsNullOrWhiteSpace(nmapStatus.ResolvedPath) ? "未找到" : nmapStatus.ResolvedPath,
                 Source = string.IsNullOrWhiteSpace(nmapStatus.Source) ? "未判定" : nmapStatus.Source,
                 Message = nmapStatus.Message,
+            },
+            Nuclei = new NmapCheckViewModel
+            {
+                IsInstalled = nucleiStatus,
+                CanStartInstall = false,
+                StatusText = nucleiStatus ? "已就緒" : "缺少 Nuclei",
+                ResolvedPath = nucleiStatus ? "nuclei" : "未找到",
+                Source = nucleiStatus ? "PATH" : "未安裝",
+                Message = nucleiStatus ? "可用" : "nuclei.exe 未安裝於系統 PATH 中，無法執行 Nuclei 掃描任務",
             },
             SearchTerm = search,
             Page = page,

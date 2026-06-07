@@ -10,6 +10,8 @@ public sealed class ScanJobsIndexViewModel
 
     public NmapCheckViewModel? Nmap { get; set; }
 
+    public NmapCheckViewModel? Nuclei { get; set; }
+
     public string? SearchTerm { get; set; }
 
     public int Page { get; set; } = 1;

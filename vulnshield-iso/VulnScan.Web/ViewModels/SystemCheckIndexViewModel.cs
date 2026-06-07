@@ -4,6 +4,8 @@ public sealed class SystemCheckIndexViewModel
 {
     public required NmapCheckViewModel Nmap { get; init; }
 
+    public required NmapCheckViewModel Nuclei { get; init; }
+
     public required GreenboneCheckViewModel Greenbone { get; init; }
 
     public required DatabaseCheckViewModel ActiveDatabase { get; init; }

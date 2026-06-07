@@ -11,6 +11,7 @@ public sealed class SystemCheckService(
     IWebHostEnvironment environment,
     ApplicationDbContext dbContext,
     INmapService nmapService,
+    INucleiService nucleiService,
     IGreenboneSettingsService greenboneSettingsService) : ISystemCheckService
 {
     public async Task<SystemCheckIndexViewModel> GetStatusAsync(CancellationToken cancellationToken = default)
@@ -21,6 +22,8 @@ public sealed class SystemCheckService(
         var activeConnectionString = dbContext.Database.GetConnectionString() ?? configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
         var greenboneOptions = await greenboneSettingsService.GetEffectiveOptionsAsync(cancellationToken);
         var nmapStatus = nmapService.GetInstallationStatus();
+        var nucleiInstalled = nucleiService.IsInstalled();
+        var nucleiPath = nucleiService.GetInstallPath();
 
         var sqliteStatus = BuildSqliteStatus(activeProvider, providerSetting, activeConnectionString, canConnect);
         var msSqlStatus = BuildMsSqlStatus(activeProvider, providerSetting, activeConnectionString, canConnect);
@@ -35,6 +38,15 @@ public sealed class SystemCheckService(
                 ResolvedPath = string.IsNullOrWhiteSpace(nmapStatus.ResolvedPath) ? "未找到" : nmapStatus.ResolvedPath,
                 Source = string.IsNullOrWhiteSpace(nmapStatus.Source) ? "未判定" : nmapStatus.Source,
                 Message = nmapStatus.Message,
+            },
+            Nuclei = new NmapCheckViewModel
+            {
+                IsInstalled = nucleiInstalled,
+                CanStartInstall = false,
+                StatusText = nucleiInstalled ? "已安裝" : "未安裝",
+                ResolvedPath = string.IsNullOrWhiteSpace(nucleiPath) ? "未找到" : nucleiPath,
+                Source = nucleiInstalled ? "PATH" : "未安裝",
+                Message = nucleiInstalled ? "可用" : "nuclei.exe 未安裝於系統 PATH 中，或 VulnScan:NucleiPath 未設定正確路徑",
             },
             Greenbone = BuildGreenboneStatus(greenboneOptions),
             ActiveDatabase = BuildActiveDatabaseStatus(activeProvider, canConnect, sqliteStatus, msSqlStatus),

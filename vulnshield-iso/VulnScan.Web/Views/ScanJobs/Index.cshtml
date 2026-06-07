@@ -45,6 +45,32 @@
     </section>
 }
 
+@if (Model.Nuclei is not null && !Model.Nuclei.IsInstalled)
+{
+    <section class="panel-card preflight-alert-card">
+        <div class="panel-card-header">
+            <h3>Nuclei 執行前檢查未通過</h3>
+            <span class="status-pill preflight-status-pill">Blocked</span>
+        </div>
+        <div class="form-stack">
+            <p class="mb-0">目前系統找不到 `nuclei.exe`，因此使用 `Nuclei` 的掃描任務會在建立執行紀錄前直接被阻擋。</p>
+            <dl class="detail-grid">
+                <dt>目前狀態</dt>
+                <dd>@Model.Nuclei.StatusText</dd>
+                <dt>實際找到的路徑</dt>
+                <dd class="path-cell">@Model.Nuclei.ResolvedPath</dd>
+                <dt>來源</dt>
+                <dd>@Model.Nuclei.Source</dd>
+                <dt>處理方式</dt>
+                <dd>@Model.Nuclei.Message</dd>
+            </dl>
+            <div class="action-row">
+                <a asp-controller="SystemCheck" asp-action="Index" class="btn btn-outline-secondary">前往系統檢查</a>
+            </div>
+        </div>
+    </section>
+}
+
 <section class="split-grid">
     <article class="panel-card">
         <div class="panel-card-header">
@@ -170,7 +196,8 @@
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="id" value="@item.JobId" />
                                     @{
-                                        var isDisabled = (item.ScanTool == "Nmap" && Model.Nmap is not null && !Model.Nmap.IsInstalled);
+                                        var isDisabled = (item.ScanTool == "Nmap" && Model.Nmap is not null && !Model.Nmap.IsInstalled)
+                                            || (item.ScanTool == "Nuclei" && Model.Nuclei is not null && !Model.Nuclei.IsInstalled);
                                     }
                                     @if (isDisabled)
                                     {
