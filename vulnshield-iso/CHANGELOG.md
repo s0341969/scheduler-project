@@ -1,6 +1,10 @@
 # Changelog
 
 ## 2026-06-07
+- 安裝 Nuclei v3.8.0 至 `C:\tools\nuclei` 並加入 User PATH
+- 掃描任務頁與系統檢查頁新增 Nuclei preflight check 卡片與狀態顯示
+- 系統檢查頁新增 Nuclei 安裝檢查項目
+- 修正既有任務 `ScanTool=NULL` 時不會誤判為 Nuclei
 - 新增 Nuclei 直接掃描：`INucleiService` / `NucleiService` 支援直接執行 `nuclei.exe`，以 `-json` 輸出 NDJSON 結果
 - 新增 `INucleiResultParserService` / `NucleiResultParserService`：解析 Nuclei NDJSON 輸出並寫入資料庫
 - 強化 Nmap 掃描模式：支援 Quick、QuickPlus、Standard、Deep、Stealth、VulnScript 六種 profile
