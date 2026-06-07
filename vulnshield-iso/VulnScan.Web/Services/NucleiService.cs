@@ -88,7 +88,8 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
         );
         await process.WaitForExitAsync(cancellationToken);
 
-        if (process.ExitCode != 0)
+        // 0 = 正常結束, 2 = 掃描完成但未發現弱點（均非錯誤）
+        if (process.ExitCode != 0 && process.ExitCode != 2)
         {
             var error = errorBuilder.ToString();
             throw new InvalidOperationException($"nuclei 執行失敗 (exit code {process.ExitCode}): {error}");
