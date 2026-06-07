@@ -1,6 +1,7 @@
 # Changelog
 
 ## 2026-06-07
+- 修正 PDF 亂碼問題：`PdfFontResolver` 現在會從 TTC（TrueType Collection）字型檔中自動提取第一個 TTF 字型，讓 PdfSharpCore 能正確解析中文字型
 - 新增 `VulnerabilityStatus` 常數類別，取代全專案弱點狀態魔術字串
 - 新增 `PaginationViewModel` 與 `QueryableExtensions` 通用分頁基礎建設
 - 新增 `AllowExternalTargets` 設定，`ScanAllowedRangeService` 可跳過白名單檢查
