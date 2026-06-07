@@ -111,7 +111,7 @@ public sealed class ScanJobsController(
             JobName = job.JobName,
             TargetRange = job.TargetRange,
             ScanType = job.ScanType,
-            ScanTool = job.ScanTool,
+            ScanTool = string.IsNullOrWhiteSpace(job.ScanTool) ? "Nmap" : job.ScanTool,
             ScanProfile = job.ScanProfile,
             ScheduleType = job.ScheduleType,
             ScheduleTime = job.ScheduleTime,

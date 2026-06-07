@@ -134,15 +134,17 @@ public sealed class ScanJobService(
                 $"無法執行掃描任務「{jobName}」。找不到 nuclei.exe。請先在系統 PATH 中安裝 Nuclei 或設定 VulnScan:NucleiPath，確認後再重新執行。");
         }
 
-        if (!string.Equals(job.ScanTool, "Nmap", StringComparison.OrdinalIgnoreCase))
-            return;
+        // NULL/Empty → 視為 Nmap（既有任務的預設值）
+        if (string.IsNullOrWhiteSpace(job.ScanTool)
+            || string.Equals(job.ScanTool, "Nmap", StringComparison.OrdinalIgnoreCase))
+        {
+            var status = nmapService.GetInstallationStatus();
+            if (status.IsInstalled)
+                return;
 
-        var status = nmapService.GetInstallationStatus();
-        if (status.IsInstalled)
-            return;
-
-        var name = string.IsNullOrWhiteSpace(job.JobName) ? $"Job {job.JobId}" : job.JobName;
-        throw new InvalidOperationException(
-            $"無法執行掃描任務「{name}」。原因：{status.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
+            var name = string.IsNullOrWhiteSpace(job.JobName) ? $"Job {job.JobId}" : job.JobName;
+            throw new InvalidOperationException(
+                $"無法執行掃描任務「{name}」。原因：{status.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
+        }
     }
 }
