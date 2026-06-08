@@ -101,7 +101,7 @@ public sealed class ScanJobService(
             run.ErrorMessage = exception.Message;
             await dbContext.SaveChangesAsync(cancellationToken);
             await auditLogService.WriteAsync("ScanRunFailed", "ScanRun", run.RunId, exception.Message, run.CreatedBy, null, cancellationToken);
-            throw;
+            // 不 rethrow，避免 Hangfire 自動重試；失敗狀態已寫入 DB
         }
     }
 

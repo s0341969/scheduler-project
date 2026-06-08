@@ -63,9 +63,9 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
             args += $" -t {EscapeArg(templateFilter)}";
         }
 
-        args += " -stats-json -disable-update-check";
+        args += " -disable-update-check";
 
-        var process = new Process
+        using var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
@@ -73,20 +73,39 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
                 Arguments = args,
                 UseShellExecute = false,
                 CreateNoWindow = true,
-                RedirectStandardOutput = true,
                 RedirectStandardError = true,
             }
         };
 
-        var outputBuilder = new System.Text.StringBuilder();
+        // 只收集 stderr（錯誤訊息），stdout 透過 -o 直接寫檔
         var errorBuilder = new System.Text.StringBuilder();
 
         process.Start();
-        await Task.WhenAll(
-            ConsumeReaderAsync(process.StandardOutput, outputBuilder, cancellationToken),
-            ConsumeReaderAsync(process.StandardError, errorBuilder, cancellationToken)
-        );
-        await process.WaitForExitAsync(cancellationToken);
+
+        // 非同步讀取 stderr，避免緩衝區滿造成 deadlock
+        var stderrTask = ConsumeReaderAsync(process.StandardError, errorBuilder, cancellationToken);
+
+        // 等候 process 結束，最多 60 分鐘
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutCts.CancelAfter(TimeSpan.FromMinutes(60));
+
+        try
+        {
+            await process.WaitForExitAsync(timeoutCts.Token);
+            await stderrTask;
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // 逾時觸發
+            try { process.Kill(entireProcessTree: true); } catch { }
+            throw new InvalidOperationException("nuclei 執行逾時（超過 60 分鐘），已強制終止。請檢查目標是否可達或縮小掃描範圍後重試。");
+        }
+        catch (OperationCanceledException)
+        {
+            // 外部 cancellation（如 Hangfire shutdown）
+            try { process.Kill(entireProcessTree: true); } catch { }
+            throw;
+        }
 
         // 0 = 正常結束, 2 = 掃描完成但未發現弱點（均非錯誤）
         if (process.ExitCode != 0 && process.ExitCode != 2)
@@ -100,9 +119,16 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
 
     private static async Task ConsumeReaderAsync(StreamReader reader, System.Text.StringBuilder builder, CancellationToken cancellationToken)
     {
-        while (await reader.ReadLineAsync(cancellationToken) is { } line)
+        try
         {
-            builder.AppendLine(line);
+            while (await reader.ReadLineAsync(cancellationToken) is { } line)
+            {
+                builder.AppendLine(line);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // process 已強制終止時 stream 可能也會拋異常，直接忽略
         }
     }
 
