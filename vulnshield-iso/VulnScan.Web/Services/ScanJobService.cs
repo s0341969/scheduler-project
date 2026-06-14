@@ -207,6 +207,10 @@ public sealed class ScanJobService(
         var jsonPath = await nucleiService.RunNucleiAsync(
             job.TargetRange, outputPath, job.ScanProfile ?? "All",
             profile?.CliFlag, profile?.CliValue, cancellationToken);
+
+        if (!System.IO.File.Exists(jsonPath))
+            return;
+
         var importedCount = await nucleiResultParserService.ParseAndSaveAsync(run.RunId, jsonPath, cancellationToken);
         run.RawResultPath = jsonPath;
         run.TotalVulnerabilities = importedCount;
