@@ -91,11 +91,16 @@ public sealed class ReportService(
     {
         var filePath = BuildReportPath("iso27001-summary", "pdf");
         var items = await QueryVulnerabilitiesAsync(start, end, cancellationToken);
+        var scanRuns = await QueryScanRunsAsync(start, end, cancellationToken);
         var now = DateTime.UtcNow.ToLocalTime();
 
         var vulnerabilityCount = items.Count;
         var highRiskCount = items.Count(item => item.Severity is "Critical" or "High");
         var assetsCount = items.Select(item => item.AssetId).Distinct().Count();
+
+        var totalRuns = scanRuns.Count;
+        var successRuns = scanRuns.Count(r => r.Status == "Completed");
+        var failedRuns = scanRuns.Count(r => r.Status == "Failed");
 
         var pageNumber = 0;
 
@@ -113,21 +118,25 @@ public sealed class ReportService(
 
                 page.Content().Column(col =>
                 {
-            col.Item().Height(170);
+                    col.Item().Height(145);
 
-            col.Item().AlignCenter().Text("弱點管理報告")
+                    col.Item().AlignCenter().Text("弱點管理報告")
                         .FontSize(28).Bold().FontColor("#2980B9");
                     col.Item().AlignCenter().Text("Vulnerability Management Report")
                         .FontSize(16).FontColor(Colors.Grey.Darken3);
 
-                    col.Item().Height(30);
+                    col.Item().Height(24);
                     col.Item().Background("#2980B9").Height(4).ExtendHorizontal();
 
-                    col.Item().Height(40);
+                    col.Item().Height(30);
                     col.Item().Text($"報表期間：{start:yyyy-MM-dd} 至 {end:yyyy-MM-dd}");
                     col.Item().Text($"產出時間：{now:yyyy-MM-dd HH:mm:ss}");
 
-                    col.Item().PaddingTop(120);
+                    col.Item().Height(16);
+                    col.Item().Text($"掃描次數：{totalRuns} 次（成功 {successRuns} / 失敗 {failedRuns}）")
+                        .FontSize(11).FontColor(Colors.Grey.Darken1);
+
+                    col.Item().PaddingTop(80);
                     col.Item().AlignCenter().Text("ISO/IEC 27001 資訊安全管理系統")
                         .FontColor(Colors.Grey.Darken3);
                     col.Item().AlignCenter().Text("VulnScan.Web")
@@ -135,7 +144,7 @@ public sealed class ReportService(
                 });
             });
 
-            // ---------- Summary Page ----------
+            // ---------- Scan Execution Summary ----------
             pageNumber++;
             container.Page(page =>
             {
@@ -145,7 +154,125 @@ public sealed class ReportService(
 
                 page.Content().Column(col =>
                 {
-                    col.Item().Text("摘要統計").FontSize(18).Bold();
+                    col.Item().Text("掃描執行摘要").FontSize(18).Bold();
+                    col.Item().Height(16);
+
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().CardStyle()
+                            .Column(card =>
+                            {
+                                card.Item().Text("掃描次數").FontSize(9).FontColor(Colors.Grey.Darken3);
+                                card.Item().Text(totalRuns.ToString()).FontSize(16).Bold();
+                            });
+                        row.ConstantItem(8);
+                        row.RelativeItem().CardStyle()
+                            .Column(card =>
+                            {
+                                card.Item().Text("成功").FontSize(9).FontColor(Colors.Grey.Darken3);
+                                card.Item().Text(successRuns.ToString()).FontSize(16).Bold().FontColor("#27AE60");
+                            });
+                        row.ConstantItem(8);
+                        row.RelativeItem().CardStyle()
+                            .Column(card =>
+                            {
+                                card.Item().Text("失敗").FontSize(9).FontColor(Colors.Grey.Darken3);
+                                card.Item().Text(failedRuns.ToString()).FontSize(16).Bold().FontColor("#E74C3C");
+                            });
+                    });
+
+                    col.Item().Height(20);
+
+                    if (totalRuns > 0)
+                    {
+                        col.Item().Table(table =>
+                        {
+                            var scanCols = new (string Header, float Width)[]
+                            {
+                                ("RunId", 30),
+                                ("任務名稱", 70),
+                                ("目標", 85),
+                                ("工具", 40),
+                                ("Profile", 55),
+                                ("狀態", 40),
+                                ("開始時間", 80),
+                                ("結束時間", 80),
+                                ("Hosts", 30),
+                                ("Ports", 30),
+                            };
+
+                            table.ColumnsDefinition(cd =>
+                            {
+                                foreach (var (_, w) in scanCols)
+                                    cd.ConstantColumn(w);
+                            });
+
+                            table.Header(header =>
+                            {
+                                foreach (var (name, _) in scanCols)
+                                    header.Cell().Background(Colors.Grey.Lighten2).Padding(3)
+                                        .Text(name).FontSize(7).Bold();
+                            });
+
+                            var borderColor = "#DCE1EB";
+                            foreach (var run in scanRuns)
+                            {
+                                var statusColor = run.Status switch
+                                {
+                                    "Completed" => "#27AE60",
+                                    "Failed" => "#E74C3C",
+                                    "Running" => "#3498DB",
+                                    _ => "#95A5A6",
+                                };
+
+                                var vals = new[]
+                                {
+                                    run.RunId.ToString(),
+                                    run.JobName,
+                                    run.JobTarget,
+                                    run.JobTool ?? "-",
+                                    run.JobProfile ?? "-",
+                                    run.Status,
+                                    run.StartTime.ToLocalTime().ToString("MM-dd HH:mm"),
+                                    run.EndTime?.ToLocalTime().ToString("MM-dd HH:mm") ?? "—",
+                                    run.Hosts.ToString(),
+                                    run.Ports.ToString(),
+                                };
+
+                                foreach (var (value, idx) in vals.Select((v, i) => (v, i)))
+                                {
+                                    var cell = table.Cell()
+                                        .Border(0.5f).BorderColor(borderColor)
+                                        .Padding(2)
+                                        .Text(value).FontSize(6.5f);
+
+                                    if (idx == 5) // status
+                                        cell.FontColor(statusColor);
+                                }
+                            }
+                        });
+                    }
+                    else
+                    {
+                        col.Item().Text("此期間無掃描執行紀錄。").FontSize(10).FontColor(Colors.Grey.Medium);
+                    }
+                });
+
+                page.Footer().AlignCenter().Text($"VulnScan.Web | {now:yyyy-MM-dd HH:mm} | 第 {pageNumber} 頁")
+                    .FontSize(7).FontColor(Colors.Grey.Medium);
+            });
+
+            // ---------- Vulnerability Summary Page ----------
+            pageNumber++;
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(32);
+                page.DefaultTextStyle(x => x.FontFamily(FontName));
+
+                page.Content().Column(col =>
+                {
+                    col.Item().Text("弱點摘要統計").FontSize(18).Bold();
                     col.Item().Height(16);
 
                     col.Item().Row(row =>
@@ -246,6 +373,13 @@ public sealed class ReportService(
                         });
                         col.Item().Height(2);
                     }
+
+                    if (vulnerabilityCount == 0)
+                    {
+                        col.Item().PaddingTop(20);
+                        col.Item().Text("此期間無弱點資料。請確認是否有執行弱點掃描（如 Nuclei）或匯入弱點資料。")
+                            .FontSize(10).FontColor(Colors.Grey.Medium);
+                    }
                 });
 
                 page.Footer().AlignCenter().Text($"VulnScan.Web | {now:yyyy-MM-dd HH:mm} | 第 {pageNumber} 頁")
@@ -253,82 +387,108 @@ public sealed class ReportService(
             });
 
             // ---------- Detail Table ----------
-            pageNumber++;
-            container.Page(page =>
+            if (orderedItems.Count > 0)
             {
-                page.Size(PageSizes.A4.Landscape());
-                page.Margin(32);
-                page.DefaultTextStyle(x => x.FontFamily(FontName));
-
-                page.Content().Column(col =>
+                pageNumber++;
+                container.Page(page =>
                 {
-                    col.Item().Text("弱點明細").FontSize(18).Bold();
-                    col.Item().Height(12);
+                    page.Size(PageSizes.A4.Landscape());
+                    page.Margin(32);
+                    page.DefaultTextStyle(x => x.FontFamily(FontName));
 
-                    col.Item().Table(table =>
+                    page.Content().Column(col =>
                     {
-                        var columns = new (string Header, float Width)[]
-                        {
-                            ("資產", 55),
-                            ("IP", 65),
-                            ("弱點名稱", 200),
-                            ("Severity", 55),
-                            ("CVSS", 40),
-                            ("軟體版本", 70),
-                            ("特徵碼版本", 70),
-                            ("最後發現", 70),
-                        };
+                        col.Item().Text("弱點明細").FontSize(18).Bold();
+                        col.Item().Height(12);
 
-                        table.ColumnsDefinition(columnsDef =>
+                        col.Item().Table(table =>
                         {
-                            foreach (var (_, w) in columns)
-                                columnsDef.ConstantColumn(w);
-                        });
-
-                        table.Header(header =>
-                        {
-                            foreach (var (name, _) in columns)
+                            var columns = new (string Header, float Width)[]
                             {
-                                header.Cell()
-                                    .Background(Colors.Grey.Lighten2)
-                                    .Padding(4)
-                                    .Text(name).FontSize(9).Bold();
-                            }
-                        });
-
-                        var borderColor = "#DCE1EB";
-                        foreach (var item in orderedItems)
-                        {
-                            var values = new[]
-                            {
-                                item.Asset?.AssetName ?? "-",
-                                item.IPAddress ?? "-",
-                                item.VulnName,
-                                item.Severity ?? "-",
-                                item.CVSS?.ToString("0.0") ?? "-",
-                                item.DetectedVersion ?? item.ServiceName ?? "-",
-                                item.SignatureVersion ?? "-",
-                                item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd"),
+                                ("資產", 55),
+                                ("IP", 65),
+                                ("弱點名稱", 200),
+                                ("Severity", 55),
+                                ("CVSS", 40),
+                                ("軟體版本", 70),
+                                ("特徵碼版本", 70),
+                                ("最後發現", 70),
                             };
 
-                            foreach (var value in values)
+                            table.ColumnsDefinition(columnsDef =>
                             {
-                                table.Cell()
-                                    .Border(0.5f).BorderColor(borderColor)
-                                    .Padding(3)
-                                    .Text(value).FontSize(8);
-                            }
-                        }
-                    });
-                });
+                                foreach (var (_, w) in columns)
+                                    columnsDef.ConstantColumn(w);
+                            });
 
-                page.Footer().AlignCenter().Text($"VulnScan.Web | {now:yyyy-MM-dd HH:mm} | 第 {pageNumber} 頁")
-                    .FontSize(7).FontColor(Colors.Grey.Medium);
-            });
+                            table.Header(header =>
+                            {
+                                foreach (var (name, _) in columns)
+                                {
+                                    header.Cell()
+                                        .Background(Colors.Grey.Lighten2)
+                                        .Padding(4)
+                                        .Text(name).FontSize(9).Bold();
+                                }
+                            });
+
+                            var borderColor = "#DCE1EB";
+                            foreach (var item in orderedItems)
+                            {
+                                var values = new[]
+                                {
+                                    item.Asset?.AssetName ?? "-",
+                                    item.IPAddress ?? "-",
+                                    item.VulnName,
+                                    item.Severity ?? "-",
+                                    item.CVSS?.ToString("0.0") ?? "-",
+                                    item.DetectedVersion ?? item.ServiceName ?? "-",
+                                    item.SignatureVersion ?? "-",
+                                    item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd"),
+                                };
+
+                                foreach (var value in values)
+                                {
+                                    table.Cell()
+                                        .Border(0.5f).BorderColor(borderColor)
+                                        .Padding(3)
+                                        .Text(value).FontSize(8);
+                                }
+                            }
+                        });
+                    });
+
+                    page.Footer().AlignCenter().Text($"VulnScan.Web | {now:yyyy-MM-dd HH:mm} | 第 {pageNumber} 頁")
+                        .FontSize(7).FontColor(Colors.Grey.Medium);
+                });
+            }
         }).GeneratePdf(filePath);
 
         await SaveExportRecordAsync("ISO27001 弱點管理 PDF", "PDF", filePath, cancellationToken);
         return filePath;
+    }
+
+    private Task<List<ScanRunSummary>> QueryScanRunsAsync(DateTime start, DateTime end, CancellationToken ct)
+    {
+        return dbContext.ScanRuns
+            .AsNoTracking()
+            .Include(r => r.ScanJob)
+            .Where(r => r.StartTime >= start && r.StartTime <= end)
+            .Select(r => new ScanRunSummary
+            {
+                RunId = r.RunId,
+                JobName = r.ScanJob != null ? r.ScanJob.JobName : "-",
+                JobTarget = r.ScanJob != null ? r.ScanJob.TargetRange : "-",
+                JobTool = r.ScanJob != null ? r.ScanJob.ScanTool : "-",
+                JobProfile = r.ScanJob != null ? r.ScanJob.ScanProfile : "-",
+                Status = r.Status,
+                StartTime = r.StartTime,
+                EndTime = r.EndTime,
+                Hosts = r.TotalHosts,
+                Ports = r.TotalOpenPorts,
+            })
+            .OrderByDescending(r => r.StartTime)
+            .ToListAsync(ct);
     }
 
     private string BuildReportPath(string namePrefix, string extension)
@@ -359,6 +519,20 @@ public sealed class ReportService(
             .Where(item => item.FirstDetectedAt >= start && item.FirstDetectedAt <= end)
             .ToListAsync(cancellationToken);
     }
+}
+
+internal sealed record ScanRunSummary
+{
+    public int RunId { get; init; }
+    public string JobName { get; init; } = string.Empty;
+    public string JobTarget { get; init; } = string.Empty;
+    public string? JobTool { get; init; }
+    public string? JobProfile { get; init; }
+    public string Status { get; init; } = string.Empty;
+    public DateTime StartTime { get; init; }
+    public DateTime? EndTime { get; init; }
+    public int Hosts { get; init; }
+    public int Ports { get; init; }
 }
 
 internal static class ReportContainerExtensions

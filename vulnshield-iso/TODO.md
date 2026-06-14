@@ -27,6 +27,7 @@
 - ✅ 新增 AllScan 全部掃描選項
 - ✅ 修正 AllScan 編輯與執行流程
 - ✅ 替換 PdfSharpCore 為 QuestPDF，解決 PDF 報表 CJK 亂碼
+- ✅ PDF 報表新增掃描執行摘要頁面（目標 IP、掃描條件、Run 明細）
 - ✅ `Swagger / OpenAPI` 支援
 - ✅ `SignalR` 即時通知（掃描完成 Toast）
 - ✅ `Rate Limiting` API 限流

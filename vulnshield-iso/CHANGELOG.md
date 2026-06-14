@@ -10,6 +10,8 @@
 - RunNucleiScanAsync 加入 File.Exists 檢查，避免解析不存在的 JSON
 - 修復 DB 中 RunId=13 卡在 Running 的異常紀錄（EndTime 早於 StartTime）
 - 替換 PdfSharpCore 為 QuestPDF：移除 PdfFontResolver，改以 QuestPDF 產生 PDF 報表，徹底解決 CJK 字型亂碼問題
+- PDF 報表新增「掃描執行摘要」頁面，顯示掃描次數、成功/失敗數與每筆 Run 明細（目標IP、工具、Profile、時間、Hosts/Ports）
+- PDF 報表弱點無資料時顯示提示文字，不再只產出空白
 - 更新 README.md 與 TODO.md 同步
 - 新增 `Swagger / OpenAPI` 支援：`AddOpenApi()` + `MapOpenApi()`，提供 API 端點自動文件
 - 新增 `SignalR` 即時通知：`NotificationHub` 於 `/hub/notifications`，掃描狀態變更時主動推播 Toast 通知
