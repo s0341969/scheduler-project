@@ -225,7 +225,15 @@
                     <tr>
                         <td>@item.JobName</td>
                         <td>@item.TargetRange</td>
-                        <td>@item.ScanType</td>
+                        <td>@(item.ScanType switch
+                        {
+                            "PortScan" => "連接埠掃描",
+                            "ServiceDetect" => "服務版本偵測",
+                            "BaselineScan" => "基線安全檢測",
+                            "VulnerabilityScan" => "弱點掃描",
+                            "WebScan" => "網頁應用弱掃",
+                            _ => item.ScanType,
+                        })
                         <td>@item.ScanTool</td>
                         <td>@(item.ScanProfile ?? "-")</td>
                         <td>@(item.ScheduleType ?? "-")</td>
