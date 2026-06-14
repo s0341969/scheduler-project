@@ -31,6 +31,7 @@
                 <a asp-controller="VulnerabilityActions" asp-action="Index">改善追蹤</a>
                 <a asp-controller="Reports" asp-action="Index">報告 / 匯出</a>
                 <a asp-controller="AuditLogs" asp-action="Index">稽核紀錄</a>
+                <a asp-controller="WebhookSettings" asp-action="Index">Webhook 設定</a>
             </nav>
             <div class="sidebar-footer">
                 @if (User.Identity?.IsAuthenticated == true)
@@ -80,6 +81,7 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/signalr-client.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

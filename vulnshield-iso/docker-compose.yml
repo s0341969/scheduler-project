@@ -1,0 +1,42 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "VulnScan@Docker2024"
+      MSSQL_PID: Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "VulnScan@Docker2024" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  vulnscan-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5186:5186"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5186
+      Database:Provider: SqlServer
+      ConnectionStrings:DefaultConnection: Server=sqlserver;Database=VulnScanDB;User Id=sa;Password=VulnScan@Docker2024;TrustServerCertificate=True;
+      VulnScan:ResultRootPath: /app/App_Data/Results
+      VulnScan:InstallerCachePath: /app/App_Data/Installers
+      Hangfire:DashboardPath: /hangfire
+    volumes:
+      - app-data:/app/App_Data
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
+  app-data:

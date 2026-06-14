@@ -5,7 +5,7 @@
 1. `UsersController` 與使用者管理頁
 2. `EF Core Migration`，取代目前的 `EnsureCreated()`
 3. `Greenbone` 測試連線、帳密驗證與同步治理強化
-4. `VulnScan.Web` 整合測試
+4. 補上 Controllers 層級整合測試、補上 Integration Test
 5. 為 `ScanJobs` 頁補上 `Nuclei` 安裝狀態檢查卡（類似 Nmap preflight alert）
 
 ## VulnScan.Web 後續項目
@@ -19,6 +19,16 @@
 - 為 `Vulnerabilities` 補上更細的搜尋、篩選、編輯與刪除治理
 - 為 `ScanRuns / Reports` 補上更完整的趨勢與週期分析
 - 補上 `stop_vulnscan_web.bat`，讓新版系統可一鍵停止
+
+## 已完成
+
+- ✅ `ExceptionMiddleware` 全域例外處理中介層
+- ✅ `Swagger / OpenAPI` 支援
+- ✅ `SignalR` 即時通知（掃描完成 Toast）
+- ✅ `Rate Limiting` API 限流
+- ✅ `Webhook` 匯出機制（含 HMAC 簽章）
+- ✅ `Dockerfile` + `docker-compose.yml` 容器化
+- ✅ `VulnScan.Web.Tests` 測試專案（16 項測試）
 
 ## 原則
 

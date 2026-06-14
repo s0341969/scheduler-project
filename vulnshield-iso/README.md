@@ -25,10 +25,13 @@
 ## 目前保留的主要內容
 
 - [VulnScan.Web](G:\codex_pg\vulnshield-iso\VulnScan.Web)
+- [VulnScan.Web.Tests](G:\codex_pg\vulnshield-iso\VulnScan.Web.Tests) - 整合測試
 - [VulnScan.Web.slnx](G:\codex_pg\vulnshield-iso\VulnScan.Web.slnx)
 - [start_vulnscan_web.bat](G:\codex_pg\vulnshield-iso\start_vulnscan_web.bat)
 - [VulnScan_Web_操作手冊.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_操作手冊.md)
 - [VulnScan_Web_SPEC.md](G:\codex_pg\vulnshield-iso\VulnScan_Web_SPEC.md)
+- [Dockerfile](G:\codex_pg\vulnshield-iso\Dockerfile)
+- [docker-compose.yml](G:\codex_pg\vulnshield-iso\docker-compose.yml)
 
 ## 啟動方式
 
@@ -148,6 +151,18 @@ Development 預設 bootstrap 帳號：
 - 舊的 `src/`、`tests/`、`Dockerfile`、`docker-compose.yml`、`start_system.*` 已移除
 - 啟動、使用、報告與維運流程都應以 `VulnScan.Web` 為準
 
+## 基礎建設特色
+
+本專案已內建以下生產環境基礎建設：
+
+- **全域例外處理中介層**：開發與正式環境皆適用，API 請求回傳 JSON 錯誤、MVC 請求導向錯誤頁
+- **Swagger / OpenAPI**：瀏覽 `GET /openapi/v1.json` 取得 API 規格，支援 API 控制器自動產生文件
+- **SignalR 即時通知**：`/hub/notifications` 端點，掃描狀態變更時主動推送到瀏覽器，支援自動重連與 Toast 通知
+- **Rate Limiting**：API 端點每分鐘 100 次請求限制（開發環境 200 次），佇列溢位回傳 429
+- **Webhook 匯出**：掃描完成時自動發送 HTTP POST 至設定的 Webhook URL，支援 HMAC-SHA256 簽章驗證
+- **Docker 容器化**：`Dockerfile` + `docker-compose.yml`，SQL Server + VulnScan.Web 一鍵部署
+- **整合測試**：`VulnScan.Web.Tests` 專案，使用 xUnit + Moq + EF Core SQLite InMemory
+
 ## 後續優先項目
 
 目前下一輪優先項目：
@@ -155,4 +170,4 @@ Development 預設 bootstrap 帳號：
 1. `UsersController` 與使用者管理頁
 2. `EF Core Migration`，取代 `EnsureCreated()`
 3. `Greenbone` 測試連線與更完整的同步治理
-4. 更完整的整合測試與匯出治理
+4. 更完整的整合測試覆蓋（Controllers、Integration）

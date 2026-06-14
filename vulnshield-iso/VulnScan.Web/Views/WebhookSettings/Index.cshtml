@@ -1,0 +1,70 @@
+@model List<WebhookSetting>
+@{
+    ViewData["Title"] = "Webhook 設定";
+}
+
+<div class="panel-card">
+    <div class="panel-card-header">
+        <h3>Webhook 設定</h3>
+        <a asp-action="Create" class="btn btn-primary">新增 Webhook</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark-table align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>URL</th>
+                    <th>事件</th>
+                    <th>啟用</th>
+                    <th>建立時間</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>@item.Id</td>
+                        <td><code>@item.Url</code></td>
+                        <td>@item.Events</td>
+                        <td>
+                            @if (item.IsActive)
+                            {
+                                <span class="status-pill status-active">啟用</span>
+                            }
+                            else
+                            {
+                                <span class="status-pill status-inactive">停用</span>
+                            }
+                        </td>
+                        <td>@item.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">編輯</a>
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" style="display:inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('確定刪除此 Webhook？')">刪除</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (Model.Count == 0)
+                {
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">尚無 Webhook 設定</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="panel-card mt-3">
+    <div class="panel-card-header">
+        <h3>使用說明</h3>
+    </div>
+    <p>Webhook 可在掃描完成時自動發送 HTTP POST 請求到指定的 URL。支援事件：</p>
+    <ul>
+        <li><code>ScanCompleted</code> - 掃描完成時觸發（含成功與失敗）</li>
+    </ul>
+    <p>請求內容為 JSON 格式，包含掃描執行結果的詳細資訊。若設定 Secret，則會在 <code>X-Webhook-Signature</code> Header 中附加 HMAC-SHA256 簽章。</p>
+</div>

@@ -15,6 +15,7 @@ public sealed class ScanJobService(
     INucleiService nucleiService,
     INucleiResultParserService nucleiResultParserService,
     IAuditLogService auditLogService,
+    IWebhookService webhookService,
     IOptions<VulnScanOptions> options) : IScanJobService
 {
     private readonly VulnScanOptions _options = options.Value;
@@ -101,7 +102,10 @@ public sealed class ScanJobService(
             run.ErrorMessage = exception.Message;
             await dbContext.SaveChangesAsync(cancellationToken);
             await auditLogService.WriteAsync("ScanRunFailed", "ScanRun", run.RunId, exception.Message, run.CreatedBy, null, cancellationToken);
-            // 不 rethrow，避免 Hangfire 自動重試；失敗狀態已寫入 DB
+        }
+        finally
+        {
+            await NotifyScanCompletedAsync(run, job, cancellationToken);
         }
     }
 
@@ -146,5 +150,24 @@ public sealed class ScanJobService(
             throw new InvalidOperationException(
                 $"無法執行掃描任務「{name}」。原因：{status.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
         }
+    }
+
+    private async Task NotifyScanCompletedAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
+    {
+        var webhookEvent = new WebhookEvent
+        {
+            EventType = "ScanCompleted",
+            RunId = run.RunId,
+            JobId = job.JobId,
+            JobName = job.JobName ?? string.Empty,
+            TargetRange = job.TargetRange,
+            ScanTool = job.ScanTool,
+            Status = run.Status,
+            ErrorMessage = run.Status == "Failed" ? run.ErrorMessage : null,
+            TotalVulnerabilities = run.TotalVulnerabilities,
+            RunUrl = $"/ScanRuns/Index?jobId={job.JobId}",
+        };
+
+        await webhookService.NotifyScanCompletedAsync(webhookEvent, cancellationToken);
     }
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-06-14
+- 新增 `ExceptionMiddleware` 全域例外處理中介層，Dev/Prod 模式皆適用，API 回傳 JSON、MVC 導向錯誤頁
+- 新增 `Swagger / OpenAPI` 支援：`AddOpenApi()` + `MapOpenApi()`，提供 API 端點自動文件
+- 新增 `SignalR` 即時通知：`NotificationHub` 於 `/hub/notifications`，掃描狀態變更時主動推播 Toast 通知
+- 新增 `Rate Limiting`：API 端點固定窗口限流（每分鐘 100 次），溢位回傳 429
+- 新增 `Webhook` 匯出機制：WebhookSetting 模型、CRUD 頁面、掃描完成自動發送 HTTP POST 含 HMAC 簽章
+- 新增 API 控制器：`ScanJobsApiController`、`ScanRunsApiController`、`VulnerabilitiesApiController`，含 Swagger 文件
+- 新增 `Dockerfile` + `docker-compose.yml`，SQL Server + VulnScan.Web 容器化部署
+- 新增 `VulnScan.Web.Tests` 整合測試專案：16 項單元測試（ScanAllowedRangeService、SystemCheckService、WebhookService、VulnerabilityStatus）
+- 側欄新增「Webhook 設定」頁面連結
+- 更新 `README.md` 基礎建設特色章節與保留內容清單
+
 ## 2026-06-07
 - 安裝 Nuclei v3.8.0 至 `C:\tools\nuclei` 並加入 User PATH
 - 掃描任務頁與系統檢查頁新增 Nuclei preflight check 卡片與狀態顯示

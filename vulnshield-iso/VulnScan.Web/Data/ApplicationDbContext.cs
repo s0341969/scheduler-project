@@ -29,6 +29,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<GreenboneSyncLog> GreenboneSyncLogs => Set<GreenboneSyncLog>();
 
+    public DbSet<WebhookSetting> WebhookSettings => Set<WebhookSetting>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

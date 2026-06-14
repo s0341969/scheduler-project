@@ -1,14 +1,18 @@
+using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.MemoryStorage;
 using Hangfire.SqlServer;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using PdfSharpCore.Fonts;
 using VulnScan.Web.Data;
+using VulnScan.Web.Hubs;
+using VulnScan.Web.Middleware;
 using VulnScan.Web.Models;
 using VulnScan.Web.Services;
 
@@ -55,6 +59,24 @@ builder.Services
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddOpenApi();
+
+builder.Services.AddSignalR();
+
+builder.Services.AddRateLimiter(rateLimiterOptions =>
+{
+    rateLimiterOptions.AddFixedWindowLimiter("Api", fixOptions =>
+    {
+        fixOptions.PermitLimit = 100;
+        fixOptions.Window = TimeSpan.FromMinutes(1);
+        fixOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        fixOptions.QueueLimit = 10;
+    });
+
+    rateLimiterOptions.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddHangfire(configuration =>
@@ -101,6 +123,7 @@ builder.Services.AddScoped<IScanScheduleService, ScanScheduleService>();
 builder.Services.AddScoped<IVulnerabilityService, VulnerabilityService>();
 builder.Services.AddScoped<IScanImportService, ScanImportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IWebhookService, WebhookService>();
 builder.Services.AddHostedService<AutoImportBackgroundService>();
 
 var app = builder.Build();
@@ -129,24 +152,33 @@ using (var scope = app.Services.CreateScope())
     await scanScheduleService.SyncRecurringJobsAsync();
 }
 
+app.UseMiddleware<ExceptionMiddleware>();
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
     app.UseHttpsRedirection();
 }
 
+app.UseRateLimiter();
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.UseHangfireDashboard(builder.Configuration["Hangfire:DashboardPath"] ?? "/hangfire");
+
+app.MapOpenApi();
 app.MapStaticAssets();
+
+app.MapHub<NotificationHub>("/hub/notifications");
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Dashboard}/{action=Index}/{id?}")
     .WithStaticAssets();
+
+app.MapControllers()
+    .RequireRateLimiting("Api");
 
 app.Run();
 
