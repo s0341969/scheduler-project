@@ -171,11 +171,13 @@ public sealed class ScanJobsController(
             return NotFound();
         }
 
+        var editScanType = form.ScanType.Trim();
+        var editIsAllScan = string.Equals(editScanType, "AllScan", StringComparison.OrdinalIgnoreCase);
         job.JobName = form.JobName.Trim();
         job.TargetRange = form.TargetRange.Trim();
-        job.ScanType = form.ScanType.Trim();
-        job.ScanTool = form.ScanTool.Trim();
-        job.ScanProfile = string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim();
+        job.ScanType = editScanType;
+        job.ScanTool = editIsAllScan ? "All" : form.ScanTool.Trim();
+        job.ScanProfile = editIsAllScan ? "Deep" : string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim();
         job.ScheduleType = string.IsNullOrWhiteSpace(form.ScheduleType) ? null : form.ScheduleType.Trim();
         job.ScheduleTime = form.ScheduleTime;
         job.CronExpression = string.IsNullOrWhiteSpace(form.CronExpression) ? null : form.CronExpression.Trim();
