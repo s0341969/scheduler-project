@@ -103,14 +103,15 @@
                 <span asp-validation-for="Form.TargetRange" class="text-danger"></span>
             </div>
             <div>
-                <label asp-for="Form.ScanType" class="form-label"></label>
+                <label asp-for="Form.ScanType" class="form-label">掃描類型</label>
                 <select asp-for="Form.ScanType" class="form-select">
-                    <option>PortScan</option>
-                    <option>ServiceDetect</option>
-                    <option>BaselineScan</option>
-                    <option>VulnerabilityScan</option>
-                    <option>WebScan</option>
+                    <option value="PortScan" title="純連接埠掃描，僅檢測目標開放的 TCP/UDP 埠號">PortScan - 連接埠掃描</option>
+                    <option value="ServiceDetect" title="掃描埠 + 自動識別服務名稱與版本號">ServiceDetect - 服務版本偵測</option>
+                    <option value="BaselineScan" title="檢查錯誤設定、弱密碼、資訊曝露等基線安全項目">BaselineScan - 基線安全檢測</option>
+                    <option value="VulnerabilityScan" title="針對已知 CVE 弱點進行比對與驗證">VulnerabilityScan - 弱點掃描</option>
+                    <option value="WebScan" title="針對 Web 應用層檢測 SQLi、XSS、LFI 等漏洞">WebScan - 網頁應用弱掃</option>
                 </select>
+                <small class="form-text text-muted">分類用途，實際執行行為由下方「掃描強度」決定。</small>
             </div>
             <div>
                 <label asp-for="Form.ScanTool" class="form-label"></label>
@@ -136,31 +137,32 @@
             }
             <div>
                 <label asp-for="Form.ScanProfile" class="form-label" id="scanProfileLabel">掃描強度</label>
+                <small class="form-text text-muted d-block mb-1">滑鼠停留在選項上可查看實際 CLI 參數。</small>
                 <select asp-for="Form.ScanProfile" class="form-select" id="scanProfileSelect">
                     <optgroup label="Nmap 模式">
-                        <option value="Quick">Quick - 快速連接埠掃描</option>
-                        <option value="QuickPlus" selected>QuickPlus - 快速+版本偵測</option>
-                        <option value="Standard">Standard - 標準+版本+OS</option>
-                        <option value="Deep">Deep - 深度掃描+A+完整版本</option>
-                        <option value="Stealth">Stealth - 隱匿模式</option>
-                        <option value="VulnScript">VulnScript - 安全腳本掃描</option>
-                        <option value="CredentialCheck">CredentialCheck - 預設帳密檢測</option>
+                        <option value="Quick" title="nmap -T4 -F：只掃 100 個常用埠，速度最快">Quick - 快速連接埠掃描</option>
+                        <option value="QuickPlus" selected title="nmap -T4 -sV -F：快速 + 自動辨識服務版本">QuickPlus - 快速 + 版本偵測</option>
+                        <option value="Standard" title="nmap -T4 -sV -O：標準 + 版本 + OS 偵測">Standard - 標準 + 版本 + OS</option>
+                        <option value="Deep" title="nmap -T4 -sV -O -A --version-all：全開深度掃描（最久）">Deep - 深度掃描 + A + 完整版本</option>
+                        <option value="Stealth" title="nmap -T2 -sV -O：慢速隱匿模式，避開 IDS/IPS">Stealth - 隱匿模式</option>
+                        <option value="VulnScript" title="nmap -T4 -sV -sC --script vuln：執行 NSE 安全腳本">VulnScript - 安全腳本掃描</option>
+                        <option value="CredentialCheck" title="nmap -T4 -sV --script http-default-accounts,...：測預設帳密">CredentialCheck - 預設帳密檢測</option>
                     </optgroup>
                     <optgroup label="Nuclei 範本">
-                        <option value="All">All - 所有範本</option>
-                        <option value="cves">CVEs - 已知 CVE</option>
-                        <option value="vulnerabilities">Vulnerabilities - 一般弱點</option>
-                        <option value="misconfiguration">Misconfig - 錯誤設定</option>
-                        <option value="exposures">Exposures - 曝露</option>
-                        <option value="default-logins">DefaultLogins - 預設登入</option>
+                        <option value="All" title="執行 nuclei -t 全部模板目錄">All - 所有範本</option>
+                        <option value="cves" title="nuclei -t cves/：已知 CVE 弱點比對">CVEs - 已知 CVE</option>
+                        <option value="vulnerabilities" title="nuclei -t vulnerabilities/：一般弱點掃描">Vulnerabilities - 一般弱點</option>
+                        <option value="misconfiguration" title="nuclei -t misconfiguration/：錯誤設定檢測">Misconfig - 錯誤設定</option>
+                        <option value="exposures" title="nuclei -t exposures/：資訊曝露掃描">Exposures - 曝露</option>
+                        <option value="default-logins" title="nuclei -t default-logins/：預設登入帳密檢測">DefaultLogins - 預設登入</option>
                     </optgroup>
                     <optgroup label="Nuclei Web DAST">
-                        <option value="web-sqli">SQL Injection</option>
-                        <option value="web-xss">Cross-Site Scripting (XSS)</option>
-                        <option value="web-lfi">LFI / RFI</option>
-                        <option value="web-ssrf">SSRF</option>
-                        <option value="web-rce">Remote Code Execution</option>
-                        <option value="web-tech">Web Tech Detection</option>
+                        <option value="web-sqli" title="nuclei -tags sqli：SQL 注入弱點檢測">SQL Injection</option>
+                        <option value="web-xss" title="nuclei -tags xss：跨站腳本攻擊檢測">Cross-Site Scripting (XSS)</option>
+                        <option value="web-lfi" title="nuclei -tags lfi,rfi：本地/遠端檔案包含檢測">LFI / RFI</option>
+                        <option value="web-ssrf" title="nuclei -tags ssrf：服務端請求偽造檢測">SSRF</option>
+                        <option value="web-rce" title="nuclei -tags rce：遠端程式碼執行檢測">Remote Code Execution</option>
+                        <option value="web-tech" title="nuclei -tags tech：網頁技術識別">Web Tech Detection</option>
                     </optgroup>
                 </select>
             </div>
