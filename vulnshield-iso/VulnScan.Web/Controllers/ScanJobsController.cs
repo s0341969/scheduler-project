@@ -32,13 +32,15 @@ public sealed class ScanJobsController(
             return View("Index", model);
         }
 
+        var scanType = form.ScanType.Trim();
+        var isAllScan = string.Equals(scanType, "AllScan", StringComparison.OrdinalIgnoreCase);
         var job = new ScanJob
         {
             JobName = form.JobName.Trim(),
             TargetRange = form.TargetRange.Trim(),
-            ScanType = form.ScanType.Trim(),
-            ScanTool = form.ScanTool.Trim(),
-            ScanProfile = string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim(),
+            ScanType = scanType,
+            ScanTool = isAllScan ? "All" : form.ScanTool.Trim(),
+            ScanProfile = isAllScan ? "Deep" : string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim(),
             ScheduleType = string.IsNullOrWhiteSpace(form.ScheduleType) ? null : form.ScheduleType.Trim(),
             ScheduleTime = form.ScheduleTime,
             CronExpression = string.IsNullOrWhiteSpace(form.CronExpression) ? null : form.CronExpression.Trim(),

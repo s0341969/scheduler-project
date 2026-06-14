@@ -84,7 +84,14 @@ public sealed class ScanJobService(
             run.StartTime = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            if (string.Equals(job.ScanTool, "DependencyScanner", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(job.ScanType, "AllScan", StringComparison.OrdinalIgnoreCase))
+            {
+                job.ScanProfile = "Deep";
+                await RunNmapScanAsync(run, job, cancellationToken);
+                job.ScanProfile = "All";
+                await RunNucleiScanAsync(run, job, cancellationToken);
+            }
+            else if (string.Equals(job.ScanTool, "DependencyScanner", StringComparison.OrdinalIgnoreCase))
             {
                 await RunDependencyScanAsync(run, job, cancellationToken);
             }
@@ -222,6 +229,20 @@ public sealed class ScanJobService(
 
     private void ValidateExecutionPrerequisites(ScanJob job)
     {
+        if (string.Equals(job.ScanType, "AllScan", StringComparison.OrdinalIgnoreCase))
+        {
+            var nmapStatus = nmapService.GetInstallationStatus();
+            if (!nmapStatus.IsInstalled)
+                throw new InvalidOperationException(
+                    $"無法執行全部掃描。{nmapStatus.Message} 請先安裝 Nmap，或在系統設定將 `VulnScan:NmapPath` 指到有效的 nmap.exe，確認後再重新執行。");
+
+            if (!nucleiService.IsInstalled())
+                throw new InvalidOperationException(
+                    "無法執行全部掃描。找不到 nuclei.exe。請先在系統 PATH 中安裝 Nuclei 或設定 VulnScan:NucleiPath，確認後再重新執行。");
+
+            return;
+        }
+
         if (string.Equals(job.ScanTool, "DependencyScanner", StringComparison.OrdinalIgnoreCase))
         {
             if (dependencyScanService.IsSupported())

@@ -110,6 +110,7 @@
                     <option value="BaselineScan" title="檢查錯誤設定、弱密碼、資訊曝露等基線安全項目">BaselineScan - 基線安全檢測</option>
                     <option value="VulnerabilityScan" title="針對已知 CVE 弱點進行比對與驗證">VulnerabilityScan - 弱點掃描</option>
                     <option value="WebScan" title="針對 Web 應用層檢測 SQLi、XSS、LFI 等漏洞">WebScan - 網頁應用弱掃</option>
+                    <option value="AllScan" title="依序執行 Nmap 深度掃描 + Nuclei 全模板掃描，涵蓋所有掃描類型">AllScan - 全部掃描</option>
                 </select>
                 <small class="form-text text-muted">分類用途，實際執行行為由下方「掃描強度」決定。</small>
             </div>
@@ -232,6 +233,7 @@
                             "BaselineScan" => "基線安全檢測",
                             "VulnerabilityScan" => "弱點掃描",
                             "WebScan" => "網頁應用弱掃",
+                            "AllScan" => "全部掃描",
                             _ => item.ScanType,
                         })
                         <td>@item.ScanTool</td>
