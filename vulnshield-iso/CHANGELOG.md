@@ -1,7 +1,10 @@
 # Changelog
 
 ## 2026-06-14
-- 新增 `ExceptionMiddleware` 全域例外處理中介層，Dev/Prod 模式皆適用，API 回傳 JSON、MVC 導向錯誤頁
+- 新增 `ExceptionMiddleware` 全域例外處理中介層，Dev 模式重新擲回例外讓開發者錯誤頁顯示詳細資訊，Prod 模式維持既有導向錯誤頁 + API JSON 回傳
+- DeveloperExceptionPage 中介層：Dev 模式啟用，讓未處理例外顯示完整黃色錯誤頁（含堆疊、查詢字串等）
+- 修正 PDF 報表 DocLayoutException：CardStyle 移除與 RelativeItem 衝突的 .Shrink()
+- 修正 PDF 報表掃描執行摘要表格總欄寬超出 A4 直向可用寬度（540 > 531），縮減後為 460pt
 - 任務列表 ScanType 改顯示中文（switch expression）
 - 修正建立任務表單巢狀 form 導致按鈕無反應
 - 新增 AllScan 全部掃描選項（ScanType = "AllScan"），執行時依序跑 Nmap Deep + Nuclei All

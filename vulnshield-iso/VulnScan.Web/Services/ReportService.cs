@@ -189,16 +189,16 @@ public sealed class ReportService(
                         {
                             var scanCols = new (string Header, float Width)[]
                             {
-                                ("RunId", 30),
-                                ("任務名稱", 70),
-                                ("目標", 85),
-                                ("工具", 40),
-                                ("Profile", 55),
-                                ("狀態", 40),
-                                ("開始時間", 80),
-                                ("結束時間", 80),
-                                ("Hosts", 30),
-                                ("Ports", 30),
+                                ("RunId", 26),
+                                ("任務", 56),
+                                ("目標", 74),
+                                ("工具", 36),
+                                ("Profile", 46),
+                                ("狀態", 34),
+                                ("開始", 68),
+                                ("結束", 68),
+                                ("Hosts", 26),
+                                ("Ports", 26),
                             };
 
                             table.ColumnsDefinition(cd =>
@@ -540,7 +540,6 @@ internal static class ReportContainerExtensions
     public static IContainer CardStyle(this IContainer container)
     {
         return container
-            .Shrink()
             .Border(1)
             .BorderColor("#D0DCED")
             .Background("#F5F5F5")

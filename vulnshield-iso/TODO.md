@@ -21,6 +21,8 @@
 
 ## 已完成
 
+- ✅ 修正 ExceptionMiddleware Dev 模式重新擲回例外，加上 DeveloperExceptionPage 中介層，開發者可取得完整錯誤資訊
+- ✅ 修正 PDF 報表 DocLayoutException（CardStyle Shrink + RelativeItem 衝突、掃描摘要表格欄寬超 A4 可用範圍）
 - ✅ `ExceptionMiddleware` 全域例外處理中介層
 - ✅ ScanType 中文顯示（switch expression）
 - ✅ 修正巢狀 form 導致建立任務按鈕無反應

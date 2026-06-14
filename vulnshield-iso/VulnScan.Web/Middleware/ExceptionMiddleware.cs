@@ -26,6 +26,11 @@ public sealed class ExceptionMiddleware
             _logger.LogError(exception, "Unhandled exception occurred. Path: {Path}, Method: {Method}",
                 context.Request.Path, context.Request.Method);
 
+            if (context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment())
+            {
+                throw;
+            }
+
             if (IsApiRequest(context))
             {
                 context.Response.ContentType = "application/json";
@@ -34,9 +39,7 @@ public sealed class ExceptionMiddleware
                 var result = JsonSerializer.Serialize(new
                 {
                     error = "伺服器內部錯誤，請稍後再試。",
-                    detail = context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()
-                        ? exception.Message
-                        : null
+                    detail = exception.Message,
                 });
                 await context.Response.WriteAsync(result);
             }

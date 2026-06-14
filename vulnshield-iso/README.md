@@ -183,7 +183,7 @@ Development 預設 bootstrap 帳號：
 
 本專案已內建以下生產環境基礎建設：
 
-- **全域例外處理中介層**：開發與正式環境皆適用，API 請求回傳 JSON 錯誤、MVC 請求導向錯誤頁
+- **全域例外處理中介層**：Dev 模式顯示開發者詳細錯誤頁（黃色畫面含堆疊），Prod 模式 API 回傳 JSON 錯誤、MVC 導向錯誤頁
 - **Swagger / OpenAPI**：瀏覽 `GET /openapi/v1.json` 取得 API 規格，支援 API 控制器自動產生文件
 - **SignalR 即時通知**：`/hub/notifications` 端點，掃描狀態變更時主動推送到瀏覽器，支援自動重連與 Toast 通知
 - **Rate Limiting**：API 端點每分鐘 100 次請求限制（開發環境 200 次），佇列溢位回傳 429

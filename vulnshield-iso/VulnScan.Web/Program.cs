@@ -154,6 +154,11 @@ using (var scope = app.Services.CreateScope())
     await scanScheduleService.SyncRecurringJobsAsync();
 }
 
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
 app.UseMiddleware<ExceptionMiddleware>();
 
 if (!app.Environment.IsDevelopment())
