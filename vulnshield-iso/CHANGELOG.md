@@ -2,6 +2,15 @@
 
 ## 2026-06-14
 - 新增 `ExceptionMiddleware` 全域例外處理中介層，Dev/Prod 模式皆適用，API 回傳 JSON、MVC 導向錯誤頁
+- 任務列表 ScanType 改顯示中文（switch expression）
+- 修正建立任務表單巢狀 form 導致按鈕無反應
+- 新增 AllScan 全部掃描選項（ScanType = "AllScan"），執行時依序跑 Nmap Deep + Nuclei All
+- RunNmapScanAsync / RunNucleiScanAsync 改為可選 profileOverride 參數，避免誤存 ScanJob.ScanProfile
+- 修正 Edit POST 未處理 AllScan（自動設 ScanTool="All"、ScanProfile="Deep"）
+- RunNucleiScanAsync 加入 File.Exists 檢查，避免解析不存在的 JSON
+- 修復 DB 中 RunId=13 卡在 Running 的異常紀錄（EndTime 早於 StartTime）
+- 強化 PdfFontResolver：新增字型快取、分離 Regular/Bold 字型名稱、擴充字型候選清單（msyh.ttc / msyhbd.ttc / simsun.ttc 優先）、強化 TTC 擷取邏輯（正確計算字型範圍）
+- 更新 README.md 與 TODO.md 同步
 - 新增 `Swagger / OpenAPI` 支援：`AddOpenApi()` + `MapOpenApi()`，提供 API 端點自動文件
 - 新增 `SignalR` 即時通知：`NotificationHub` 於 `/hub/notifications`，掃描狀態變更時主動推播 Toast 通知
 - 新增 `Rate Limiting`：API 端點固定窗口限流（每分鐘 100 次），溢位回傳 429
