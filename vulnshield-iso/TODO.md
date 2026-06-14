@@ -26,7 +26,7 @@
 - ✅ 修正巢狀 form 導致建立任務按鈕無反應
 - ✅ 新增 AllScan 全部掃描選項
 - ✅ 修正 AllScan 編輯與執行流程
-- ✅ 強化 PdfFontResolver（字型快取、分離 Regular/Bold、擴充字型候選清單）
+- ✅ 替換 PdfSharpCore 為 QuestPDF，解決 PDF 報表 CJK 亂碼
 - ✅ `Swagger / OpenAPI` 支援
 - ✅ `SignalR` 即時通知（掃描完成 Toast）
 - ✅ `Rate Limiting` API 限流

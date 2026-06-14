@@ -1,8 +1,9 @@
 using ClosedXML.Excel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using PdfSharpCore.Drawing;
-using PdfSharpCore.Pdf;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 using VulnScan.Web.Data;
 using VulnScan.Web.Models;
 
@@ -13,6 +14,8 @@ public sealed class ReportService(
     IAuditLogService auditLogService,
     IOptions<VulnScanOptions> options) : IReportService
 {
+    private const string FontName = "Microsoft YaHei";
+
     private readonly VulnScanOptions _options = options.Value;
 
     public async Task<string> ExportVulnerabilityExcelAsync(DateTime start, DateTime end, CancellationToken cancellationToken = default)
@@ -88,94 +91,242 @@ public sealed class ReportService(
     {
         var filePath = BuildReportPath("iso27001-summary", "pdf");
         var items = await QueryVulnerabilitiesAsync(start, end, cancellationToken);
-        var document = new PdfDocument();
-        document.Info.Title = "VulnScan 弱點管理報告";
-        document.Info.Author = "VulnScan.Web";
-
-        var titleFont = new XFont(PdfFontResolver.DefaultFontName, 22, XFontStyle.Bold);
-        var subtitleFont = new XFont(PdfFontResolver.DefaultFontName, 14, XFontStyle.Regular);
-        var headerFont = new XFont(PdfFontResolver.DefaultFontName, 10, XFontStyle.Bold);
-        var bodyFont = new XFont(PdfFontResolver.DefaultFontName, 9, XFontStyle.Regular);
-        var smallFont = new XFont(PdfFontResolver.DefaultFontName, 8, XFontStyle.Regular);
-
         var now = DateTime.UtcNow.ToLocalTime();
-        var pageCount = 0;
 
-        // ---------- Cover Page ----------
-        pageCount++;
-        var coverPage = document.AddPage();
-        coverPage.Size = PdfSharpCore.PageSize.A4;
-        coverPage.Orientation = PdfSharpCore.PageOrientation.Portrait;
-        var coverGraphics = XGraphics.FromPdfPage(coverPage);
-        DrawCoverPage(coverGraphics, coverPage, start, end, now);
+        var vulnerabilityCount = items.Count;
+        var highRiskCount = items.Count(item => item.Severity is "Critical" or "High");
+        var assetsCount = items.Select(item => item.AssetId).Distinct().Count();
 
-        // ---------- Summary Page ----------
-        pageCount++;
-        var summaryPage = document.AddPage();
-        summaryPage.Size = PdfSharpCore.PageSize.A4;
-        summaryPage.Orientation = PdfSharpCore.PageOrientation.Portrait;
-        var summaryGraphics = XGraphics.FromPdfPage(summaryPage);
-        var summaryY = DrawSummaryPage(summaryGraphics, summaryPage, items, pageCount);
-        DrawFooter(summaryGraphics, summaryPage, now, pageCount);
+        var pageNumber = 0;
 
-        // ---------- Detail Table ----------
-        var columns = new (string Header, double Width)[]
+        Document.Create(container =>
         {
-            ("資產", 90),
-            ("IP", 90),
-            ("弱點名稱", 185),
-            ("Severity", 60),
-            ("CVSS", 45),
-            ("軟體版本", 90),
-            ("特徵碼版本", 95),
-            ("最後發現", 90),
-        };
+            var orderedItems = items.OrderByDescending(item => item.LastDetectedAt).ToList();
 
-        var detailPage = document.AddPage();
-        detailPage.Size = PdfSharpCore.PageSize.A4;
-        detailPage.Orientation = PdfSharpCore.PageOrientation.Landscape;
-        var detailGraphics = XGraphics.FromPdfPage(detailPage);
-        var margin = 32d;
-        var y = margin;
-
-        detailGraphics.DrawString("弱點明細", titleFont, XBrushes.Black, new XRect(margin, y, detailPage.Width - margin * 2, 28), XStringFormats.TopLeft);
-        y += 30;
-
-        DrawTableHeader(detailGraphics, headerFont, margin, y, columns);
-        y += 20;
-
-        foreach (var item in items.OrderByDescending(item => item.LastDetectedAt))
-        {
-            if (y > detailPage.Height - 48)
+            // ---------- Cover Page ----------
+            pageNumber++;
+            container.Page(page =>
             {
-                DrawFooter(detailGraphics, detailPage, now, pageCount);
-                pageCount++;
-                detailPage = document.AddPage();
-                detailPage.Size = PdfSharpCore.PageSize.A4;
-                detailPage.Orientation = PdfSharpCore.PageOrientation.Landscape;
-                detailGraphics = XGraphics.FromPdfPage(detailPage);
-                y = margin + 10;
-                DrawTableHeader(detailGraphics, headerFont, margin, y, columns);
-                y += 20;
-            }
+                page.Size(PageSizes.A4);
+                page.Margin(48);
+                page.DefaultTextStyle(x => x.FontFamily(FontName).FontSize(11));
 
-            DrawTableRow(detailGraphics, bodyFont, smallFont, margin, y, columns, new[]
-            {
-                item.Asset?.AssetName ?? "-",
-                item.IPAddress ?? "-",
-                item.VulnName,
-                item.Severity ?? "-",
-                item.CVSS?.ToString("0.0") ?? "-",
-                item.DetectedVersion ?? item.ServiceName ?? "-",
-                item.SignatureVersion ?? "-",
-                item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd"),
+                page.Content().Column(col =>
+                {
+            col.Item().Height(170);
+
+            col.Item().AlignCenter().Text("弱點管理報告")
+                        .FontSize(28).Bold().FontColor("#2980B9");
+                    col.Item().AlignCenter().Text("Vulnerability Management Report")
+                        .FontSize(16).FontColor(Colors.Grey.Darken3);
+
+                    col.Item().Height(30);
+                    col.Item().Background("#2980B9").Height(4).ExtendHorizontal();
+
+                    col.Item().Height(40);
+                    col.Item().Text($"報表期間：{start:yyyy-MM-dd} 至 {end:yyyy-MM-dd}");
+                    col.Item().Text($"產出時間：{now:yyyy-MM-dd HH:mm:ss}");
+
+                    col.Item().PaddingTop(120);
+                    col.Item().AlignCenter().Text("ISO/IEC 27001 資訊安全管理系統")
+                        .FontColor(Colors.Grey.Darken3);
+                    col.Item().AlignCenter().Text("VulnScan.Web")
+                        .FontSize(10).FontColor(Colors.Grey.Medium);
+                });
             });
-            y += 18;
-        }
 
-        DrawFooter(detailGraphics, detailPage, now, pageCount);
+            // ---------- Summary Page ----------
+            pageNumber++;
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(32);
+                page.DefaultTextStyle(x => x.FontFamily(FontName));
 
-        document.Save(filePath);
+                page.Content().Column(col =>
+                {
+                    col.Item().Text("摘要統計").FontSize(18).Bold();
+                    col.Item().Height(16);
+
+                    col.Item().Row(row =>
+                    {
+                        row.RelativeItem().CardStyle()
+                            .Column(card =>
+                            {
+                                card.Item().Text("弱點總數").FontSize(9).FontColor(Colors.Grey.Darken3);
+                                card.Item().Text(vulnerabilityCount.ToString()).FontSize(16).Bold();
+                            });
+                        row.ConstantItem(8);
+                        row.RelativeItem().CardStyle()
+                            .Column(card =>
+                            {
+                                card.Item().Text("高風險弱點").FontSize(9).FontColor(Colors.Grey.Darken3);
+                                card.Item().Text(highRiskCount.ToString()).FontSize(16).Bold();
+                            });
+                        row.ConstantItem(8);
+                        row.RelativeItem().CardStyle()
+                            .Column(card =>
+                            {
+                                card.Item().Text("受影響資產").FontSize(9).FontColor(Colors.Grey.Darken3);
+                                card.Item().Text(assetsCount.ToString()).FontSize(16).Bold();
+                            });
+                    });
+
+                    col.Item().Height(20);
+
+                    // --- Severity Distribution ---
+                    col.Item().Text("風險等級分佈").FontSize(10).Bold();
+                    col.Item().Height(8);
+
+                    var severityOrder = new[] { "Critical", "High", "Medium", "Low", "Info" };
+                    var severityColors = new Dictionary<string, string>
+                    {
+                        ["Critical"] = "#C0392B",
+                        ["High"] = "#E74C3C",
+                        ["Medium"] = "#F39C12",
+                        ["Low"] = "#2ECC71",
+                        ["Info"] = "#95A5A6",
+                    };
+
+                    foreach (var severity in severityOrder)
+                    {
+                        var count = items.Count(item => item.Severity == severity);
+                        var barRatio = vulnerabilityCount > 0 ? (double)count / vulnerabilityCount : 0;
+
+                        col.Item().Row(row =>
+                        {
+                            row.ConstantItem(60).Text(severity).FontSize(9);
+                            row.RelativeItem().AlignLeft().Background(severityColors[severity])
+                                .Width((float)(barRatio * 300)).Height(12);
+                            row.ConstantItem(40).PaddingLeft(4).Text(count.ToString()).FontSize(9);
+                        });
+                        col.Item().Height(2);
+                    }
+
+                    col.Item().Height(12);
+
+                    // --- Status Distribution ---
+                    col.Item().Text("處理狀態分佈").FontSize(10).Bold();
+                    col.Item().Height(8);
+
+                    var statusGroups = items.GroupBy(item => item.Status ?? "未處理")
+                        .OrderByDescending(g => g.Count());
+                    foreach (var group in statusGroups)
+                    {
+                        var count = group.Count();
+                        var barRatio = vulnerabilityCount > 0 ? (double)count / vulnerabilityCount : 0;
+
+                        col.Item().Row(row =>
+                        {
+                            row.ConstantItem(60).Text(group.Key).FontSize(9);
+                            row.RelativeItem().AlignLeft().Background("#3498DB")
+                                .Width((float)(barRatio * 300)).Height(12);
+                            row.ConstantItem(40).PaddingLeft(4).Text(count.ToString()).FontSize(9);
+                        });
+                        col.Item().Height(2);
+                    }
+
+                    col.Item().Height(12);
+
+                    // --- Top Affected Assets ---
+                    col.Item().Text("前十大受影響資產").FontSize(10).Bold();
+                    col.Item().Height(8);
+
+                    var topAssets = items.Where(item => item.Asset != null)
+                        .GroupBy(item => item.Asset!.AssetName)
+                        .OrderByDescending(g => g.Count())
+                        .Take(10);
+
+                    foreach (var group in topAssets)
+                    {
+                        col.Item().Row(row =>
+                        {
+                            row.RelativeItem().Text(group.Key).FontSize(9);
+                            row.ConstantItem(50).Text(group.Count().ToString()).FontSize(9);
+                        });
+                        col.Item().Height(2);
+                    }
+                });
+
+                page.Footer().AlignCenter().Text($"VulnScan.Web | {now:yyyy-MM-dd HH:mm} | 第 {pageNumber} 頁")
+                    .FontSize(7).FontColor(Colors.Grey.Medium);
+            });
+
+            // ---------- Detail Table ----------
+            pageNumber++;
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(32);
+                page.DefaultTextStyle(x => x.FontFamily(FontName));
+
+                page.Content().Column(col =>
+                {
+                    col.Item().Text("弱點明細").FontSize(18).Bold();
+                    col.Item().Height(12);
+
+                    col.Item().Table(table =>
+                    {
+                        var columns = new (string Header, float Width)[]
+                        {
+                            ("資產", 55),
+                            ("IP", 65),
+                            ("弱點名稱", 200),
+                            ("Severity", 55),
+                            ("CVSS", 40),
+                            ("軟體版本", 70),
+                            ("特徵碼版本", 70),
+                            ("最後發現", 70),
+                        };
+
+                        table.ColumnsDefinition(columnsDef =>
+                        {
+                            foreach (var (_, w) in columns)
+                                columnsDef.ConstantColumn(w);
+                        });
+
+                        table.Header(header =>
+                        {
+                            foreach (var (name, _) in columns)
+                            {
+                                header.Cell()
+                                    .Background(Colors.Grey.Lighten2)
+                                    .Padding(4)
+                                    .Text(name).FontSize(9).Bold();
+                            }
+                        });
+
+                        var borderColor = "#DCE1EB";
+                        foreach (var item in orderedItems)
+                        {
+                            var values = new[]
+                            {
+                                item.Asset?.AssetName ?? "-",
+                                item.IPAddress ?? "-",
+                                item.VulnName,
+                                item.Severity ?? "-",
+                                item.CVSS?.ToString("0.0") ?? "-",
+                                item.DetectedVersion ?? item.ServiceName ?? "-",
+                                item.SignatureVersion ?? "-",
+                                item.LastDetectedAt.ToLocalTime().ToString("yyyy-MM-dd"),
+                            };
+
+                            foreach (var value in values)
+                            {
+                                table.Cell()
+                                    .Border(0.5f).BorderColor(borderColor)
+                                    .Padding(3)
+                                    .Text(value).FontSize(8);
+                            }
+                        }
+                    });
+                });
+
+                page.Footer().AlignCenter().Text($"VulnScan.Web | {now:yyyy-MM-dd HH:mm} | 第 {pageNumber} 頁")
+                    .FontSize(7).FontColor(Colors.Grey.Medium);
+            });
+        }).GeneratePdf(filePath);
+
         await SaveExportRecordAsync("ISO27001 弱點管理 PDF", "PDF", filePath, cancellationToken);
         return filePath;
     }
@@ -208,168 +359,17 @@ public sealed class ReportService(
             .Where(item => item.FirstDetectedAt >= start && item.FirstDetectedAt <= end)
             .ToListAsync(cancellationToken);
     }
+}
 
-    private static void DrawCoverPage(XGraphics graphics, PdfPage page, DateTime start, DateTime end, DateTime now)
+internal static class ReportContainerExtensions
+{
+    public static IContainer CardStyle(this IContainer container)
     {
-        var margin = 48d;
-        var centerX = page.Width / 2;
-
-        graphics.DrawRectangle(new XPen(XColor.FromArgb(52, 73, 94), 0), XBrushes.White, 0, 0, page.Width, page.Height);
-
-        var accentColor = XColor.FromArgb(41, 128, 185);
-        graphics.DrawRectangle(new XSolidBrush(accentColor), 0, page.Height * 0.35, page.Width, 4);
-
-        var titleFont = new XFont(PdfFontResolver.DefaultFontName, 28, XFontStyle.Bold);
-        var subtitleFont = new XFont(PdfFontResolver.DefaultFontName, 16, XFontStyle.Regular);
-        var infoFont = new XFont(PdfFontResolver.DefaultFontName, 11, XFontStyle.Regular);
-
-        graphics.DrawString("弱點管理報告", titleFont, new XSolidBrush(accentColor), new XRect(margin, page.Height * 0.20, page.Width - margin * 2, 40), XStringFormats.TopCenter);
-        graphics.DrawString("Vulnerability Management Report", subtitleFont, XBrushes.DimGray, new XRect(margin, page.Height * 0.20 + 44, page.Width - margin * 2, 24), XStringFormats.TopCenter);
-
-        graphics.DrawRectangle(new XSolidBrush(accentColor), 0, page.Height * 0.35, page.Width, 4);
-
-        graphics.DrawString($"報表期間：{start:yyyy-MM-dd} 至 {end:yyyy-MM-dd}", infoFont, XBrushes.Black, new XRect(margin, page.Height * 0.42, 300, 20), XStringFormats.TopLeft);
-        graphics.DrawString($"產出時間：{now:yyyy-MM-dd HH:mm:ss}", infoFont, XBrushes.Black, new XRect(margin, page.Height * 0.42 + 24, 300, 20), XStringFormats.TopLeft);
-
-        graphics.DrawString("ISO/IEC 27001 資訊安全管理系統", infoFont, XBrushes.DimGray, new XRect(margin, page.Height * 0.70, page.Width - margin * 2, 20), XStringFormats.TopCenter);
-        graphics.DrawString("VulnScan.Web", new XFont(PdfFontResolver.DefaultFontName, 10, XFontStyle.Regular), XBrushes.Gray, new XRect(margin, page.Height * 0.70 + 20, page.Width - margin * 2, 20), XStringFormats.TopCenter);
-    }
-
-    private static double DrawSummaryPage(XGraphics graphics, PdfPage page, IReadOnlyList<Vulnerability> items, int pageNumber)
-    {
-        var margin = 32d;
-        var y = margin;
-        var titleFont = new XFont(PdfFontResolver.DefaultFontName, 18, XFontStyle.Bold);
-        var headerFont = new XFont(PdfFontResolver.DefaultFontName, 10, XFontStyle.Bold);
-        var bodyFont = new XFont(PdfFontResolver.DefaultFontName, 9, XFontStyle.Regular);
-
-        graphics.DrawString("摘要統計", titleFont, XBrushes.Black, new XRect(margin, y, page.Width - margin * 2, 28), XStringFormats.TopLeft);
-        y += 32;
-
-        var vulnerabilityCount = items.Count;
-        var highRiskCount = items.Count(item => item.Severity is "Critical" or "High");
-        var assetsCount = items.Select(item => item.AssetId).Distinct().Count();
-        DrawSummaryCard(graphics, margin, y, (page.Width - margin * 2 - 16) / 3, 58, "弱點總數", vulnerabilityCount.ToString());
-        DrawSummaryCard(graphics, margin + (page.Width - margin * 2 - 16) / 3 + 8, y, (page.Width - margin * 2 - 16) / 3, 58, "高風險弱點", highRiskCount.ToString());
-        DrawSummaryCard(graphics, margin + (page.Width - margin * 2 - 16) / 3 * 2 + 16, y, (page.Width - margin * 2 - 16) / 3, 58, "受影響資產", assetsCount.ToString());
-        y += 72;
-
-        // --- Severity Distribution ---
-        graphics.DrawString("風險等級分佈", headerFont, XBrushes.Black, new XRect(margin, y, 200, 20), XStringFormats.TopLeft);
-        y += 24;
-
-        var severityOrder = new[] { "Critical", "High", "Medium", "Low", "Info" };
-        var severityColors = new Dictionary<string, XColor>
-        {
-            ["Critical"] = XColor.FromArgb(192, 57, 43),
-            ["High"] = XColor.FromArgb(231, 76, 60),
-            ["Medium"] = XColor.FromArgb(243, 156, 18),
-            ["Low"] = XColor.FromArgb(46, 204, 113),
-            ["Info"] = XColor.FromArgb(149, 165, 166),
-        };
-
-        foreach (var severity in severityOrder)
-        {
-            var count = items.Count(item => item.Severity == severity);
-            var barWidth = vulnerabilityCount > 0 ? (double)count / vulnerabilityCount * 300 : 0;
-            var color = severityColors.GetValueOrDefault(severity, XColor.FromArgb(149, 165, 166));
-
-            graphics.DrawString(severity, bodyFont, XBrushes.Black, new XRect(margin, y, 60, 16), XStringFormats.TopLeft);
-            graphics.DrawRectangle(new XSolidBrush(color), margin + 64, y + 2, barWidth, 12);
-            graphics.DrawString(count.ToString(), bodyFont, XBrushes.Black, new XRect(margin + 370, y, 40, 16), XStringFormats.TopLeft);
-            y += 18;
-        }
-
-        y += 12;
-
-        // --- Status Distribution ---
-        graphics.DrawString("處理狀態分佈", headerFont, XBrushes.Black, new XRect(margin, y, 200, 20), XStringFormats.TopLeft);
-        y += 24;
-
-        var statusGroups = items.GroupBy(item => item.Status ?? "未處理")
-            .OrderByDescending(g => g.Count());
-        foreach (var group in statusGroups)
-        {
-            var count = group.Count();
-            var barWidth = vulnerabilityCount > 0 ? (double)count / vulnerabilityCount * 300 : 0;
-            graphics.DrawString(group.Key, bodyFont, XBrushes.Black, new XRect(margin, y, 60, 16), XStringFormats.TopLeft);
-            graphics.DrawRectangle(new XSolidBrush(XColor.FromArgb(52, 152, 219)), margin + 64, y + 2, barWidth, 12);
-            graphics.DrawString(count.ToString(), bodyFont, XBrushes.Black, new XRect(margin + 370, y, 40, 16), XStringFormats.TopLeft);
-            y += 18;
-        }
-
-        y += 12;
-
-        // --- Top Affected Assets ---
-        graphics.DrawString("前十大受影響資產", headerFont, XBrushes.Black, new XRect(margin, y, 200, 20), XStringFormats.TopLeft);
-        y += 24;
-
-        var topAssets = items.Where(item => item.Asset != null)
-            .GroupBy(item => item.Asset!.AssetName)
-            .OrderByDescending(g => g.Count())
-            .Take(10);
-
-        foreach (var group in topAssets)
-        {
-            graphics.DrawString(group.Key, bodyFont, XBrushes.Black, new XRect(margin, y, 200, 16), XStringFormats.TopLeft);
-            graphics.DrawString(group.Count().ToString(), bodyFont, XBrushes.Black, new XRect(margin + 280, y, 40, 16), XStringFormats.TopLeft);
-            y += 18;
-        }
-
-        return y;
-    }
-
-    private static void DrawFooter(XGraphics graphics, PdfPage page, DateTime now, int pageNumber)
-    {
-        var footerFont = new XFont(PdfFontResolver.DefaultFontName, 7, XFontStyle.Regular);
-        var footerY = page.Height - 20;
-        graphics.DrawString($"VulnScan.Web | {now:yyyy-MM-dd HH:mm}", footerFont, XBrushes.Gray, new XRect(32, footerY, 300, 12), XStringFormats.TopLeft);
-        graphics.DrawString($"第 {pageNumber} 頁", footerFont, XBrushes.Gray, new XRect(page.Width - 100, footerY, 64, 12), XStringFormats.TopRight);
-    }
-
-    private static void DrawSummaryCard(XGraphics graphics, double x, double y, double width, double height, string label, string value)
-    {
-        graphics.DrawRoundedRectangle(new XPen(XColor.FromArgb(208, 220, 235), 1), XBrushes.WhiteSmoke, x, y, width, height, 10, 10);
-        graphics.DrawString(label, new XFont(PdfFontResolver.DefaultFontName, 9, XFontStyle.Regular), XBrushes.DimGray, new XRect(x + 12, y + 10, width - 24, 16), XStringFormats.TopLeft);
-        graphics.DrawString(value, new XFont(PdfFontResolver.DefaultFontName, 16, XFontStyle.Bold), XBrushes.Black, new XRect(x + 12, y + 24, width - 24, 24), XStringFormats.TopLeft);
-    }
-
-    private static void DrawTableHeader(XGraphics graphics, XFont font, double x, double y, IReadOnlyList<(string Header, double Width)> columns)
-    {
-        var currentX = x;
-        foreach (var column in columns)
-        {
-            graphics.DrawRectangle(XBrushes.LightGray, currentX, y, column.Width, 18);
-            graphics.DrawString(column.Header, font, XBrushes.Black, new XRect(currentX + 4, y + 3, column.Width - 8, 12), XStringFormats.TopLeft);
-            currentX += column.Width;
-        }
-    }
-
-    private static void DrawTableRow(XGraphics graphics, XFont font, XFont smallFont, double x, double y, IReadOnlyList<(string Header, double Width)> columns, IReadOnlyList<string> values)
-    {
-        var currentX = x;
-        for (var index = 0; index < columns.Count; index += 1)
-        {
-            var column = columns[index];
-            var value = index < values.Count ? values[index] : string.Empty;
-            graphics.DrawRectangle(new XPen(XColor.FromArgb(220, 226, 235), 0.6), currentX, y, column.Width, 18);
-            graphics.DrawString(
-                TrimForCell(value, column.Width > 120 ? 40 : 20),
-                column.Width > 100 ? smallFont : font,
-                XBrushes.Black,
-                new XRect(currentX + 3, y + 3, column.Width - 6, 12),
-                XStringFormats.TopLeft);
-            currentX += column.Width;
-        }
-    }
-
-    private static string TrimForCell(string value, int maxLength)
-    {
-        if (string.IsNullOrWhiteSpace(value) || value.Length <= maxLength)
-        {
-            return value;
-        }
-
-        return value[..Math.Max(0, maxLength - 1)] + "…";
+        return container
+            .Shrink()
+            .Border(1)
+            .BorderColor("#D0DCED")
+            .Background("#F5F5F5")
+            .Padding(12);
     }
 }

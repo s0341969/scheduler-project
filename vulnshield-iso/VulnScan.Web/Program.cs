@@ -9,9 +9,9 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Data.SqlClient;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using PdfSharpCore.Fonts;
 using VulnScan.Web.Data;
 using VulnScan.Web.Hubs;
+using QuestPDF.Infrastructure;
 using VulnScan.Web.Middleware;
 using VulnScan.Web.Models;
 using VulnScan.Web.Services;
@@ -22,7 +22,7 @@ var defaultConnectionString = ResolveConnectionString(builder.Configuration, bui
 var dataProtectionKeysPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys");
 
 Directory.CreateDirectory(dataProtectionKeysPath);
-GlobalFontSettings.FontResolver ??= new PdfFontResolver();
+QuestPDF.Settings.License = LicenseType.Community;
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();

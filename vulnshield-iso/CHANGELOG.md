@@ -9,7 +9,7 @@
 - 修正 Edit POST 未處理 AllScan（自動設 ScanTool="All"、ScanProfile="Deep"）
 - RunNucleiScanAsync 加入 File.Exists 檢查，避免解析不存在的 JSON
 - 修復 DB 中 RunId=13 卡在 Running 的異常紀錄（EndTime 早於 StartTime）
-- 強化 PdfFontResolver：新增字型快取、分離 Regular/Bold 字型名稱、擴充字型候選清單（msyh.ttc / msyhbd.ttc / simsun.ttc 優先）、強化 TTC 擷取邏輯（正確計算字型範圍）
+- 替換 PdfSharpCore 為 QuestPDF：移除 PdfFontResolver，改以 QuestPDF 產生 PDF 報表，徹底解決 CJK 字型亂碼問題
 - 更新 README.md 與 TODO.md 同步
 - 新增 `Swagger / OpenAPI` 支援：`AddOpenApi()` + `MapOpenApi()`，提供 API 端點自動文件
 - 新增 `SignalR` 即時通知：`NotificationHub` 於 `/hub/notifications`，掃描狀態變更時主動推播 Toast 通知
