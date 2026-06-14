@@ -97,10 +97,24 @@
                 <input asp-for="Form.JobName" class="form-control" />
                 <span asp-validation-for="Form.JobName" class="text-danger"></span>
             </div>
-            <div>
-                <label asp-for="Form.TargetRange" class="form-label"></label>
-                <input asp-for="Form.TargetRange" class="form-control" />
-                <span asp-validation-for="Form.TargetRange" class="text-danger"></span>
+            <div class="full-width">
+                <label class="form-label">選取資產</label>
+                <div class="asset-checkbox-grid">
+                    @for (var i = 0; i < Model.AvailableAssets.Count; i++)
+                    {
+                        var asset = Model.AvailableAssets[i];
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="Form.SelectedAssetIds" value="@asset.AssetId"
+                                   @(Model.Form.SelectedAssetIds.Contains(asset.AssetId) ? "checked" : "") />
+                            @asset.AssetName (@asset.IPAddress)
+                        </label>
+                    }
+                </div>
+                @if (Model.AvailableAssets.Count == 0)
+                {
+                    <p class="text-muted small">尚無可用資產，請先前往<a asp-controller="Assets" asp-action="Index">資產清冊</a>新增資產。</p>
+                }
+                <span asp-validation-for="Form.SelectedAssetIds" class="text-danger"></span>
             </div>
             <div>
                 <label asp-for="Form.ScanType" class="form-label">掃描類型</label>

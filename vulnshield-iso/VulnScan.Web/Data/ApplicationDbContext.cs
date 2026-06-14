@@ -31,6 +31,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
     public DbSet<WebhookSetting> WebhookSettings => Set<WebhookSetting>();
 
+    public DbSet<ScanJobAsset> ScanJobAssets => Set<ScanJobAsset>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -74,5 +76,21 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
             .WithMany(item => item.Actions)
             .HasForeignKey(item => item.VulnId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ScanJobAsset>()
+            .HasOne(item => item.ScanJob)
+            .WithMany(item => item.ScanJobAssets)
+            .HasForeignKey(item => item.ScanJobId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ScanJobAsset>()
+            .HasOne(item => item.Asset)
+            .WithMany(item => item.ScanJobAssets)
+            .HasForeignKey(item => item.AssetId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ScanJobAsset>()
+            .HasIndex(item => new { item.ScanJobId, item.AssetId })
+            .IsUnique();
     }
 }

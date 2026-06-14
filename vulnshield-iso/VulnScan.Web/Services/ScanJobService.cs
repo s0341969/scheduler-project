@@ -41,14 +41,34 @@ public sealed class ScanJobService(
 
     public bool IsNucleiInstalled() => nucleiService.IsInstalled();
 
+    private static string ResolveTargets(ScanJob job)
+    {
+        if (job.ScanJobAssets is { Count: > 0 })
+        {
+            var ips = job.ScanJobAssets
+                .Select(sja => sja.Asset?.IPAddress)
+                .Where(ip => !string.IsNullOrWhiteSpace(ip))
+                .Distinct()
+                .ToList();
+            return ips.Count > 0 ? string.Join(" ", ips) : job.TargetRange;
+        }
+
+        return job.TargetRange;
+    }
+
     public async Task<int> CreateRunAsync(int jobId, string userAccount, CancellationToken cancellationToken = default)
     {
-        var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == jobId, cancellationToken)
+        var job = await dbContext.ScanJobs
+            .Include(item => item.ScanJobAssets)
+            .ThenInclude(sja => sja.Asset)
+            .FirstOrDefaultAsync(item => item.JobId == jobId, cancellationToken)
                   ?? throw new InvalidOperationException($"找不到掃描任務 {jobId}。");
 
-        if (!await scanAllowedRangeService.IsTargetAllowedAsync(job.TargetRange, cancellationToken))
+        var targets = ResolveTargets(job);
+
+        if (!await scanAllowedRangeService.IsTargetAllowedAsync(targets, cancellationToken))
         {
-            throw new InvalidOperationException($"Target `{job.TargetRange}` 不在白名單內。");
+            throw new InvalidOperationException($"Target `{targets}` 不在白名單內。");
         }
 
         ValidateExecutionPrerequisites(job);
@@ -74,7 +94,11 @@ public sealed class ScanJobService(
 
     public async Task RunScanAsync(int runId, CancellationToken cancellationToken = default)
     {
-        var run = await dbContext.ScanRuns.Include(item => item.ScanJob).FirstOrDefaultAsync(item => item.RunId == runId, cancellationToken)
+        var run = await dbContext.ScanRuns
+            .Include(item => item.ScanJob)
+            .ThenInclude(j => j.ScanJobAssets)
+            .ThenInclude(sja => sja.Asset)
+            .FirstOrDefaultAsync(item => item.RunId == runId, cancellationToken)
                   ?? throw new InvalidOperationException($"找不到 ScanRun {runId}。");
         var job = run.ScanJob ?? throw new InvalidOperationException($"ScanRun {runId} 缺少 ScanJob。");
 
@@ -192,20 +216,22 @@ public sealed class ScanJobService(
 
     private async Task RunNmapScanAsync(ScanRun run, ScanJob job, string? profileOverride = null, CancellationToken cancellationToken = default)
     {
+        var targets = ResolveTargets(job);
         var profile = profileOverride ?? job.ScanProfile ?? "Standard";
         var outputPath = Path.Combine(_options.ResultRootPath, $"run-{run.RunId}.xml");
-        var xmlPath = await nmapService.RunNmapAsync(job.TargetRange, outputPath, profile, cancellationToken);
+        var xmlPath = await nmapService.RunNmapAsync(targets, outputPath, profile, cancellationToken);
         await nmapXmlParserService.ParseAndSaveAsync(run.RunId, xmlPath, cancellationToken);
         run.RawResultPath = xmlPath;
     }
 
     private async Task RunNucleiScanAsync(ScanRun run, ScanJob job, string? profileOverride = null, CancellationToken cancellationToken = default)
     {
+        var targets = ResolveTargets(job);
         var useProfile = profileOverride ?? job.ScanProfile ?? "All";
         var profile = ScanProfileDefinition.Get(useProfile);
         var outputPath = Path.Combine(_options.ResultRootPath, $"nuclei-run-{run.RunId}.json");
         var jsonPath = await nucleiService.RunNucleiAsync(
-            job.TargetRange, outputPath, useProfile,
+            targets, outputPath, useProfile,
             profile?.CliFlag, profile?.CliValue, cancellationToken);
 
         if (!System.IO.File.Exists(jsonPath))

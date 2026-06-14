@@ -37,7 +37,7 @@ public sealed class ScanJobsController(
         var job = new ScanJob
         {
             JobName = form.JobName.Trim(),
-            TargetRange = form.TargetRange.Trim(),
+            TargetRange = ResolveTargetRange(form),
             ScanType = scanType,
             ScanTool = isAllScan ? "All" : form.ScanTool.Trim(),
             ScanProfile = isAllScan ? "Deep" : string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim(),
@@ -51,6 +51,8 @@ public sealed class ScanJobsController(
 
         dbContext.ScanJobs.Add(job);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await SyncScanJobAssetsAsync(job.JobId, form.SelectedAssetIds, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(job.CronExpression) && job.IsEnabled)
         {
@@ -130,7 +132,9 @@ public sealed class ScanJobsController(
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken cancellationToken)
     {
-        var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
+        var job = await dbContext.ScanJobs
+            .Include(item => item.ScanJobAssets)
+            .FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
         if (job is null)
         {
             return NotFound();
@@ -141,6 +145,7 @@ public sealed class ScanJobsController(
             JobId = job.JobId,
             JobName = job.JobName,
             TargetRange = job.TargetRange,
+            SelectedAssetIds = job.ScanJobAssets.Select(sja => sja.AssetId).ToList(),
             ScanType = job.ScanType,
             ScanTool = string.IsNullOrWhiteSpace(job.ScanTool) ? "Nmap" : job.ScanTool,
             ScanProfile = job.ScanProfile,
@@ -162,10 +167,14 @@ public sealed class ScanJobsController(
 
         if (!ModelState.IsValid)
         {
+            var availableAssets = await dbContext.Assets.Where(a => a.IsActive).OrderBy(a => a.AssetName).ToListAsync(cancellationToken);
+            ViewBag.AvailableAssets = availableAssets;
             return View(form);
         }
 
-        var job = await dbContext.ScanJobs.FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
+        var job = await dbContext.ScanJobs
+            .Include(item => item.ScanJobAssets)
+            .FirstOrDefaultAsync(item => item.JobId == id, cancellationToken);
         if (job is null)
         {
             return NotFound();
@@ -174,7 +183,7 @@ public sealed class ScanJobsController(
         var editScanType = form.ScanType.Trim();
         var editIsAllScan = string.Equals(editScanType, "AllScan", StringComparison.OrdinalIgnoreCase);
         job.JobName = form.JobName.Trim();
-        job.TargetRange = form.TargetRange.Trim();
+        job.TargetRange = ResolveTargetRange(form);
         job.ScanType = editScanType;
         job.ScanTool = editIsAllScan ? "All" : form.ScanTool.Trim();
         job.ScanProfile = editIsAllScan ? "Deep" : string.IsNullOrWhiteSpace(form.ScanProfile) ? "Normal" : form.ScanProfile.Trim();
@@ -185,6 +194,7 @@ public sealed class ScanJobsController(
         job.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+        await SyncScanJobAssetsAsync(job.JobId, form.SelectedAssetIds, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(job.CronExpression))
         {
@@ -229,6 +239,47 @@ public sealed class ScanJobsController(
         return RedirectToAction(nameof(Index));
     }
 
+    private static string ResolveTargetRange(ScanJobViewModel form)
+    {
+        return form.SelectedAssetIds.Count > 0 ? string.Empty : form.TargetRange.Trim();
+    }
+
+    private async Task SyncScanJobAssetsAsync(int jobId, List<int> selectedAssetIds, CancellationToken cancellationToken)
+    {
+        var existing = await dbContext.ScanJobAssets
+            .Where(sja => sja.ScanJobId == jobId)
+            .ToListAsync(cancellationToken);
+
+        var toRemove = existing.Where(sja => !selectedAssetIds.Contains(sja.AssetId)).ToList();
+        var existingAssetIds = existing.Select(sja => sja.AssetId).ToHashSet();
+        var toAdd = selectedAssetIds.Where(id => !existingAssetIds.Contains(id))
+            .Select(assetId => new ScanJobAsset { ScanJobId = jobId, AssetId = assetId })
+            .ToList();
+
+        dbContext.ScanJobAssets.RemoveRange(toRemove);
+        dbContext.ScanJobAssets.AddRange(toAdd);
+
+        if (toRemove.Count > 0 || toAdd.Count > 0)
+        {
+            // Recompute TargetRange from linked assets
+            var job = await dbContext.ScanJobs
+                .Include(j => j.ScanJobAssets)
+                .ThenInclude(sja => sja.Asset)
+                .FirstOrDefaultAsync(j => j.JobId == jobId, cancellationToken);
+            if (job is not null)
+            {
+                var ips = job.ScanJobAssets
+                    .Select(sja => sja.Asset?.IPAddress)
+                    .Where(ip => !string.IsNullOrWhiteSpace(ip))
+                    .Distinct()
+                    .ToList();
+                job.TargetRange = ips.Count > 0 ? string.Join(" ", ips) : "-";
+            }
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<ScanJobsIndexViewModel> BuildIndexViewModelAsync(string? search, CancellationToken cancellationToken, int page = 1)
     {
         var nmapStatus = scanJobService.GetNmapInstallationStatus();
@@ -271,6 +322,10 @@ public sealed class ScanJobsController(
         return new ScanJobsIndexViewModel
         {
             DependencyScannerSupported = dependencyScanSupported,
+            AvailableAssets = await dbContext.Assets
+                .Where(a => a.IsActive)
+                .OrderBy(a => a.AssetName)
+                .ToListAsync(cancellationToken),
             Items = await query
                 .OrderBy(item => item.JobName)
                 .Skip((page - 1) * PageSize)

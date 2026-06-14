@@ -78,6 +78,45 @@ public static class DbInitializer
         await EnsureColumnAsync(dbContext, providerName, "Vulnerabilities", "DetectedVersion", "TEXT NULL", "nvarchar(200) NULL", cancellationToken);
         await EnsureColumnAsync(dbContext, providerName, "Vulnerabilities", "SignatureVersion", "TEXT NULL", "nvarchar(200) NULL", cancellationToken);
         await EnsureGreenboneTablesAsync(dbContext, providerName, cancellationToken);
+        await EnsureScanJobAssetsTableAsync(dbContext, providerName, cancellationToken);
+    }
+
+    private static async Task EnsureScanJobAssetsTableAsync(ApplicationDbContext dbContext, string providerName, CancellationToken cancellationToken)
+    {
+        if (await TableExistsAsync(dbContext, "ScanJobAssets", cancellationToken))
+        {
+            return;
+        }
+
+        if (providerName.Contains("Sqlite", StringComparison.OrdinalIgnoreCase))
+        {
+            await dbContext.Database.ExecuteSqlRawAsync("""
+                CREATE TABLE ScanJobAssets (
+                    ScanJobAssetId INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ScanJobId INTEGER NOT NULL,
+                    AssetId INTEGER NOT NULL,
+                    FOREIGN KEY (ScanJobId) REFERENCES ScanJobs(JobId) ON DELETE CASCADE,
+                    FOREIGN KEY (AssetId) REFERENCES Assets(AssetId) ON DELETE CASCADE,
+                    UNIQUE (ScanJobId, AssetId)
+                );
+                CREATE INDEX IX_ScanJobAssets_ScanJobId ON ScanJobAssets(ScanJobId);
+                CREATE INDEX IX_ScanJobAssets_AssetId ON ScanJobAssets(AssetId);
+                """, cancellationToken);
+            return;
+        }
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE ScanJobAssets (
+                ScanJobAssetId int IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                ScanJobId int NOT NULL,
+                AssetId int NOT NULL,
+                CONSTRAINT FK_ScanJobAssets_ScanJobs FOREIGN KEY (ScanJobId) REFERENCES ScanJobs(JobId) ON DELETE CASCADE,
+                CONSTRAINT FK_ScanJobAssets_Assets FOREIGN KEY (AssetId) REFERENCES Assets(AssetId) ON DELETE CASCADE,
+                CONSTRAINT UQ_ScanJobAssets_Job_Asset UNIQUE (ScanJobId, AssetId)
+            );
+            CREATE INDEX IX_ScanJobAssets_ScanJobId ON ScanJobAssets(ScanJobId);
+            CREATE INDEX IX_ScanJobAssets_AssetId ON ScanJobAssets(AssetId);
+            """, cancellationToken);
     }
 
     private static async Task EnsureColumnAsync(

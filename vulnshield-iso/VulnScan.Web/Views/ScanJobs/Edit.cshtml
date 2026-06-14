@@ -1,6 +1,8 @@
+@using VulnScan.Web.Models
 @model VulnScan.Web.ViewModels.ScanJobViewModel
 @{
     ViewData["Title"] = "編輯掃描任務";
+    var availableAssets = (ViewBag.AvailableAssets as IReadOnlyList<Asset>) ?? Array.Empty<Asset>();
 }
 
 <article class="panel-card panel-card-narrow">
@@ -16,10 +18,24 @@
             <input asp-for="JobName" class="form-control" />
             <span asp-validation-for="JobName" class="text-danger"></span>
         </div>
-        <div>
-            <label asp-for="TargetRange" class="form-label"></label>
-            <input asp-for="TargetRange" class="form-control" />
-            <span asp-validation-for="TargetRange" class="text-danger"></span>
+        <div class="full-width">
+            <label class="form-label">選取資產</label>
+            <div class="asset-checkbox-grid">
+                @for (var i = 0; i < availableAssets.Count; i++)
+                {
+                    var asset = availableAssets[i];
+                    <label class="checkbox-label">
+                        <input type="checkbox" name="SelectedAssetIds" value="@asset.AssetId"
+                               @(Model.SelectedAssetIds.Contains(asset.AssetId) ? "checked" : "") />
+                        @asset.AssetName (@asset.IPAddress)
+                    </label>
+                }
+            </div>
+            @if (availableAssets.Count == 0)
+            {
+                <p class="text-muted small">尚無可用資產，請先前往<a asp-controller="Assets" asp-action="Index">資產清冊</a>新增資產。</p>
+            }
+            <span asp-validation-for="SelectedAssetIds" class="text-danger"></span>
         </div>
         <div>
             <label asp-for="ScanType" class="form-label"></label>

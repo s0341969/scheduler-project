@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-06-14 (2)
+- 新增多資產選取掃描功能（Many-to-Many ScanJob ↔ Asset）:
+  - 新增 `ScanJobAsset` 模型 + DbContext 關聯設定 + DbInitializer 自動建立 `ScanJobAssets` 表
+  - `ScanJobsController.Create` / `Edit`: 支援透過 `SelectedAssetIds` 選取多個資產，自動解析 IP 寫入 `TargetRange`
+  - `ScanJobs/Index.cshtml` / `Edit.cshtml`: 以資產勾選清單取代原始 `TargetRange` 文字輸入（保留目標 IP 為唯讀預覽）
+  - `ScanJobService`: `CreateRunAsync` / `RunScanAsync` / `RunNmapScanAsync` / `RunNucleiScanAsync` 優先從 `ScanJobAssets` 計算目標 IP，無資產時回退 `TargetRange`（相容既有任務）
+- 新增 `asset-checkbox-grid` CSS 樣式（兩欄格線 + 可滾動容器）
+- 更新 `README.md`、`CHANGELOG.md`、`TODO.md` 同步
+
 ## 2026-06-14
 - 新增 `ExceptionMiddleware` 全域例外處理中介層，Dev 模式重新擲回例外讓開發者錯誤頁顯示詳細資訊，Prod 模式維持既有導向錯誤頁 + API JSON 回傳
 - DeveloperExceptionPage 中介層：Dev 模式啟用，讓未處理例外顯示完整黃色錯誤頁（含堆疊、查詢字串等）

@@ -21,6 +21,7 @@
 
 ## 已完成
 
+- ✅ 多資產選取掃描（Many-to-Many ScanJob ↔ Asset），含模型、DB 初始化、Controller/View/Service 整合
 - ✅ 修正 ExceptionMiddleware Dev 模式重新擲回例外，加上 DeveloperExceptionPage 中介層，開發者可取得完整錯誤資訊
 - ✅ 修正 PDF 報表 DocLayoutException（CardStyle Shrink + RelativeItem 衝突、掃描摘要表格欄寬超 A4 可用範圍）
 - ✅ `ExceptionMiddleware` 全域例外處理中介層

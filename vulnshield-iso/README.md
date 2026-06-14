@@ -130,6 +130,12 @@ Development 預設 bootstrap 帳號：
 - 支援 `AssetPorts.ServiceProduct/ServiceVersion` 與 `Vulnerabilities.DetectedVersion` 雙來源
 - 可在 `appsettings.json` 中設定 `VulnScan:EnablePatchVersionCheck: false` 關閉
 
+## 多資產選取掃描
+
+建立或編輯掃描任務時，可在表單中透過勾選清單選取多個資產（Many-to-Many `ScanJob ↔ Asset`），系統會自動將所選資產的 IP 寫入目標範圍（空白分隔），取代手動輸入 IP。
+
+既有任務（無 `ScanJobAsset` 紀錄）仍可正常執行，系統會回退使用 `TargetRange` 欄位值。
+
 ## 掃描工具選擇
 
 建立或編輯掃描任務時，可在表單中切換掃描工具（Nmap / Nuclei / 相依性掃描），並根據所選工具自動切換對應的 profile 選項。

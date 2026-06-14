@@ -44,4 +44,6 @@ public sealed class ScanJob
     public DateTime? UpdatedAt { get; set; }
 
     public ICollection<ScanRun> ScanRuns { get; set; } = new List<ScanRun>();
+
+    public ICollection<ScanJobAsset> ScanJobAssets { get; set; } = new List<ScanJobAsset>();
 }

@@ -55,4 +55,6 @@ public sealed class Asset
     public ICollection<AssetPort> AssetPorts { get; set; } = new List<AssetPort>();
 
     public ICollection<Vulnerability> Vulnerabilities { get; set; } = new List<Vulnerability>();
+
+    public ICollection<ScanJobAsset> ScanJobAssets { get; set; } = new List<ScanJobAsset>();
 }

@@ -10,9 +10,11 @@ public sealed class ScanJobViewModel
     [Display(Name = "任務名稱")]
     public string JobName { get; set; } = string.Empty;
 
-    [Required]
-    [Display(Name = "掃描目標")]
+    [Display(Name = "掃描目標（自動從選取資產產生）")]
     public string TargetRange { get; set; } = string.Empty;
+
+    [Display(Name = "選取資產")]
+    public List<int> SelectedAssetIds { get; set; } = new();
 
     [Required]
     [Display(Name = "掃描類型")]
