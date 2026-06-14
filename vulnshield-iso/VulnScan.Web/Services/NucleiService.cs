@@ -48,7 +48,7 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
         return null;
     }
 
-    public async Task<string> RunNucleiAsync(string target, string outputPath, string templateFilter, CancellationToken cancellationToken = default)
+    public async Task<string> RunNucleiAsync(string target, string outputPath, string templateOrTag, string? cliFlag = null, string? cliValue = null, CancellationToken cancellationToken = default)
     {
         var exePath = GetInstallPath() ?? throw new InvalidOperationException("找不到 nuclei.exe。請確認已在系統 PATH 中或設定 VulnScan:NucleiPath。");
 
@@ -58,9 +58,16 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
 
         var args = $"-target {EscapeArg(target)} -json -o {EscapeArg(outputPath)}";
 
-        if (!string.IsNullOrWhiteSpace(templateFilter) && templateFilter != "All")
+        if (!string.IsNullOrWhiteSpace(templateOrTag) && templateOrTag != "All")
         {
-            args += $" -t {EscapeArg(templateFilter)}";
+            if (string.Equals(cliFlag, "-tags", StringComparison.OrdinalIgnoreCase))
+            {
+                args += $" -tags {EscapeArg(cliValue ?? templateOrTag)}";
+            }
+            else
+            {
+                args += $" -t {EscapeArg(templateOrTag)}";
+            }
         }
 
         args += " -disable-update-check";

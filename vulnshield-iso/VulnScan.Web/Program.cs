@@ -124,6 +124,8 @@ builder.Services.AddScoped<IVulnerabilityService, VulnerabilityService>();
 builder.Services.AddScoped<IScanImportService, ScanImportService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IWebhookService, WebhookService>();
+builder.Services.AddScoped<IPatchVersionService, PatchVersionService>();
+builder.Services.AddScoped<IDependencyScanService, DependencyScanService>();
 builder.Services.AddHostedService<AutoImportBackgroundService>();
 
 var app = builder.Build();

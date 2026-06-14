@@ -19,4 +19,6 @@ public sealed class ScanJobsIndexViewModel
     public int TotalPages { get; set; } = 1;
 
     public int TotalCount { get; set; }
+
+    public bool DependencyScannerSupported { get; set; }
 }

@@ -16,6 +16,8 @@ public sealed class ScanJobService(
     INucleiResultParserService nucleiResultParserService,
     IAuditLogService auditLogService,
     IWebhookService webhookService,
+    IPatchVersionService patchVersionService,
+    IDependencyScanService dependencyScanService,
     IOptions<VulnScanOptions> options) : IScanJobService
 {
     private readonly VulnScanOptions _options = options.Value;
@@ -82,7 +84,11 @@ public sealed class ScanJobService(
             run.StartTime = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
 
-            if (string.Equals(job.ScanTool, "Nuclei", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(job.ScanTool, "DependencyScanner", StringComparison.OrdinalIgnoreCase))
+            {
+                await RunDependencyScanAsync(run, job, cancellationToken);
+            }
+            else if (string.Equals(job.ScanTool, "Nuclei", StringComparison.OrdinalIgnoreCase))
             {
                 await RunNucleiScanAsync(run, job, cancellationToken);
             }
@@ -91,7 +97,12 @@ public sealed class ScanJobService(
                 await RunNmapScanAsync(run, job, cancellationToken);
             }
 
-            run.Status = "Completed";
+            if (_options.EnablePatchVersionCheck && run.Status != "Failed")
+            {
+                await patchVersionService.CheckVulnerabilitiesAsync(run.RunId, cancellationToken);
+            }
+
+            run.Status = run.Status == "Running" ? "Completed" : run.Status;
             run.EndTime = DateTime.UtcNow;
             await dbContext.SaveChangesAsync(cancellationToken);
         }
@@ -109,6 +120,71 @@ public sealed class ScanJobService(
         }
     }
 
+    public async Task<int> CreateDependencyScanRunAsync(string targetDirectory, string userAccount, CancellationToken cancellationToken = default)
+    {
+        if (!dependencyScanService.IsSupported())
+            throw new InvalidOperationException("相依性掃描需要 .NET SDK 支援（dotnet CLI）。");
+
+        var job = new ScanJob
+        {
+            JobName = $"相依性掃描 - {new DirectoryInfo(targetDirectory).Name}",
+            TargetRange = targetDirectory,
+            ScanType = "DependencyScan",
+            ScanTool = "DependencyScanner",
+            ScanProfile = "DependencyScan",
+            IsEnabled = false,
+            CreatedBy = userAccount,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        dbContext.ScanJobs.Add(job);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        var run = new ScanRun
+        {
+            JobId = job.JobId,
+            StartTime = DateTime.UtcNow,
+            Status = "Pending",
+            CreatedBy = userAccount,
+            CreatedAt = DateTime.UtcNow,
+        };
+
+        dbContext.ScanRuns.Add(run);
+        await dbContext.SaveChangesAsync(cancellationToken);
+
+        backgroundJobClient.Enqueue<IScanJobService>(service => service.RunDependencyScanAsync(run.RunId, CancellationToken.None));
+        await auditLogService.WriteAsync("DependencyScanCreated", "ScanRun", run.RunId, $"建立相依性掃描: {targetDirectory}", userAccount, null, cancellationToken);
+
+        return run.RunId;
+    }
+
+    public async Task RunDependencyScanAsync(int runId, CancellationToken cancellationToken = default)
+    {
+        var run = await dbContext.ScanRuns.Include(item => item.ScanJob).FirstOrDefaultAsync(item => item.RunId == runId, cancellationToken)
+                  ?? throw new InvalidOperationException($"找不到 ScanRun {runId}。");
+        var job = run.ScanJob ?? throw new InvalidOperationException($"ScanRun {runId} 缺少 ScanJob。");
+
+        try
+        {
+            run.Status = "Running";
+            run.StartTime = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+
+            await RunDependencyScanAsync(run, job, cancellationToken);
+
+            run.Status = "Completed";
+            run.EndTime = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            run.Status = "Failed";
+            run.EndTime = DateTime.UtcNow;
+            run.ErrorMessage = exception.Message;
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     private async Task RunNmapScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
     {
         var outputPath = Path.Combine(_options.ResultRootPath, $"run-{run.RunId}.xml");
@@ -119,15 +195,41 @@ public sealed class ScanJobService(
 
     private async Task RunNucleiScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
     {
+        var profile = ScanProfileDefinition.Get(job.ScanProfile ?? "All");
         var outputPath = Path.Combine(_options.ResultRootPath, $"nuclei-run-{run.RunId}.json");
-        var jsonPath = await nucleiService.RunNucleiAsync(job.TargetRange, outputPath, job.ScanProfile ?? "All", cancellationToken);
+        var jsonPath = await nucleiService.RunNucleiAsync(
+            job.TargetRange, outputPath, job.ScanProfile ?? "All",
+            profile?.CliFlag, profile?.CliValue, cancellationToken);
         var importedCount = await nucleiResultParserService.ParseAndSaveAsync(run.RunId, jsonPath, cancellationToken);
         run.RawResultPath = jsonPath;
         run.TotalVulnerabilities = importedCount;
     }
 
+    private async Task RunDependencyScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
+    {
+        if (!dependencyScanService.IsSupported())
+        {
+            run.Status = "Failed";
+            run.ErrorMessage = "相依性掃描需要 .NET SDK 支援（dotnet CLI）。";
+            run.EndTime = DateTime.UtcNow;
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var importedCount = await dependencyScanService.RunScanAsync(run.RunId, job.TargetRange, cancellationToken);
+        run.TotalVulnerabilities = importedCount;
+    }
+
     private void ValidateExecutionPrerequisites(ScanJob job)
     {
+        if (string.Equals(job.ScanTool, "DependencyScanner", StringComparison.OrdinalIgnoreCase))
+        {
+            if (dependencyScanService.IsSupported())
+                return;
+
+            throw new InvalidOperationException("相依性掃描需要 .NET SDK。請確認 dotnet CLI 可在系統 PATH 中使用。");
+        }
+
         if (string.Equals(job.ScanTool, "Nuclei", StringComparison.OrdinalIgnoreCase))
         {
             if (nucleiService.IsInstalled())

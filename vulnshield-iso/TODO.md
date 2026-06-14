@@ -5,8 +5,7 @@
 1. `UsersController` 與使用者管理頁
 2. `EF Core Migration`，取代目前的 `EnsureCreated()`
 3. `Greenbone` 測試連線、帳密驗證與同步治理強化
-4. 補上 Controllers 層級整合測試、補上 Integration Test
-5. 為 `ScanJobs` 頁補上 `Nuclei` 安裝狀態檢查卡（類似 Nmap preflight alert）
+4. 補上 `DependencyScanService` / `PatchVersionService` 單元測試
 
 ## VulnScan.Web 後續項目
 
@@ -29,6 +28,13 @@
 - ✅ `Webhook` 匯出機制（含 HMAC 簽章）
 - ✅ `Dockerfile` + `docker-compose.yml` 容器化
 - ✅ `VulnScan.Web.Tests` 測試專案（16 項測試）
+- ✅ 網頁應用弱掃（Nuclei Web DAST：SQLi / XSS / LFI / SSRF / RCE / Tech Detection）
+- ✅ 帳號權限檢測（Nmap CredentialCheck profile）
+- ✅ 相依性掃描（.NET / npm / Python）
+- ✅ 主動 Patch 版本比對引擎（semver 範圍解析 + 本地漏洞資料庫）
+- ✅ `ScanProfileDefinition` 設定檔統一管理
+- ✅ `RunDependencyScan` Action + 前端 UI
+- ✅ `EnablePatchVersionCheck` 可開關設定
 
 ## 原則
 

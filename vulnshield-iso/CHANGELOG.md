@@ -11,6 +11,19 @@
 - 新增 `VulnScan.Web.Tests` 整合測試專案：16 項單元測試（ScanAllowedRangeService、SystemCheckService、WebhookService、VulnerabilityStatus）
 - 側欄新增「Webhook 設定」頁面連結
 - 更新 `README.md` 基礎建設特色章節與保留內容清單
+- 新增「網頁應用弱掃」支援：Nuclei Web DAST 設定檔（SQLi / XSS / LFI / SSRF / RCE / Tech Detection）
+- 新增「帳號權限檢測」支援：Nmap CredentialCheck profile（預設帳密掃描）
+- 新增「相依性掃描」服務：`IDependencyScanService` / `DependencyScanService`，支援 .NET (`dotnet list vulnerable`)、npm (`npm audit`)、Python (`pip-audit`)
+- 新增「主動 Patch 版本比對」引擎：`IPatchVersionService` / `PatchVersionService`，支援 semver 範圍解析（`<` / `>` / `=` / `-` 範圍 / `||` OR）
+- 新增本地漏洞資料庫模型 (`LocalVulnerabilityDb` / `ProductVulnerability` / `CveEntry` / `PatchCheckResult`) 與初始資料庫 (10 項產品 CVE)
+- 新增 `ScanProfileDefinition` 設定檔，定義所有掃描設定檔與 CLI 參數
+- `ScanJobsController` 新增 `RunDependencyScan` Action、相依性掃描 UI 表單、DependencyScanner 狀態標示
+- `ScanJobs` 前端視圖：新增 Nuclei Web DAST 設定檔（optgroup）、相依性掃描區塊
+- `Program.cs` 註冊 `IPatchVersionService` / `IDependencyScanService`
+- `appsettings.json` / `appsettings.Development.json` 新增 `EnablePatchVersionCheck` 設定
+- `ScanJobService` 整合 `DependencyScanner` 調度、掃描後自動呼叫 `PatchVersionService.CheckVulnerabilitiesAsync`
+- `NucleiService.RunNucleiAsync` 支援 `-tags` 模式（透過 `cliFlag` / `cliValue`）
+- 更新 TOD0.md 與 README.md 功能清單
 
 ## 2026-06-07
 - 安裝 Nuclei v3.8.0 至 `C:\tools\nuclei` 並加入 User PATH

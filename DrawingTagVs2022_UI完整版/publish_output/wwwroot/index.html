@@ -268,6 +268,12 @@
         label { color: var(--th-text-main); }
         small { color: var(--th-text-muted) !important; }
         details summary { color: var(--th-text-muted); }
+        body.theme-dark .controls-header strong { color:#f3f7ff !important; }
+        body.theme-dark .step-label label { color:#dcecff !important; }
+        body.theme-dark details summary { color:#d7e6ff !important; }
+        body.theme-dark #dbPdfHint,
+        body.theme-dark #functionPanel .control-group small { color:#b9cbe0 !important; }
+        body.theme-dark label[for="dbPdfSelect"] { color:#8fc8ff !important; }
         .auto-tag-panel { display:flex; flex-direction:column; gap:5px; min-width:280px; }
         .auto-tag-options { display:flex; flex-direction:column; gap:4px; }
         .auto-tag-actions { display:flex; flex-wrap:wrap; gap:5px; }
@@ -828,7 +834,7 @@
         let hasAutoZoomed = false; // 第一次標註時自動放大一次
         let panMode = false;       // 預設進入標註模式；左鍵按住拖曳 = 平移，放開未拖曳 = 新增標籤
         let pdfLoadingSettings = {
-            maxPagesToRender: 10,
+            maxPagesToRender: 0,
             maxTotalPixels: 35000000,
             renderScale: 2.2
         };
@@ -3009,7 +3015,7 @@
                 const version = data?.version || data?.Version || 'UNKNOWN';
                 const pdfLoading = data?.pdfLoading || data?.PdfLoading || {};
                 pdfLoadingSettings = {
-                    maxPagesToRender: Number(pdfLoading.maxPagesToRender || pdfLoading.MaxPagesToRender || pdfLoadingSettings.maxPagesToRender),
+                    maxPagesToRender: 0,
                     maxTotalPixels: Number(pdfLoading.maxTotalPixels || pdfLoading.MaxTotalPixels || pdfLoadingSettings.maxTotalPixels),
                     renderScale: Number(pdfLoading.renderScale || pdfLoading.RenderScale || pdfLoadingSettings.renderScale)
                 };
@@ -3128,7 +3134,9 @@
                 const typedArray = new Uint8Array(arrayBuffer);
                 const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
                 const configuredScale = Math.max(0.5, Number(pdfLoadingSettings.renderScale) || 2.2);
-                const maxPagesToRender = Math.max(1, parseInt(pdfLoadingSettings.maxPagesToRender, 10) || 10);
+                const parsedMaxPages = parseInt(pdfLoadingSettings.maxPagesToRender, 10);
+                const maxPagesToRender = Number.isFinite(parsedMaxPages) ? parsedMaxPages : 0;
+                const hasPageLimit = maxPagesToRender > 0;
                 const maxTotalPixels = Math.max(1000000, Number(pdfLoadingSettings.maxTotalPixels) || 35000000);
                 let totalPixels = 0;
                 let widestPage = 0;
@@ -3141,7 +3149,7 @@
                 let effectiveScale = configuredScale;
                 let autoScaled = false;
 
-                if (pdf.numPages > maxPagesToRender) {
+                if (hasPageLimit && pdf.numPages > maxPagesToRender) {
                     throw new Error(`PDF 共 ${pdf.numPages} 頁，超過系統限制 ${maxPagesToRender} 頁，已停止載入。`);
                 }
 

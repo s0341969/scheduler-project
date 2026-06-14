@@ -11,4 +11,8 @@ public interface IScanJobService
     NmapInstallationStatus GetNmapInstallationStatus();
 
     bool IsNucleiInstalled();
+
+    Task<int> CreateDependencyScanRunAsync(string targetDirectory, string userAccount, CancellationToken cancellationToken = default);
+
+    Task RunDependencyScanAsync(int runId, CancellationToken cancellationToken = default);
 }

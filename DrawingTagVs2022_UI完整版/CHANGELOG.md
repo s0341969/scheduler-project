@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-06-09
+
+- 修正網站啟動時未將 `runtimes\win-x64\native` 與 `x64/x86` 納入 native DLL 搜尋路徑，導致執行「分析目前圖面」時 `OpenCvSharpExtern.dll` 無法載入，跳出 `TypeInitializationException`
+- 在 `DrawingTagWeb/Program.cs` 啟動流程加入 native library search path 補強，避免 OpenCV 初始化失敗
+- 修正實際使用中的 `run_web.bat` 啟動器，於組合 `publish_output` 與 Release runtime 後，先將 `runtimes\win-x64\native`、`runtimes\win-x86\native`、`x64`、`x86` 加入 `PATH`，確保目前網站執行版本也能正確載入 OpenCV/Tesseract native DLL
+- 由官方 `OpenCvSharp4.runtime.win 4.10.0.20240616` 套件補回缺失的 `OpenCvSharpExtern.dll` 與 `opencv_videoio_ffmpeg4100*.dll`，並寫入 `publish_output\runtimes` 與 `DrawingTagWeb\bin\Release\net8.0\win-x64\runtimes`
+- 調亮深色主題下「載入 PDF / 圖面」區塊的標題、`挑選檔案`、資料庫 PDF 路徑與提示文字，避免黑底時辨識度不足
+- 取消前端 PDF 固定 10 頁限制，改為頁數不限、以總像素上限與自動降解析度保護載入效能，避免 16 頁以上 PDF 直接被拒絕
+- 修正前端載入 `/api/system-info` 後會被後端 `pdfLoading.maxPagesToRender=10` 覆蓋的問題，現在固定忽略後端頁數限制，只保留像素上限與解析度設定
+- 收斂網站啟動入口，保留根目錄 `run_web.bat` 為唯一固定入口，移除 `DrawingTagWeb\run_web.bat`，避免混用
+- 新增 `DrawingTypeScanner\run_scanner.bat`，可直接以前景模式執行現有 Release 版 `DrawingTypeScanner.exe`
+- `DrawingTypeScanner\run_scanner.bat` 執行前會先從 `appsettings.json` 顯示掃描路徑、搜尋條件、遞迴設定、平行度、批次大小、SQL timeout 與遮罩後的資料庫連線摘要
+- 系統版次提升為 `V2026.04.29.05`
+
 ## 2026-04-29 16:41
 
 - 調整規格查詢 API，支援 Stored Procedure 兩個結果集：

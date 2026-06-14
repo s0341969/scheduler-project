@@ -71,6 +71,19 @@
     </section>
 }
 
+@if (!Model.DependencyScannerSupported)
+{
+    <section class="panel-card preflight-alert-card">
+        <div class="panel-card-header">
+            <h3>相依性掃描無法使用</h3>
+            <span class="status-pill preflight-status-pill">Blocked</span>
+        </div>
+        <div class="form-stack">
+            <p class="mb-0">相依性掃描需要 .NET SDK（dotnet CLI）。若要在本機上執行相依性掃描，請先安裝 .NET SDK。</p>
+        </div>
+    </section>
+}
+
 <section class="split-grid">
     <article class="panel-card">
         <div class="panel-card-header">
@@ -106,6 +119,21 @@
                     <option value="Nuclei">Nuclei</option>
                 </select>
             </div>
+            @if (Model.DependencyScannerSupported)
+            {
+                <div class="full-width">
+                    <hr />
+                    <h4>相依性掃描（第三方套件安全檢查）</h4>
+                    <p class="text-muted small mb-2">掃描指定目錄下的 .NET / npm / Python 專案相依性是否有已知弱點。</p>
+                    <form asp-action="RunDependencyScan" method="post" class="form-inline">
+                        @Html.AntiForgeryToken()
+                        <div class="d-flex gap-2">
+                            <input type="text" name="targetDirectory" class="form-control" placeholder="輸入專案目錄路徑，如 C:\Projects\MyApp" style="flex:1" />
+                            <button type="submit" class="btn btn-primary">執行相依性掃描</button>
+                        </div>
+                    </form>
+                </div>
+            }
             <div>
                 <label asp-for="Form.ScanProfile" class="form-label" id="scanProfileLabel">掃描強度</label>
                 <select asp-for="Form.ScanProfile" class="form-select" id="scanProfileSelect">
@@ -116,6 +144,7 @@
                         <option value="Deep">Deep - 深度掃描+A+完整版本</option>
                         <option value="Stealth">Stealth - 隱匿模式</option>
                         <option value="VulnScript">VulnScript - 安全腳本掃描</option>
+                        <option value="CredentialCheck">CredentialCheck - 預設帳密檢測</option>
                     </optgroup>
                     <optgroup label="Nuclei 範本">
                         <option value="All">All - 所有範本</option>
@@ -124,6 +153,14 @@
                         <option value="misconfiguration">Misconfig - 錯誤設定</option>
                         <option value="exposures">Exposures - 曝露</option>
                         <option value="default-logins">DefaultLogins - 預設登入</option>
+                    </optgroup>
+                    <optgroup label="Nuclei Web DAST">
+                        <option value="web-sqli">SQL Injection</option>
+                        <option value="web-xss">Cross-Site Scripting (XSS)</option>
+                        <option value="web-lfi">LFI / RFI</option>
+                        <option value="web-ssrf">SSRF</option>
+                        <option value="web-rce">Remote Code Execution</option>
+                        <option value="web-tech">Web Tech Detection</option>
                     </optgroup>
                 </select>
             </div>
@@ -246,7 +283,10 @@
                 for (var i = 0; i < profileSelect.options.length; i++) {
                     var opt = profileSelect.options[i];
                     if (opt.tagName === 'OPTGROUP') {
-                        opt.style.display = (tool === 'Nuclei' && opt.label === 'Nuclei 範本') || (tool === 'Nmap' && opt.label === 'Nmap 模式') ? '' : 'none';
+                        var show = false;
+                        if (tool === 'Nmap' && opt.label === 'Nmap 模式') show = true;
+                        if (tool === 'Nuclei' && (opt.label === 'Nuclei 範本' || opt.label === 'Nuclei Web DAST')) show = true;
+                        opt.style.display = show ? '' : 'none';
                     }
                 }
                 // Auto-select first visible option if current is hidden

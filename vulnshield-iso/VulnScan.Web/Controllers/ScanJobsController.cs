@@ -76,6 +76,35 @@ public sealed class ScanJobsController(
         return RedirectToAction(nameof(Index));
     }
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RunDependencyScan(string targetDirectory, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(targetDirectory))
+        {
+            TempData["ErrorMessage"] = "請指定要掃描的目錄。";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (!Directory.Exists(targetDirectory))
+        {
+            TempData["ErrorMessage"] = $"目錄不存在：{targetDirectory}";
+            return RedirectToAction(nameof(Index));
+        }
+
+        try
+        {
+            var runId = await scanJobService.CreateDependencyScanRunAsync(targetDirectory, User.Identity?.Name ?? "system", cancellationToken);
+            TempData["StatusMessage"] = $"已建立相依性掃描 (Run #{runId})，目錄：{targetDirectory}";
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["ErrorMessage"] = exception.Message;
+        }
+
+        return RedirectToAction(nameof(Index));
+    }
+
     [HttpGet]
     public async Task<IActionResult> RunningScans(CancellationToken cancellationToken)
     {
@@ -200,6 +229,26 @@ public sealed class ScanJobsController(
     {
         var nmapStatus = scanJobService.GetNmapInstallationStatus();
         var nucleiStatus = scanJobService.IsNucleiInstalled();
+        var dependencyScanSupported = false;
+        try
+        {
+            using var proc = new System.Diagnostics.Process
+            {
+                StartInfo = new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "dotnet",
+                    Arguments = "--version",
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                }
+            };
+            proc.Start();
+            var version = proc.StandardOutput.ReadLine();
+            proc.WaitForExit(2000);
+            dependencyScanSupported = !string.IsNullOrWhiteSpace(version);
+        }
+        catch { }
         var query = dbContext.ScanJobs.AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -217,6 +266,7 @@ public sealed class ScanJobsController(
 
         return new ScanJobsIndexViewModel
         {
+            DependencyScannerSupported = dependencyScanSupported,
             Items = await query
                 .OrderBy(item => item.JobName)
                 .Skip((page - 1) * PageSize)

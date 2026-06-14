@@ -19,4 +19,8 @@ public sealed class VulnScanOptions
     public int MaxConcurrentScans { get; set; } = 2;
 
     public bool AllowExternalTargets { get; set; }
+
+    public string VulnerabilityDbPath { get; set; } = "App_Data\\vulnerability-db\\known-vulnerabilities.json";
+
+    public bool EnablePatchVersionCheck { get; set; } = true;
 }

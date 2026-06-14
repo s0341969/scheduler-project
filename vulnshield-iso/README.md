@@ -15,7 +15,7 @@
 - 掃描白名單控管
 - 掃描任務與掃描執行紀錄
 - `Nmap` 掃描（6 種掃描模式）與 `Port / Service` 結果解析
-- `Nuclei` 直接掃描（支援多種範本分類）與 `Nuclei` / `Nessus` 匯入
+- `Nuclei` 直接掃描（支援多種範本分類 + Web DAST 分類）與 `Nuclei` / `Nessus` 匯入
 - `Greenbone / OpenVAS` API 同步
 - 弱點清單與改善追蹤
 - `Excel / PDF` 報表匯出（含封面頁、摘要統計、風險等級分佈、弱點明細表）
@@ -92,19 +92,47 @@ Development 預設 bootstrap 帳號：
 - `exposures` - 曝露
 - `default-logins` - 預設登入
 
+支援的 Nuclei Web DAST 分類：
+- `web-sqli` - SQL Injection
+- `web-xss` - Cross-Site Scripting
+- `web-lfi` - LFI / RFI
+- `web-ssrf` - SSRF
+- `web-rce` - Remote Code Execution
+- `web-tech` - Web Tech Detection
+
 ## Nmap 掃描模式
 
-支援 6 種掃描強度：
+支援 7 種掃描強度：
 - `Quick` - 快速連接埠掃描（-T4 -F）
 - `QuickPlus` - 快速 + 版本偵測（-T4 -sV）
 - `Standard` - 標準 + 版本 + OS（-T4 -sV -O）
 - `Deep` - 深度掃描（-T4 -A -sV --version-intensity 9）
 - `Stealth` - 隱匿模式（-T2 -sS -sV）
 - `VulnScript` - 安全腳本掃描（-T4 -sV --script vuln）
+- `CredentialCheck` - 預設帳密檢測（-T4 -sV --script cred-summary）
+
+## 相依性掃描（第三方套件安全檢查）
+
+支援掃描專案目錄中的第三方套件弱點：
+
+- **.NET 專案**：執行 `dotnet list package --vulnerable --include-transitive`，解析移植性相依性弱點
+- **npm 專案**：執行 `npm audit --json`，解析 JavaScript 套件弱點
+- **Python 專案**：執行 `pip-audit --json`，解析 Python 套件弱點
+
+相依性掃描結果會寫入 `Vulnerabilities` 資料表（Protocol = "dependency"），可與 Nmap / Nuclei 結果合併檢視。
+
+## 主動 Patch 版本比對
+
+掃描完成後自動檢查檢測到的軟體版本是否落在已知 CVE 範圍內：
+
+- 內建本地漏洞資料庫（`App_Data/vulnerability-db/known-vulnerabilities.json`）
+- 支援完整 semver 範圍語法（`<` / `>` / `=` / `>=` / `<=` / `-` 範圍 / `||` OR）
+- 支援 `AssetPorts.ServiceProduct/ServiceVersion` 與 `Vulnerabilities.DetectedVersion` 雙來源
+- 可在 `appsettings.json` 中設定 `VulnScan:EnablePatchVersionCheck: false` 關閉
 
 ## 掃描工具選擇
 
-建立或編輯掃描任務時，可在表單中切換掃描工具（Nmap / Nuclei），並根據所選工具自動切換對應的 profile 選項。
+建立或編輯掃描任務時，可在表單中切換掃描工具（Nmap / Nuclei / 相依性掃描），並根據所選工具自動切換對應的 profile 選項。
 
 ## Nmap 相關行為
 
@@ -162,6 +190,10 @@ Development 預設 bootstrap 帳號：
 - **Webhook 匯出**：掃描完成時自動發送 HTTP POST 至設定的 Webhook URL，支援 HMAC-SHA256 簽章驗證
 - **Docker 容器化**：`Dockerfile` + `docker-compose.yml`，SQL Server + VulnScan.Web 一鍵部署
 - **整合測試**：`VulnScan.Web.Tests` 專案，使用 xUnit + Moq + EF Core SQLite InMemory
+- **網頁應用弱掃**：支援 Nuclei Web DAST 分類（SQLi / XSS / LFI / SSRF / RCE / Tech Detection）
+- **帳號權限檢測**：Nmap CredentialCheck profile，掃描預設帳密風險
+- **相依性掃描**：支援 .NET (`dotnet list vulnerable`)、npm (`npm audit`)、Python (`pip-audit`)
+- **主動 Patch 版本比對**：掃描後自動比對軟體版本與本地 CVE 資料庫，支援 semver 範圍語法
 
 ## 後續優先項目
 
@@ -170,4 +202,4 @@ Development 預設 bootstrap 帳號：
 1. `UsersController` 與使用者管理頁
 2. `EF Core Migration`，取代 `EnsureCreated()`
 3. `Greenbone` 測試連線與更完整的同步治理
-4. 更完整的整合測試覆蓋（Controllers、Integration）
+4. 為 `DependencyScanService` / `PatchVersionService` 補上單元測試
