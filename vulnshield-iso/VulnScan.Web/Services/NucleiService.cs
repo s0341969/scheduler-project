@@ -56,32 +56,43 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
         if (!string.IsNullOrWhiteSpace(outDir))
             Directory.CreateDirectory(outDir);
 
-        var args = $"-target {EscapeArg(target)} -json -o {EscapeArg(outputPath)}";
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = exePath,
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            RedirectStandardError = true,
+        };
+
+        foreach (var ip in target.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            startInfo.ArgumentList.Add("-target");
+            startInfo.ArgumentList.Add(ip);
+        }
+
+        startInfo.ArgumentList.Add("-json");
+        startInfo.ArgumentList.Add("-o");
+        startInfo.ArgumentList.Add(outputPath);
 
         if (!string.IsNullOrWhiteSpace(templateOrTag) && templateOrTag != "All")
         {
             if (string.Equals(cliFlag, "-tags", StringComparison.OrdinalIgnoreCase))
             {
-                args += $" -tags {EscapeArg(cliValue ?? templateOrTag)}";
+                startInfo.ArgumentList.Add("-tags");
+                startInfo.ArgumentList.Add(cliValue ?? templateOrTag);
             }
             else
             {
-                args += $" -t {EscapeArg(templateOrTag)}";
+                startInfo.ArgumentList.Add("-t");
+                startInfo.ArgumentList.Add(templateOrTag);
             }
         }
 
-        args += " -disable-update-check";
+        startInfo.ArgumentList.Add("-disable-update-check");
 
         using var process = new Process
         {
-            StartInfo = new ProcessStartInfo
-            {
-                FileName = exePath,
-                Arguments = args,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                RedirectStandardError = true,
-            }
+            StartInfo = startInfo,
         };
 
         // 只收集 stderr（錯誤訊息），stdout 透過 -o 直接寫檔
@@ -139,8 +150,4 @@ public sealed class NucleiService(IOptions<VulnScanOptions> options) : INucleiSe
         }
     }
 
-    private static string EscapeArg(string arg)
-    {
-        return $"\"{arg.Replace("\"", "\\\"")}\"";
-    }
 }

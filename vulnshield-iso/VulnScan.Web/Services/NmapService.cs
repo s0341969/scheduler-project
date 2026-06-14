@@ -77,16 +77,26 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
 
         var nmapPath = status.ResolvedPath;
 
-        var arguments = $"{BuildProfileArguments(scanProfile)} -oX \"{outputPath}\" {EscapeArg(target)}";
         var startInfo = new ProcessStartInfo
         {
             FileName = nmapPath,
-            Arguments = arguments,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
+
+        foreach (var profileArg in BuildProfileArguments(scanProfile).Split(' ', StringSplitOptions.RemoveEmptyEntries))
+        {
+            startInfo.ArgumentList.Add(profileArg);
+        }
+        startInfo.ArgumentList.Add("-oX");
+        startInfo.ArgumentList.Add(outputPath);
+
+        foreach (var ip in target.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            startInfo.ArgumentList.Add(ip);
+        }
 
         using var process = new Process { StartInfo = startInfo };
         process.Start();
@@ -164,18 +174,4 @@ public sealed class NmapService(IOptions<VulnScanOptions> options) : INmapServic
         _ => "-T4 -sV -O",
     };
 
-    private static string EscapeArg(string arg)
-    {
-        if (string.IsNullOrWhiteSpace(arg))
-        {
-            return "\"\"";
-        }
-
-        if (!arg.Contains(' ') && !arg.Contains('\t') && !arg.Contains('"') && !arg.Contains('\\'))
-        {
-            return arg;
-        }
-
-        return "\"" + arg.Replace("\\", "\\\\").Replace("\"", "\\\"") + "\"";
-    }
 }
