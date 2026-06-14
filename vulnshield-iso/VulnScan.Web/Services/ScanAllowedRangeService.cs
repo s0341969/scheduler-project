@@ -26,10 +26,22 @@ public sealed class ScanAllowedRangeService(
             return true;
         }
 
-        if (!IPAddress.TryParse(target, out var targetIp))
+        var ips = target.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (ips.Length == 0)
         {
-            await auditLogService.WriteAsync("ScanDenied", "Target", null, $"Target `{target}` 不是合法 IP。", null, null, cancellationToken);
+            await auditLogService.WriteAsync("ScanDenied", "Target", null, "Target 為空白。", null, null, cancellationToken);
             return false;
+        }
+
+        var parsedIps = new List<IPAddress>(ips.Length);
+        foreach (var ip in ips)
+        {
+            if (!IPAddress.TryParse(ip, out var parsed))
+            {
+                await auditLogService.WriteAsync("ScanDenied", "Target", null, $"Target `{ip}` 不是合法 IP。", null, null, cancellationToken);
+                return false;
+            }
+            parsedIps.Add(parsed);
         }
 
         var ranges = await dbContext.ScanAllowedRanges
@@ -37,15 +49,25 @@ public sealed class ScanAllowedRangeService(
             .Where(item => item.IsEnabled)
             .ToListAsync(cancellationToken);
 
-        foreach (var range in ranges)
+        foreach (var targetIp in parsedIps)
         {
-            if (IpRangeMatcher.Contains(range.Cidr, targetIp))
+            var allowed = false;
+            foreach (var range in ranges)
             {
-                return true;
+                if (IpRangeMatcher.Contains(range.Cidr, targetIp))
+                {
+                    allowed = true;
+                    break;
+                }
+            }
+
+            if (!allowed)
+            {
+                await auditLogService.WriteAsync("ScanDenied", "Target", null, $"Target `{targetIp}` 不在白名單。", null, null, cancellationToken);
+                return false;
             }
         }
 
-        await auditLogService.WriteAsync("ScanDenied", "Target", null, $"Target `{target}` 不在白名單。", null, null, cancellationToken);
-        return false;
+        return true;
     }
 }
