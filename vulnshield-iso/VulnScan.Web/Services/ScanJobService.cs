@@ -86,10 +86,8 @@ public sealed class ScanJobService(
 
             if (string.Equals(job.ScanType, "AllScan", StringComparison.OrdinalIgnoreCase))
             {
-                job.ScanProfile = "Deep";
-                await RunNmapScanAsync(run, job, cancellationToken);
-                job.ScanProfile = "All";
-                await RunNucleiScanAsync(run, job, cancellationToken);
+                await RunNmapScanAsync(run, job, "Deep", cancellationToken);
+                await RunNucleiScanAsync(run, job, "All", cancellationToken);
             }
             else if (string.Equals(job.ScanTool, "DependencyScanner", StringComparison.OrdinalIgnoreCase))
             {
@@ -97,11 +95,11 @@ public sealed class ScanJobService(
             }
             else if (string.Equals(job.ScanTool, "Nuclei", StringComparison.OrdinalIgnoreCase))
             {
-                await RunNucleiScanAsync(run, job, cancellationToken);
+                await RunNucleiScanAsync(run, job, cancellationToken: cancellationToken);
             }
             else
             {
-                await RunNmapScanAsync(run, job, cancellationToken);
+                await RunNmapScanAsync(run, job, cancellationToken: cancellationToken);
             }
 
             if (_options.EnablePatchVersionCheck && run.Status != "Failed")
@@ -192,20 +190,22 @@ public sealed class ScanJobService(
         }
     }
 
-    private async Task RunNmapScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
+    private async Task RunNmapScanAsync(ScanRun run, ScanJob job, string? profileOverride = null, CancellationToken cancellationToken = default)
     {
+        var profile = profileOverride ?? job.ScanProfile ?? "Standard";
         var outputPath = Path.Combine(_options.ResultRootPath, $"run-{run.RunId}.xml");
-        var xmlPath = await nmapService.RunNmapAsync(job.TargetRange, outputPath, job.ScanProfile ?? "Standard", cancellationToken);
+        var xmlPath = await nmapService.RunNmapAsync(job.TargetRange, outputPath, profile, cancellationToken);
         await nmapXmlParserService.ParseAndSaveAsync(run.RunId, xmlPath, cancellationToken);
         run.RawResultPath = xmlPath;
     }
 
-    private async Task RunNucleiScanAsync(ScanRun run, ScanJob job, CancellationToken cancellationToken)
+    private async Task RunNucleiScanAsync(ScanRun run, ScanJob job, string? profileOverride = null, CancellationToken cancellationToken = default)
     {
-        var profile = ScanProfileDefinition.Get(job.ScanProfile ?? "All");
+        var useProfile = profileOverride ?? job.ScanProfile ?? "All";
+        var profile = ScanProfileDefinition.Get(useProfile);
         var outputPath = Path.Combine(_options.ResultRootPath, $"nuclei-run-{run.RunId}.json");
         var jsonPath = await nucleiService.RunNucleiAsync(
-            job.TargetRange, outputPath, job.ScanProfile ?? "All",
+            job.TargetRange, outputPath, useProfile,
             profile?.CliFlag, profile?.CliValue, cancellationToken);
 
         if (!System.IO.File.Exists(jsonPath))
